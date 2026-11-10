@@ -40,7 +40,12 @@ Interaktiver 3D-Konfigurator ausschließlich für die Espressomaschine **Linea M
 - **Konfiguration abschließen**: Montage-Animation – die Maschine baut sich von null an selbst zusammen. Zuerst das Innenleben (vereinfacht nach den Explosionszeichnungen des Ersatzteilkatalogs): Füße und Bodenwanne, Bodenrahmen, Frontblech, Rückwand-Stütze, Streben, Wassertank, Pumpe mit Motor, Dampfkessel, Brühkessel mit Brühgruppe, Ventile, Elektronik; Kupferleitungen und Kabel wachsen von Anschluss zu Anschluss. Dann fliegen alle Bauteile in den gewählten Farben und Hölzern von außerhalb des Bildes heran und rasten ein, die Kamera fährt mit und zum Schluss einmal um die fertige Maschine. Links läuft die Montageliste mit den gewählten Materialien mit. Danach erscheint eine Abschlusskarte mit Konfigurationsnummer und den Eckdaten (Bild speichern, Liste kopieren, nochmal ansehen, weiter konfigurieren). Überspringen per Knopf oder Escape; bei „Bewegung reduzieren“ im System wird direkt das Ergebnis gezeigt.
 - **Holzumrandung, Cup Rail & Bleche** als eigener Schritt: Holzumrandung oben, Seitenplatten unten, beides oder ohne – in jeder Holzart (geölt oder lackiert); Cup Rail montiert oder ohne, Bauform und Material (Metall/PVD, Lack, „Wie Gehäuse“ oder jeder IGP-/RAL-Ton); Lochbild der Bleche
 - **10 Presets** im Stil von rb.crafts: Grau · Walnuss · Schwarz (Start), Special Brown · Olive, All Black · Walnuss, Elfenbein · Gold · Walnuss, Elfenbein · Eiche · DLC, Weiß · Walnuss, Special Bronze · Walnuss, Signalgelb · Walnuss, Style 23 · Olive, Jungle Street · Messing
-- **Link teilen** (die komplette Konfiguration steckt in der URL), **Bild speichern** (PNG), **Liste kopieren** (Textzusammenfassung).
+- **In AR ansehen** (Knopf „AR“ oben im 3D-Bereich und auf der Abschlusskarte): stellt die aktuelle Konfiguration in Originalgröße (rund 36 × 40 × 56 cm) auf die Arbeitsplatte oder den Boden.
+  - iPhone und iPad: AR Quick Look in Safari, das Modell wird im Browser als USDZ erzeugt
+  - Android: WebXR in Chrome (benötigt die „Google Play-Dienste für AR“), das Modell wird als GLB erzeugt
+  - Am Rechner: QR-Code, der den Konfigurator mit derselben Konfiguration auf dem Handy öffnet und den AR-Dialog gleich anzeigt; dazu die Modelle als Datei (`.usdz`, `.glb`)
+  - AR braucht eine über **https** erreichbare Seite, siehe „Online stellen“
+- **Link teilen**: Die komplette Konfiguration steckt als Kurzform im Link (`#z=…`, rund 450 Zeichen). **Bild speichern** (PNG), **Liste kopieren** (Textzusammenfassung).
 
 ## Starten
 
@@ -56,9 +61,13 @@ python3 -m http.server 8000
 
 Alternativ `npx serve .` oder die „Live Server“-Erweiterung in VS Code.
 
-### Online stellen (GitHub Pages)
+### Online stellen
 
-Im Repository unter **Settings → Pages** als Quelle „Deploy from a branch“ wählen, den gewünschten Branch und den Ordner `/ (root)` angeben. Danach ist der Konfigurator unter `https://<benutzer>.github.io/<repository>/` erreichbar.
+Der Konfigurator besteht nur aus statischen Dateien und läuft auf jedem Webspace mit https. Erst online funktionieren der teilbare Link mit Konfiguration, der QR-Code und die AR-Ansicht auf dem Handy.
+
+- **GitHub Pages**: Im Repository unter **Settings → Pages** als Quelle „Deploy from a branch“ wählen, den gewünschten Branch und den Ordner `/ (root)` angeben. Danach ist der Konfigurator unter `https://<benutzer>.github.io/<repository>/` erreichbar. Bei einem privaten Repository setzt das einen bezahlten GitHub-Tarif voraus; im kostenlosen Tarif muss das Repository öffentlich sein.
+- **Netlify, Vercel oder Cloudflare Pages**: Repository verbinden, kein Build-Befehl, Ausgabeordner ist das Hauptverzeichnis. Das geht auch mit einem privaten Repository kostenlos.
+- **Eigener Webspace**: alle Dateien unverändert hochladen.
 
 ## Projektstruktur
 
@@ -69,6 +78,7 @@ js/main.js          Einstieg: verbindet Modell, Materialien, Viewer und Oberflä
 js/model.js         Prozedurales 3D-Modell der Maschine (Maße in mm, nach Werkszeichnung + Fotos)
 js/lighting.js      Lichtstimmungen (Umgebung, Lichter, Hintergrund, Überblendung)
 js/assembly.js      Montage-Animation "Konfiguration abschließen" (Ablaufplan, Flugbahnen, Kamerafahrt)
+js/ar.js            AR-Ansicht: Export der Konfiguration als USDZ/GLB, Dialog, QR-Code
 js/materials.js     Materialien je Bauteil-Gruppe (Lack, Holz, Metall)
 js/textures.js      Prozedurale Texturen: Pulverlack-Struktur, Metallic-Lack, Gitter, Zifferblätter
 js/wood.js          Prozedurale Holztexturen (Farbe, Relief, Glanz) je Holzart
@@ -77,7 +87,9 @@ js/pipeline.js      Render-Pipeline: progressives Rendering, Tone-Mapping, Bloom
 js/viewer.js        Renderer, Licht, 360°-Kamera, Auswahl per Klick, Screenshot
 js/ui.js            Konfigurations-Panel
 js/data.js          Farbpaletten, Holzarten, Presets, Bauteil-Gruppen
-vendor/three/       Three.js r170 (MIT-Lizenz)
+vendor/three/       Three.js r170 samt USDZ-/glTF-Export (MIT-Lizenz)
+vendor/model-viewer/  <model-viewer> 4.0.0 für AR auf Android, wird erst bei Bedarf geladen (Apache-2.0)
+vendor/qrcode/      QR-Code-Erzeugung, wird erst bei Bedarf geladen (MIT-Lizenz)
 ```
 
 ## Anpassen
@@ -86,6 +98,7 @@ vendor/three/       Three.js r170 (MIT-Lizenz)
 - **IGP-Farben** sind in `BODY_COLLECTIONS` hinterlegt: `igp('Code', 'Name', '#hex')`. Die Hex-Werte wurden aus Fotos der Farbkarten gemessen und weißabgeglichen. Es sind also Näherungswerte für den Bildschirm, keine Farbmesswerte. Liegen offizielle RGB/Lab-Werte vor, einfach den Hex-Wert ersetzen.
 - **Holzmaserungen** werden über Kennwerte gesteuert (`style`, `light`/`mid`/`dark`, `rings`, `contrast`, `late`, `figure`, `pore`, `streak` …). Für `style` gibt es `ring`, `olive`, `zebra`, `burl` und `solid`.
 - **Darstellung testen**: `?q=high` bzw. `?q=low` in der Adresse erzwingt die fotorealistische bzw. schnelle Darstellung, `&samples=32` setzt die Zahl der gemittelten Bilder.
+- **AR testen**: `?ar=ios`, `?ar=webxr` oder `?ar=none` erzwingt am Rechner den jeweiligen Ablauf des AR-Dialogs. Für AR werden die Materialien vereinfacht (Farbe, Metall, Rauheit, Klarlack, Holzmaserung; ohne Feinstruktur) und das Glas der Manometer weggelassen.
 - **Geometrie**: Alle Maße stehen in Millimetern in `js/model.js` (Konstante `M` und die einzelnen Bauteil-Abschnitte).
 
 ## Vorlage rb.crafts

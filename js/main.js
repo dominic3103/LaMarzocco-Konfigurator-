@@ -27,6 +27,7 @@ import { ConfiguratorUI } from './ui.js';
 import { getWoodTextures } from './wood.js';
 import { LIGHTINGS, lightingById } from './lighting.js';
 import { AssemblyShow, isInnerStage } from './assembly.js';
+import { ARExperience } from './ar.js';
 
 const STORAGE_KEY = 'lm-mini-r-konfigurator';
 const ALL_SLOTS = Object.values(CATEGORIES).flatMap((c) => c.slots.map((s) => s.key));
@@ -93,6 +94,33 @@ function decodeConfig(str) {
     return null;
   }
 }
+// Kurzform für Links und QR-Codes: JSON komprimiert (deflate) und base64url-kodiert -> "#z=…"
+const b64url = (bytes) => {
+  let s = '';
+  for (const b of bytes) s += String.fromCharCode(b);
+  return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+};
+async function packConfig(cfg) {
+  if (typeof CompressionStream === 'undefined') return null;
+  try {
+    const stream = new Blob([JSON.stringify(cfg)]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+    return b64url(new Uint8Array(await new Response(stream).arrayBuffer()));
+  } catch {
+    return null;
+  }
+}
+async function unpackConfig(str) {
+  try {
+    const bin = atob(str.replace(/-/g, '+').replace(/_/g, '/'));
+    const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    return JSON.parse(await new Response(stream).text());
+  } catch {
+    return null;
+  }
+}
+const packedInHash = () => location.hash.match(/(?:^#|&)z=([\w-]+)/)?.[1] || null;
+
 function loadInitial() {
   const m = location.hash.match(/cfg=([\w-]+)/);
   if (m) {
@@ -325,7 +353,22 @@ function commit() {
   clearTimeout(hashTimer);
   hashTimer = setTimeout(() => {
     history.replaceState(null, '', `#cfg=${encodeConfig(config)}`);
+    refreshPacked();
   }, 250);
+}
+
+// Kurzlink zur aktuellen Konfiguration vorhalten (wird beim Teilen ohne Wartezeit gebraucht)
+let packed = null;
+function refreshPacked() {
+  const json = JSON.stringify(config);
+  packConfig(config).then((z) => {
+    packed = z ? { z, json } : null;
+  });
+}
+function shareUrl() {
+  if (ARTIFACT) return null;
+  const code = packed && packed.json === JSON.stringify(config) ? `z=${packed.z}` : `cfg=${encodeConfig(config)}`;
+  return `${location.origin}${location.pathname}#${code}`;
 }
 
 // ---------- Auswahl im 3D-Modell ----------
@@ -484,7 +527,7 @@ function toast(msg) {
 const shareBtn = document.getElementById('btn-share');
 if (ARTIFACT) shareBtn.hidden = true;
 shareBtn.addEventListener('click', async () => {
-  const url = `${location.origin}${location.pathname}#cfg=${encodeConfig(config)}`;
+  const url = shareUrl();
   history.replaceState(null, '', url);
   try {
     await navigator.clipboard.writeText(url);
@@ -541,18 +584,31 @@ document.getElementById('btn-reset').addEventListener('click', () => {
   toast('Auf Standard zurückgesetzt');
 });
 
-window.addEventListener('hashchange', () => {
+/** Übernimmt eine Konfiguration aus dem Link; liefert ein Promise, das nach dem Anwenden erfüllt ist. */
+async function applyFromHash() {
+  const z = packedInHash();
   const m = location.hash.match(/cfg=([\w-]+)/);
-  const c = m && decodeConfig(m[1]);
-  if (!c) return;
+  const c = z ? await unpackConfig(z) : m && decodeConfig(m[1]);
+  if (!c) return false;
   const next = sanitize(c);
-  if (JSON.stringify(next) === JSON.stringify(config)) return;
-  prepareWoods(next, () => {
-    config = next;
-    applyAll();
-    commit();
+  if (JSON.stringify(next) === JSON.stringify(config)) return false;
+  await new Promise((resolve) => {
+    prepareWoods(next, () => {
+      config = next;
+      applyAll();
+      commit();
+      resolve();
+    });
   });
-});
+  return true;
+}
+window.addEventListener('hashchange', applyFromHash);
+
+// ---------- AR: Maschine in Originalgröße in den Raum stellen ----------
+const ar = new ARExperience({ getRoot: () => model.root, getShareUrl: shareUrl });
+const arBtn = document.getElementById('btn-ar');
+arBtn.addEventListener('click', () => ar.open(arBtn));
+document.getElementById('final-ar').addEventListener('click', (e) => ar.open(e.currentTarget));
 
 // ---------- Konfiguration abschließen: Montage-Animation ----------
 const appEl = document.querySelector('.app');
@@ -685,4 +741,14 @@ document.addEventListener('keydown', (e) => {
 requestAnimationFrame(() => document.body.classList.add('ready'));
 
 // für Tests / Debugging
-window.__konfigurator = { viewer, mm, model, getConfig: () => config, ui, show };
+window.__konfigurator = { viewer, mm, model, getConfig: () => config, ui, show, ar, shareUrl };
+
+// Kurzlink (#z=…) übernehmen; mit "ar=1" – z. B. vom QR-Code – gleich den AR-Dialog öffnen
+{
+  const wantsAR = /(?:^#|&)ar=1\b/.test(location.hash);
+  const start = packedInHash() ? applyFromHash() : Promise.resolve();
+  start.then(() => {
+    refreshPacked();
+    if (wantsAR) ar.open(arBtn);
+  });
+}

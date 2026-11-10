@@ -54,7 +54,11 @@
                 <p class="light-note" id="quality-note">Im Stillstand wird das Bild in wenigen Sekunden verfeinert.</p>
               </div>
             </div>
-            <button class="pill" id="autorotate" type="button" aria-label="360° Drehung" aria-pressed="true">
+            <button class="pill pill-ar" id="btn-ar" type="button" aria-label="In AR ansehen: Maschine in Originalgröße in den Raum stellen">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7.5 4.3v9.4L12 21l-7.5-4.3V7.3L12 3zm0 9l7.5-4.7M12 12v9m0-9L4.5 7.3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>AR</span><span class="pill-label">ansehen</span>
+          </button>
+          <button class="pill" id="autorotate" type="button" aria-label="360° Drehung" aria-pressed="true">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v4h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
               <span class="pill-label">360° drehen</span>
             </button>
@@ -86,6 +90,7 @@
             <button class="btn primary" id="final-shot" type="button">Bild speichern</button>
             <button class="btn" id="final-copy" type="button">Liste kopieren</button>
             <button class="btn" id="final-replay" type="button">Nochmal ansehen</button>
+          <button class="btn" id="final-ar" type="button">In AR ansehen</button>
             <button class="btn ghost" id="final-edit" type="button">Weiter konfigurieren</button>
           </div>
         </section>

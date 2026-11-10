@@ -252,7 +252,7 @@ const cache = new Map();
  * der Palette festgelegt. Gilt nur für die 3D-Textur, nicht für die Vorschau-Kacheln.
  */
 const TONE_LIGHT = 0.8; // typische Beleuchtungsstärke × Belichtung auf einer Holzfläche
-function compensateToneCurve(color) {
+function compensateToneCurve(color, undo = false) {
   const toLin = new Float32Array(256);
   for (let i = 0; i < 256; i++) {
     const c = i / 255;
@@ -263,12 +263,20 @@ function compensateToneCurve(color) {
     const r = toLin[color[o]];
     const g = toLin[color[o + 1]];
     const b = toLin[color[o + 2]];
-    // gewünschter Ausgabewert des dunkelsten Kanals -> nötiger Wert vor der Tonwertkurve
-    const m = Math.min(r, g, b) * TONE_LIGHT;
-    const add = (m < 0.04 ? Math.sqrt(m / 6.25) - m : 0.04) / TONE_LIGHT;
-    color[o] = toSrgb(r + add);
-    color[o + 1] = toSrgb(g + add);
-    color[o + 2] = toSrgb(b + add);
+    let add;
+    if (undo) {
+      // Umkehrung: aus dem korrigierten dunkelsten Kanal den ursprünglichen berechnen
+      const cm = Math.min(r, g, b);
+      const x = cm >= 0.08 / TONE_LIGHT ? cm - 0.04 / TONE_LIGHT : 6.25 * TONE_LIGHT * cm * cm;
+      add = x - cm;
+    } else {
+      // gewünschter Ausgabewert des dunkelsten Kanals -> nötiger Wert vor der Tonwertkurve
+      const m = Math.min(r, g, b) * TONE_LIGHT;
+      add = (m < 0.04 ? Math.sqrt(m / 6.25) - m : 0.04) / TONE_LIGHT;
+    }
+    color[o] = toSrgb(Math.max(0, r + add));
+    color[o + 1] = toSrgb(Math.max(0, g + add));
+    color[o + 2] = toSrgb(Math.max(0, b + add));
   }
 }
 
@@ -297,7 +305,31 @@ export function getWoodTextures(def) {
   }
   const entry = { map, normalMap, roughnessMap };
   cache.set(def.id, entry);
+  compensated.add(map.source);
   return entry;
+}
+
+// Bildquellen der korrigierten Holzfarben (Kopien einer Textur teilen sich die Quelle)
+const compensated = new WeakSet();
+const plainCanvases = new WeakMap();
+
+/**
+ * Holzfarbe ohne den Ausgleich der Tonwertkurve – für den Export in andere Renderer (AR),
+ * die die Farbe unverändert darstellen. Liefert ein Canvas oder null, wenn die Textur kein Holz ist.
+ */
+export function plainWoodCanvas(texture) {
+  const source = texture && texture.source;
+  if (!source || !compensated.has(source)) return null;
+  if (plainCanvases.has(source)) return plainCanvases.get(source);
+  const src = source.data;
+  const c = makeCanvas(src.width, src.height);
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(src, 0, 0);
+  const img = ctx.getImageData(0, 0, c.width, c.height);
+  compensateToneCurve(img.data, true);
+  ctx.putImageData(img, 0, 0);
+  plainCanvases.set(source, c);
+  return c;
 }
 
 /** Kleine Vorschau-Kachel (Data-URL) für die Holz-Auswahl: Ausschnitt ca. 80 × 100 mm. */

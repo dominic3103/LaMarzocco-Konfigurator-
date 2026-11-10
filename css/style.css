@@ -1975,3 +1975,151 @@ body.ready .loader {
     transition: none !important;
   }
 }
+
+/* ------------------------------------------------ AR-Ansicht */
+.ar-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px))
+    max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  background: rgba(20, 18, 16, 0.72);
+  overflow-y: auto;
+}
+
+.ar-overlay[hidden] {
+  display: none;
+}
+
+.ar-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(440px, 100%);
+  padding: 22px;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.ar-eyebrow {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.ar-title {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.ar-text,
+.ar-note {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.ar-note {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.ar-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 150px;
+  border-radius: 12px;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.ar-stage[hidden],
+.ar-actions[hidden],
+.ar-note[hidden] {
+  display: none;
+}
+
+.ar-spinner {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 3px solid var(--line-strong);
+  border-top-color: var(--accent);
+  animation: spin 0.9s linear infinite;
+}
+
+.ar-viewer + .ar-spinner {
+  position: absolute;
+}
+
+.ar-viewer {
+  display: block;
+  width: 100%;
+  height: min(300px, 42vh);
+  background: var(--bg);
+}
+
+.ar-ready {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.ar-qr {
+  width: min(260px, 70%);
+  margin: 16px;
+  padding: 10px;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.ar-qr svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.ar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ar-actions .btn {
+  flex: 1 1 180px;
+}
+
+.ar-card > .btn.ghost {
+  align-self: center;
+  padding: 8px 16px;
+}
+
+.viewer[data-tone='dark'] .pill-ar {
+  color: #f3efe9;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ar-spinner {
+    border-top-color: var(--line-strong);
+    background: var(--accent-soft);
+  }
+}
