@@ -50,6 +50,7 @@ export class MaterialManager {
       displayGlass: new THREE.MeshPhysicalMaterial({ color: 0x050505, roughness: 0.08, clearcoat: 1, clearcoatRoughness: 0.02 }),
       white: new THREE.MeshStandardMaterial({ color: 0xf2f2f2, roughness: 0.5 }),
       trayInner: new THREE.MeshStandardMaterial({ color: 0x0c0c0c, roughness: 0.7 }),
+      steel: new THREE.MeshStandardMaterial({ color: 0xcfd1d3, metalness: 1, roughness: 0.34 }),
     };
   }
 

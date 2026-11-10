@@ -7,6 +7,7 @@ import { buildMachine } from './model.js';
 import { Viewer, VIEWS } from './viewer.js';
 import { ConfiguratorUI } from './ui.js';
 import { getWoodTextures } from './textures.js';
+import { LIGHTINGS, lightingById } from './lighting.js';
 
 const STORAGE_KEY = 'lm-mini-r-konfigurator';
 const ALL_SLOTS = Object.values(CATEGORIES).flatMap((c) => c.slots.map((s) => s.key));
@@ -80,7 +81,14 @@ const model = buildMachine(mm);
 mm.apply(config);
 model.setDial(config.dial);
 
-const viewer = new Viewer(canvas, viewerEl);
+const LIGHT_KEY = 'lm-mini-r-licht';
+let lightId = 'studio';
+try {
+  lightId = lightingById(localStorage.getItem(LIGHT_KEY) || 'studio').id;
+} catch {
+  /* Speicher nicht verfügbar */
+}
+const viewer = new Viewer(canvas, viewerEl, { lighting: lightId });
 viewer.setModel(model);
 
 // ---------- Oberfläche ----------
@@ -193,6 +201,78 @@ function setAutoRotate(on) {
 rotateBtn.addEventListener('click', () => setAutoRotate(!viewer.controls.autoRotate));
 viewer.onInteraction(() => setAutoRotate(false));
 setAutoRotate(!matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+// ---------- Lichtstimmungen ----------
+const LIGHT_ICONS = {
+  sun: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>',
+  window: '<svg viewBox="0 0 24 24"><rect x="4.5" y="3.5" width="15" height="17" rx="1.5"/><path d="M12 3.5v17M4.5 12h15"/></svg>',
+  sunset: '<svg viewBox="0 0 24 24"><path d="M6.5 16a5.5 5.5 0 0 1 11 0M2.5 19.5h19M12 4.5v3M4.8 9.3l1.9 1.6M19.2 9.3l-1.9 1.6"/></svg>',
+  lamp: '<svg viewBox="0 0 24 24"><path d="M12 2.5v5M7 13.5a5 5 0 0 1 10 0zM10 16.5a2 2 0 0 0 4 0"/></svg>',
+  moon: '<svg viewBox="0 0 24 24"><path d="M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10z"/></svg>',
+};
+const bgLayers = document.getElementById('bg-layers');
+const lightList = document.getElementById('light-list');
+const lightPop = document.getElementById('light-pop');
+const lightToggle = document.getElementById('light-toggle');
+const baristaToggle = document.getElementById('barista-toggle');
+for (const l of LIGHTINGS) {
+  const layer = document.createElement('div');
+  layer.className = 'bg-layer';
+  layer.dataset.light = l.id;
+  layer.style.background = l.bg.css;
+  bgLayers.append(layer);
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'light-item';
+  b.dataset.light = l.id;
+  b.innerHTML = `<span class="light-icon">${LIGHT_ICONS[l.icon]}</span><span>${l.name}</span>`;
+  b.addEventListener('click', () => {
+    applyLighting(l.id);
+    closeLightMenu();
+  });
+  lightList.append(b);
+}
+function applyLighting(id, animate = true) {
+  const l = lightingById(id);
+  lightId = l.id;
+  viewer.rig.baristaOverride = null; // Barista-Licht folgt wieder der Stimmung
+  if (animate) viewer.setLighting(l.id);
+  viewerEl.dataset.tone = l.tone;
+  bgLayers.querySelectorAll('.bg-layer').forEach((el) => el.classList.toggle('active', el.dataset.light === l.id));
+  lightList.querySelectorAll('.light-item').forEach((el) => {
+    const on = el.dataset.light === l.id;
+    el.classList.toggle('active', on);
+    el.setAttribute('aria-pressed', String(on));
+  });
+  document.getElementById('light-label').textContent = l.name;
+  document.getElementById('light-icon').innerHTML = LIGHT_ICONS[l.icon];
+  baristaToggle.checked = l.barista > 0;
+  try {
+    localStorage.setItem(LIGHT_KEY, l.id);
+  } catch {
+    /* ignorieren */
+  }
+}
+function closeLightMenu() {
+  lightPop.hidden = true;
+  lightToggle.setAttribute('aria-expanded', 'false');
+}
+lightToggle.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const open = lightPop.hidden;
+  lightPop.hidden = !open;
+  lightToggle.setAttribute('aria-expanded', String(open));
+});
+lightPop.addEventListener('click', (e) => e.stopPropagation());
+document.addEventListener('click', closeLightMenu);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeLightMenu();
+});
+baristaToggle.addEventListener('change', () => {
+  const preset = lightingById(lightId);
+  viewer.setBarista(baristaToggle.checked ? Math.max(preset.barista, 0.8) : 0);
+});
+applyLighting(lightId, false);
 
 // ---------- Aktionen ----------
 const toastEl = document.getElementById('toast');

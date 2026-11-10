@@ -23,6 +23,7 @@
   <body>
     <div class="app">
       <main class="viewer" id="viewer" aria-label="3D-Ansicht der Maschine">
+        <div class="bg-layers" id="bg-layers" aria-hidden="true"></div>
         <canvas id="scene" aria-label="Drehbares 3D-Modell. Ziehen zum Drehen, Scrollen oder Pinch zum Zoomen, Bauteil antippen zum Auswählen."></canvas>
 
         <div class="viewer-top">
@@ -30,10 +31,28 @@
             <span class="brand-eyebrow">360° Konfigurator</span>
             <span class="brand-name">Linea Mini R</span>
           </div>
-          <button class="pill" id="autorotate" type="button" aria-pressed="true">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v4h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span class="pill-label">360° drehen</span>
-          </button>
+          <div class="viewer-actions">
+            <div class="light-menu">
+              <button class="pill" id="light-toggle" type="button" aria-label="Lichtstimmung wählen" aria-haspopup="true" aria-expanded="false" aria-controls="light-pop">
+                <span class="light-icon" id="light-icon" aria-hidden="true"></span>
+                <span class="pill-label" id="light-label">Licht</span>
+                <svg class="chev-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <div class="light-pop" id="light-pop" hidden>
+                <p class="light-pop-title">Lichtstimmung</p>
+                <div class="light-list" id="light-list" role="group" aria-label="Lichtstimmung"></div>
+                <label class="switch-row">
+                  <input type="checkbox" id="barista-toggle" />
+                  <span class="switch" aria-hidden="true"></span>
+                  <span>Barista-Licht</span>
+                </label>
+              </div>
+            </div>
+            <button class="pill" id="autorotate" type="button" aria-label="360° Drehung" aria-pressed="true">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v4h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span class="pill-label">360° drehen</span>
+            </button>
+          </div>
         </div>
 
         <p class="viewer-hint">Ziehen zum Drehen · Zoomen per Scrollen/Pinch · Bauteil anklicken zum Auswählen</p>

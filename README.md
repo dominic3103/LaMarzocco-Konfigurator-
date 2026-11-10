@@ -25,6 +25,7 @@ Interaktiver 3D-Konfigurator für die Espressomaschine **Linea Mini R**. Die Mas
   - Uni-Lacke (Schwarz, Weiß, Grau, Rot, Creme, Marine) und eine eigene Farbe
   - Oberflächen: Hochglanz, Satiniert, Matt
 - **Details**: Manometer-Zifferblatt in Weiß oder Schwarz.
+- **Lichtstimmungen** (Menü oben rechts im 3D-Bereich): Studio hell, Tageslicht, Dämmerung, Abendlicht und Dunkel. Jede Stimmung setzt Reflexionen, Licht, Schatten und Hintergrund, Wechsel werden weich überblendet. Das **Barista-Licht** (LED unter dem Kopfteil, beleuchtet die Tropfschale) lässt sich separat schalten.
 - **Bauteile direkt anklicken**: Ein Klick auf ein Teil im 3D-Modell öffnet die passende Auswahl.
 - **10 Inspirations-Presets**, **Link teilen** (die komplette Konfiguration steckt in der URL), **Bild speichern** (PNG), **Liste kopieren** (Textzusammenfassung).
 
@@ -52,7 +53,8 @@ Im Repository unter **Settings → Pages** als Quelle „Deploy from a branch“
 index.html          Seitengerüst, Import-Map für Three.js
 css/style.css       Layout und Gestaltung (Desktop und Mobil)
 js/main.js          Einstieg: verbindet Modell, Materialien, Viewer und Oberfläche
-js/model.js         Prozedurales 3D-Modell der Maschine (Maße in mm, nach Referenzfotos)
+js/model.js         Prozedurales 3D-Modell der Maschine (Maße in mm, nach Werkszeichnung + Fotos)
+js/lighting.js      Lichtstimmungen (Umgebung, Lichter, Hintergrund, Überblendung)
 js/materials.js     Materialien je Bauteil-Gruppe (Lack, Holz, Metall)
 js/textures.js      Prozedurale Texturen: Holzmaserung, Struktur-/Metallic-Lack, Gitter, Manometer
 js/viewer.js        Renderer, Licht, 360°-Kamera, Auswahl per Klick, Screenshot
@@ -68,6 +70,10 @@ vendor/three/       Three.js r170 (MIT-Lizenz)
 - **Holzmaserungen** werden über Parameter gesteuert (`style`, `light`/`mid`/`dark`, `freq`, `warp`, `contrast` …). Für `style` gibt es `straight`, `oak`, `zebra`, `olive`, `burl` und `solid`.
 - **Geometrie**: Alle Maße stehen in Millimetern in `js/model.js` (Konstante `M` und die einzelnen Bauteil-Abschnitte).
 
+## Maße
+
+Die Geometrie folgt den Maßzeichnungen (Front-, Seiten- und Rückansicht) im offiziellen Ersatzteilkatalog *Linea Mini R Parts Catalog V1.0*: Breite 357 mm, Höhe 378 mm, Tiefe 540 mm inklusive Drehknöpfen. Die Standfläche ist rund 457 mm tief, der Oberkorpus ragt hinten über. Details wie zweiteiliger Siebträger, isolierte Dampflanze, Brühgruppen-Kappe, Bodenwanne, Wasseranschlüsse und der Schriftzug auf der Rückseite stammen aus den Explosionszeichnungen und der Produktbroschüre.
+
 ## Hinweis
 
-Das 3D-Modell ist eine eigene, vereinfachte Nachbildung auf Basis von Fotos. Es handelt sich nicht um ein offizielles Produkt des Herstellers. Marken- und Produktnamen gehören ihren jeweiligen Inhabern.
+Das 3D-Modell ist eine eigene, vereinfachte Nachbildung auf Basis von Werkszeichnungen und Fotos. Es handelt sich nicht um ein offizielles Produkt des Herstellers. Marken- und Produktnamen gehören ihren jeweiligen Inhabern.

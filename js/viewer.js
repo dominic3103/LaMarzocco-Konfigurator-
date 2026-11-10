@@ -3,8 +3,8 @@
 // ---------------------------------------------------------------------------
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { makeContactShadowTexture } from './textures.js';
+import { LightingRig, lightingById } from './lighting.js';
 
 const TARGET = new THREE.Vector3(0, 0.185, 0);
 
@@ -19,7 +19,7 @@ export const VIEWS = {
 };
 
 export class Viewer {
-  constructor(canvas, container) {
+  constructor(canvas, container, { lighting = 'studio' } = {}) {
     this.canvas = canvas;
     this.container = container;
     this.listeners = { hover: [], pick: [] };
@@ -37,9 +37,6 @@ export class Viewer {
     this.renderer = renderer;
 
     const scene = new THREE.Scene();
-    const pmrem = new THREE.PMREMGenerator(renderer);
-    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.035).texture;
-    scene.environmentIntensity = 0.85;
     this.scene = scene;
 
     const camera = new THREE.PerspectiveCamera(30, 1, 0.05, 20);
@@ -51,12 +48,12 @@ export class Viewer {
     key.castShadow = true;
     key.shadow.mapSize.set(2048, 2048);
     const sc = key.shadow.camera;
-    sc.left = -0.42;
-    sc.right = 0.42;
-    sc.top = 0.42;
-    sc.bottom = -0.42;
+    sc.left = -0.7;
+    sc.right = 0.7;
+    sc.top = 0.7;
+    sc.bottom = -0.7;
     sc.near = 0.2;
-    sc.far = 3.5;
+    sc.far = 4;
     key.shadow.bias = -0.0004;
     key.shadow.normalBias = 0.0012;
     key.shadow.radius = 3;
@@ -64,7 +61,8 @@ export class Viewer {
     const rim = new THREE.DirectionalLight(0xfff4e6, 0.7);
     rim.position.set(-0.9, 0.7, -0.9);
     scene.add(rim);
-    scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8076, 0.35));
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x8a8076, 0.35);
+    scene.add(hemi);
 
     // Boden: weicher Schlagschatten + Kontaktschatten
     const ground = new THREE.Mesh(new THREE.PlaneGeometry(4, 4), new THREE.ShadowMaterial({ opacity: 0.2 }));
@@ -78,6 +76,10 @@ export class Viewer {
     contact.rotation.x = -Math.PI / 2;
     contact.position.set(0, 0.0006, -0.005);
     scene.add(contact);
+
+    // Lichtstimmungen (Umgebung, Lichter, Belichtung, Schatten, Barista-Licht)
+    this.rig = new LightingRig({ renderer, scene, key, rim, hemi, ground, contact });
+    this.rig.set(lighting, false);
 
     // Steuerung
     const controls = new OrbitControls(camera, canvas);
@@ -117,8 +119,10 @@ export class Viewer {
   setModel(model) {
     this.model = model;
     // Modell so verschieben, dass es um seine Mitte rotiert
-    model.root.position.z = 0.062;
+    model.root.position.z = 0.064;
     this.scene.add(model.root);
+    this.rig.model = model;
+    model.setBarista(this.rig.baristaLevel ?? 0);
     this.pickables = model.pickables;
     this.dirty = true;
   }
@@ -133,6 +137,17 @@ export class Viewer {
 
   #emitInteraction() {
     this.interactionListeners.forEach((fn) => fn());
+  }
+
+  /** Lichtstimmung wechseln */
+  setLighting(id) {
+    this.rig.set(id);
+    this.dirty = true;
+  }
+
+  setBarista(level) {
+    this.rig.setBaristaOverride(level);
+    this.dirty = true;
   }
 
   requestRender() {
@@ -197,16 +212,18 @@ export class Viewer {
   }
 
   /** Aktuelle Ansicht als PNG (mit Hintergrund) erzeugen. */
-  snapshot(background = '#efece7') {
+  snapshot() {
     this.#render();
     const src = this.renderer.domElement;
     const out = document.createElement('canvas');
     out.width = src.width;
     out.height = src.height;
     const ctx = out.getContext('2d');
-    const g = ctx.createRadialGradient(out.width / 2, out.height * 0.45, 0, out.width / 2, out.height * 0.45, out.width * 0.75);
-    g.addColorStop(0, '#fbfaf8');
-    g.addColorStop(1, background);
+    const bg = (this.rig.current || lightingById('studio')).bg.snap;
+    const cx = out.width * bg.cx;
+    const cy = out.height * bg.cy;
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.hypot(out.width, out.height) * 0.6);
+    for (const [o, c] of bg.stops) g.addColorStop(o, c);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, out.width, out.height);
     ctx.drawImage(src, 0, 0);
@@ -285,6 +302,8 @@ export class Viewer {
         this.dirty = true;
       }
     }
+
+    if (this.rig.update(Math.min(rawDt, 0.25))) this.dirty = true;
 
     const changed = this.controls.update(dt);
     if (changed || this.dirty || this.controls.autoRotate) {
