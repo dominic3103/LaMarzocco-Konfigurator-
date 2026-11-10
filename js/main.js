@@ -148,11 +148,15 @@ function updateSlots(keys, patch) {
   }
 }
 
+// Als Claude-Artifact eingebettet: keine Downloads und keine Konfiguration im Link möglich
+const ARTIFACT = document.querySelector('.app')?.dataset.mode === 'artifact';
+
 let hashTimer = null;
 function commit() {
   ui.refresh();
   viewer.requestRender();
   persist(config);
+  if (ARTIFACT) return;
   clearTimeout(hashTimer);
   hashTimer = setTimeout(() => {
     history.replaceState(null, '', `#cfg=${encodeConfig(config)}`);
@@ -288,14 +292,16 @@ function toast(msg) {
   }, 2200);
 }
 
-document.getElementById('btn-share').addEventListener('click', async () => {
+const shareBtn = document.getElementById('btn-share');
+if (ARTIFACT) shareBtn.hidden = true;
+shareBtn.addEventListener('click', async () => {
   const url = `${location.origin}${location.pathname}#cfg=${encodeConfig(config)}`;
   history.replaceState(null, '', url);
   try {
     await navigator.clipboard.writeText(url);
     toast('Link zur Konfiguration kopiert');
   } catch {
-    prompt('Link zur Konfiguration:', url);
+    toast('Link steht jetzt in der Adresszeile – von dort kopieren');
   }
 });
 document.getElementById('btn-copy').addEventListener('click', async () => {
@@ -306,12 +312,37 @@ document.getElementById('btn-copy').addEventListener('click', async () => {
     toast('Kopieren nicht möglich');
   }
 });
-document.getElementById('btn-shot').addEventListener('click', () => {
-  const a = document.createElement('a');
-  a.href = viewer.snapshot();
-  a.download = 'linea-mini-r-konfiguration.png';
-  a.click();
-  toast('Bild gespeichert');
+const shotBtn = document.getElementById('btn-shot');
+const shotOverlay = document.getElementById('shot-overlay');
+if (ARTIFACT) {
+  shotBtn.textContent = 'Bild ansehen';
+  shotBtn.classList.add('primary');
+}
+function closeShot() {
+  shotOverlay.hidden = true;
+  shotBtn.focus();
+}
+document.getElementById('shot-close').addEventListener('click', closeShot);
+shotOverlay.addEventListener('click', (e) => {
+  if (e.target === shotOverlay) closeShot();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !shotOverlay.hidden) closeShot();
+});
+shotBtn.addEventListener('click', () => {
+  const url = viewer.snapshot();
+  if (!ARTIFACT) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'linea-mini-r-konfiguration.png';
+    a.click();
+    toast('Bild gespeichert');
+    return;
+  }
+  // Downloads sind im Artifact gesperrt: Bild anzeigen, Speichern per Rechtsklick / langem Drücken
+  document.getElementById('shot-img').src = url;
+  shotOverlay.hidden = false;
+  document.getElementById('shot-close').focus();
 });
 document.getElementById('btn-reset').addEventListener('click', () => {
   config = clone(DEFAULT_CONFIG);

@@ -1053,6 +1053,50 @@ body.ready .loader {
   color: var(--ink);
 }
 
+.shot-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px))
+    max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  background: rgba(20, 18, 16, 0.72);
+}
+
+.shot-overlay[hidden] {
+  display: none;
+}
+
+.shot-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 14px;
+  max-width: min(960px, 100%);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.shot-card img {
+  display: block;
+  max-width: 100%;
+  max-height: 70vh;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.shot-card figcaption {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.shot-card .btn {
+  align-self: flex-end;
+}
+
 .toast {
   position: fixed;
   left: 50%;
