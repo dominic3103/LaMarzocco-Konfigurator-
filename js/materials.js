@@ -1,0 +1,165 @@
+// ---------------------------------------------------------------------------
+// Material-Verwaltung: ein Satz Materialien pro konfigurierbarem Slot.
+// ---------------------------------------------------------------------------
+import * as THREE from 'three';
+import { categoryOf, resolveBody, resolveMetal, resolveWood } from './data.js';
+import { getFlakeNormalMap, getStructureBumpMap, getWoodTextures } from './textures.js';
+
+export class MaterialManager {
+  constructor() {
+    /** @type {Map<string, THREE.MeshPhysicalMaterial[]>} */
+    this.slots = new Map();
+    this.fixed = this.#createFixedMaterials();
+    this.highlight = new Map();
+  }
+
+  /**
+   * Liefert ein (neues) Material für einen Slot. Mehrere Meshes eines Slots
+   * können eigene Materialien haben (z. B. unterschiedliche Gitter-Texturen),
+   * werden aber immer gemeinsam umgefärbt.
+   */
+  get(slot, extra = {}) {
+    const list = this.slots.get(slot) || [];
+    if (!extra.map) {
+      const plain = list.find((m) => !m.userData.baseMap);
+      if (plain) return plain;
+    }
+    const mat = new THREE.MeshPhysicalMaterial({ color: 0xffffff, ...extra });
+    mat.userData.baseMap = extra.map || null;
+    mat.userData.slot = slot;
+    list.push(mat);
+    this.slots.set(slot, list);
+    return mat;
+  }
+
+  #createFixedMaterials() {
+    return {
+      rubber: new THREE.MeshStandardMaterial({ color: 0x141414, roughness: 0.85 }),
+      blackPlastic: new THREE.MeshStandardMaterial({ color: 0x0f0f0f, roughness: 0.45 }),
+      darkGap: new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.9 }),
+      gasket: new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.6 }),
+      glass: new THREE.MeshPhysicalMaterial({
+        color: 0xffffff,
+        roughness: 0.03,
+        metalness: 0,
+        transparent: true,
+        opacity: 0.18,
+        clearcoat: 1,
+        depthWrite: false,
+      }),
+      displayGlass: new THREE.MeshPhysicalMaterial({ color: 0x050505, roughness: 0.08, clearcoat: 1, clearcoatRoughness: 0.02 }),
+      white: new THREE.MeshStandardMaterial({ color: 0xf2f2f2, roughness: 0.5 }),
+      trayInner: new THREE.MeshStandardMaterial({ color: 0x0c0c0c, roughness: 0.7 }),
+    };
+  }
+
+  /** Wendet eine komplette Konfiguration auf alle Materialien an. */
+  apply(config) {
+    for (const [slot, value] of Object.entries(config.slots)) this.applySlot(slot, value);
+  }
+
+  applySlot(slot, value) {
+    const mats = this.slots.get(slot);
+    if (!mats) return;
+    const cat = categoryOf(slot);
+    for (const m of mats) {
+      if (cat === 'body') applyPaint(m, resolveBody(value), value.finish);
+      else if (cat === 'wood') applyWood(m, resolveWood(value), value.finish);
+      else applyMetal(m, resolveMetal(value), value.finish);
+      m.userData.emissiveBase = m.emissive.getHex();
+    }
+  }
+
+  /** Lässt die Materialien eines oder mehrerer Slots kurz aufleuchten. */
+  setHighlight(slotKeys, amount) {
+    const keys = Array.isArray(slotKeys) ? slotKeys : [slotKeys];
+    for (const k of keys) {
+      for (const m of this.slots.get(k) || []) {
+        m.emissive.setRGB(0.42 * amount, 0.36 * amount, 0.26 * amount);
+      }
+    }
+  }
+
+  clearHighlight() {
+    for (const mats of this.slots.values()) for (const m of mats) m.emissive.setHex(0x000000);
+  }
+}
+
+function setMaps(m, maps) {
+  let changed = false;
+  for (const [k, v] of Object.entries(maps)) {
+    if (m[k] !== v) {
+      if (!!m[k] !== !!v) changed = true;
+      m[k] = v;
+    }
+  }
+  if (changed) m.needsUpdate = true;
+}
+
+// ---------------------------------------------------------------------------
+// Lack (Gehäuse)
+// ---------------------------------------------------------------------------
+function applyPaint(m, color, finish) {
+  const metallic = color.kind === 'metallic';
+  m.color.set(color.color);
+  m.sheen = 0;
+  const presets = {
+    gloss: { rough: metallic ? 0.32 : 0.28, cc: 1, ccr: 0.03 },
+    satin: { rough: metallic ? 0.42 : 0.5, cc: 0.35, ccr: 0.32 },
+    matte: { rough: metallic ? 0.58 : 0.82, cc: 0, ccr: 0.5 },
+    texture: { rough: metallic ? 0.55 : 0.78, cc: 0.0, ccr: 0.6 },
+  };
+  const p = presets[finish] || presets.satin;
+  m.metalness = metallic ? 0.72 : 0.0;
+  m.roughness = p.rough;
+  m.clearcoat = p.cc;
+  m.clearcoatRoughness = p.ccr;
+  m.envMapIntensity = 1;
+  const flakes = metallic && finish !== 'texture' ? getFlakeNormalMap() : null;
+  const structure = finish === 'texture' ? getStructureBumpMap() : null;
+  setMaps(m, { normalMap: flakes, bumpMap: structure, map: m.userData.baseMap || null });
+  m.normalScale.set(0.22, 0.22);
+  m.bumpScale = 1.6;
+}
+
+// ---------------------------------------------------------------------------
+// Holz
+// ---------------------------------------------------------------------------
+function applyWood(m, wood, finish) {
+  const lacquer = finish === 'lacquer';
+  if (wood.plastic) {
+    setMaps(m, { map: null, bumpMap: null, normalMap: null });
+    m.color.set(wood.mid);
+    m.metalness = 0;
+    m.roughness = lacquer ? 0.25 : 0.5;
+    m.clearcoat = lacquer ? 0.8 : 0.1;
+    m.clearcoatRoughness = 0.15;
+    return;
+  }
+  const tex = getWoodTextures(wood);
+  setMaps(m, { map: tex.map, bumpMap: tex.bumpMap, normalMap: null });
+  m.color.set(0xffffff);
+  m.metalness = 0;
+  m.roughness = lacquer ? 0.38 : 0.62;
+  m.clearcoat = lacquer ? 1 : 0.12;
+  m.clearcoatRoughness = lacquer ? 0.04 : 0.45;
+  m.bumpScale = lacquer ? 0.6 : 1.4;
+}
+
+// ---------------------------------------------------------------------------
+// Metall / Akzentlack
+// ---------------------------------------------------------------------------
+function applyMetal(m, color, finish) {
+  m.color.set(color.color);
+  setMaps(m, { normalMap: null, bumpMap: null, map: m.userData.baseMap || null });
+  if (color.kind === 'metal') {
+    m.metalness = 1;
+    m.roughness = { gloss: 0.1, satin: 0.3, matte: 0.48 }[finish] ?? 0.1;
+    m.clearcoat = 0;
+  } else {
+    m.metalness = 0;
+    m.roughness = { gloss: 0.22, satin: 0.45, matte: 0.72 }[finish] ?? 0.45;
+    m.clearcoat = finish === 'gloss' ? 1 : 0;
+    m.clearcoatRoughness = 0.05;
+  }
+}

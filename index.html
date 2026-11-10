@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Linea Mini R Konfigurator</title>
+    <meta name="description" content="360°-Konfigurator für die Linea Mini R: Gehäusefarbe, Holzarten und Metallakzente frei kombinieren." />
+    <meta name="theme-color" content="#efece7" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='10' y='14' width='44' height='16' rx='3' fill='%238a5a2b'/%3E%3Cpath d='M16 30h32l-4 20H20z' fill='%231d1b19'/%3E%3Crect x='8' y='50' width='48' height='6' rx='2' fill='%231d1b19'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/style.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./vendor/three/three.module.min.js",
+          "three/addons/": "./vendor/three/addons/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div class="app">
+      <main class="viewer" id="viewer" aria-label="3D-Ansicht der Maschine">
+        <canvas id="scene" aria-label="Drehbares 3D-Modell. Ziehen zum Drehen, Scrollen oder Pinch zum Zoomen, Bauteil antippen zum Auswählen."></canvas>
+
+        <div class="viewer-top">
+          <div class="brand">
+            <span class="brand-eyebrow">360° Konfigurator</span>
+            <span class="brand-name">Linea Mini R</span>
+          </div>
+          <button class="pill" id="autorotate" type="button" aria-pressed="true">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v4h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span class="pill-label">360° drehen</span>
+          </button>
+        </div>
+
+        <p class="viewer-hint">Ziehen zum Drehen · Zoomen per Scrollen/Pinch · Bauteil anklicken zum Auswählen</p>
+        <nav class="views" id="views" aria-label="Ansichten"></nav>
+        <div class="tooltip" id="tooltip" hidden></div>
+
+        <div class="loader" aria-hidden="true"><span></span>Maschine wird aufgebaut …</div>
+        <noscript><p class="noscript">Für den 3D-Konfigurator wird JavaScript benötigt.</p></noscript>
+      </main>
+
+      <aside class="panel" aria-label="Konfiguration">
+        <header class="panel-head">
+          <p class="eyebrow">Individuelle Gestaltung</p>
+          <h1>Deine Linea Mini R</h1>
+          <p class="lede">Gehäuse, Holz und Metallakzente frei kombinieren – jede Änderung siehst du sofort in 360°.</p>
+        </header>
+        <div id="config"></div>
+        <footer class="actions">
+          <button class="btn primary" id="btn-share" type="button">Link teilen</button>
+          <button class="btn" id="btn-shot" type="button">Bild speichern</button>
+          <button class="btn" id="btn-copy" type="button">Liste kopieren</button>
+          <button class="btn ghost" id="btn-reset" type="button">Zurücksetzen</button>
+        </footer>
+      </aside>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+    <script type="module" src="js/main.js"></script>
+  </body>
+</html>
