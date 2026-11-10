@@ -21,8 +21,8 @@ export const CATEGORIES = {
       { key: 'wood.paddle', label: 'Paddle' },
       { key: 'wood.knobs', label: 'Drehknöpfe' },
       { key: 'wood.handle', label: 'Siebträgergriff' },
-      { key: 'wood.panelUpper', label: 'Seitenwangen', panel: true },
-      { key: 'wood.panelLower', label: 'Unterteil-Seiten', panel: true },
+      { key: 'wood.panelUpper', label: 'Seitenplatten oben', panel: true, chip: false },
+      { key: 'wood.panelLower', label: 'Seitenplatten unten', panel: true, chip: false },
     ],
   },
   metal: {
@@ -37,7 +37,7 @@ export const CATEGORIES = {
       { key: 'metal.gauges', label: 'Manometer-Ringe' },
       { key: 'metal.grates', label: 'Gitter & Tassenablage' },
       { key: 'metal.logo', label: 'Schriftzug' },
-      { key: 'metal.rail', label: 'Cup Rail' },
+      { key: 'metal.rail', label: 'Cup Rail', chip: false },
       { key: 'metal.feet', label: 'Füße' },
     ],
   },
@@ -301,44 +301,37 @@ function preset(name, swatches, slots, extra = {}) {
 }
 
 export const PRESETS = [
-  // --- Editionen im Stil der rb.crafts-Maschinen (nach öffentlichen Produktfotos) ---
-  preset('Elfenbein · Gold · Nuss', ['#e5d8bd', '#5f4030', '#e1b866'], {
-    ...allBody('RAL1015', 'satin'),
+  // --- rb.crafts-Editionen, Gehäusefarbe den IGP-Tönen zugeordnet (Fotoabgleich, ΔE2000) ---
+  preset('Chiffon Silk · Gold · Nuss', ['#e2dfd8', '#644433', '#e1b866'], {
+    ...allBody('4201E94136L30', 'matte'),
     ...allWood('walnut'),
     'wood.panelLower': { id: 'walnut', finish: 'oiled' },
     ...allMetal('gold', 'gloss'),
-    'metal.grates': { id: 'body', finish: 'satin' },
+    'metal.grates': { id: 'body', finish: 'matte' },
   }, { rail: true, knobs: 'groove', handle: 'round' }),
-  preset('Elfenbein · Eiche · DLC', ['#e5d8bd', '#c49a64', '#232427'], {
-    ...allBody('RAL1015', 'satin'),
+  preset('Chiffon Silk · Eiche · DLC', ['#e2dfd8', '#c49a64', '#232427'], {
+    ...allBody('4201E94136L30', 'matte'),
     ...allWood('oak'),
     ...allMetal('dlc', 'satin'),
     'metal.grates': { id: 'steel', finish: 'satin' },
     'metal.caps': { id: 'black', finish: 'matte' },
   }, { rail: true, knobs: 'groove', handle: 'round' }),
-  preset('Schwarz · Gold · Olive', ['#111113', '#bf9259', '#e1b866'], {
-    ...allBody('RAL9005', 'matte'),
+  preset('Traffic Black · Gold · Olive', ['#2c2b2d', '#bf9259', '#e1b866'], {
+    ...allBody('4201U90171L10', 'matte'),
     ...allWood('olive'),
     'wood.panelUpper': { id: 'olive', finish: 'oiled' },
     ...allMetal('gold', 'gloss'),
     'metal.grates': { id: 'black', finish: 'matte' },
   }, { rail: true, knobs: 'facet', handle: 'facet' }),
-  preset('Weiß · Nussbaum', ['#f1f0ea', '#5f4030', '#cfd1d3'], {
-    ...allBody('RAL9016', 'gloss'),
-    ...allWood('walnut'),
-    ...allMetal('steel', 'gloss'),
-    'metal.feet': { id: 'black', finish: 'matte' },
-  }, { knobs: 'facet', handle: 'facet' }),
-  preset('Schwarz · Nuss-Wangen', ['#111113', '#5f4030', '#cf8460'], {
-    ...allBody('RAL9005', 'matte'),
+  preset('Traffic Black · Nuss-Platten', ['#2c2b2d', '#644433', '#cf8460'], {
+    ...allBody('4201U90171L10', 'matte'),
     ...allWood('walnut'),
     'wood.panelUpper': { id: 'walnut', finish: 'oiled' },
     ...allMetal('dlc', 'satin'),
     'metal.logo': { id: 'copper', finish: 'satin' },
     'metal.grates': { id: 'black', finish: 'matte' },
   }, { knobs: 'facet', handle: 'facet' }),
-  // --- IGP-DURA® Farben ---
-  preset('Style 23 & Olive', ['#b4a998', '#c9a066', '#161616'], {
+  preset('Style 23 · Olive', ['#b4a998', '#c9a066', '#161616'], {
     ...allBody('4201E76256L3F', 'matte'),
     ...allWood('olive'),
     ...allMetal('black', 'matte'),
@@ -346,30 +339,41 @@ export const PRESETS = [
     'metal.grates': { id: 'steel', finish: 'satin' },
     'metal.group': { id: 'dlc', finish: 'satin' },
   }, { dial: 'black' }),
-  preset('Style 21 & Olive', ['#8a7450', '#c9a066', '#232427'], {
-    ...allBody('4201E82665L3F', 'matte'),
+  preset('Style 23 · Olive · Gold-Rail', ['#b4a998', '#c9a066', '#e1b866'], {
+    ...allBody('4201E76256L3F', 'matte'),
     ...allWood('olive'),
+    'wood.panelLower': { id: 'olive', finish: 'oiled' },
     ...allMetal('dlc', 'satin'),
-    'metal.grates': { id: 'steel', finish: 'gloss' },
-  }),
-  preset('Traffic Black & Gold', ['#2c2b2d', '#5f4030', '#e1b866'], {
-    ...allBody('4201U90171L10', 'matte'),
-    ...allWood('walnut'),
-    ...allMetal('gold', 'satin'),
-    'metal.grates': { id: 'dlc', finish: 'satin' },
-  }, { rail: true, knobs: 'facet', handle: 'facet' }),
-  preset('Chiffon Silk & Eiche', ['#e2dfd8', '#dcbb88', '#cfd1d3'], {
-    ...allBody('4201E94136L30', 'matte'),
-    ...allWood('oak'),
-    'wood.panelLower': { id: 'oak', finish: 'oiled' },
-    ...allMetal('steel', 'satin'),
+    'metal.rail': { id: 'gold', finish: 'gloss' },
+    'metal.caps': { id: 'gold', finish: 'gloss' },
+    'metal.grates': { id: 'body', finish: 'matte' },
   }, { rail: true, knobs: 'groove' }),
-  preset('Jungle Street & Messing', ['#3b4136', '#5f4030', '#c9a85c'], {
+  preset('Titan Power · Gold · Nuss', ['#aea097', '#644433', '#e1b866'], {
+    ...allBody('4201E77903L30', 'matte'),
+    ...allWood('walnut'),
+    'wood.panelLower': { id: 'walnut', finish: 'oiled' },
+    ...allMetal('gold', 'satin'),
+    'metal.grates': { id: 'steel', finish: 'satin' },
+  }, { rail: true, knobs: 'facet', handle: 'facet' }),
+  preset('English Bronze · Olive', ['#a18668', '#c9a066', '#232427'], {
+    ...allBody('4201E83934L30', 'matte'),
+    ...allWood('olive'),
+    'wood.panelUpper': { id: 'olive', finish: 'oiled' },
+    ...allMetal('dlc', 'satin'),
+    'metal.rail': { id: 'body', finish: 'matte' },
+  }, { rail: true, knobs: 'groove' }),
+  preset('Jungle Street · Messing', ['#3b4136', '#644433', '#c9a85c'], {
     ...allBody('4201E63923L3F', 'matte'),
     ...allWood('walnut'),
+    'wood.panelLower': { id: 'walnut', finish: 'oiled' },
     ...allMetal('brass', 'satin'),
     'metal.grates': { id: 'steel', finish: 'satin' },
   }, { rail: true }),
+  preset('Admiral Blue · Eiche · Silber', ['#385878', '#c49a64', '#cfd1d3'], {
+    ...allBody('4201E54218L30', 'matte'),
+    ...allWood('oak'),
+    ...allMetal('steel', 'gloss'),
+  }, { rail: true, knobs: 'facet', handle: 'facet' }),
 ];
 
 export const DEFAULT_CONFIG = PRESETS[0].config;
@@ -402,7 +406,10 @@ export function resolveMetal(value) {
   if (value.id === 'custom') {
     return { id: 'custom', name: `Eigene Farbe ${value.color}`, color: value.color, kind: value.kind || 'metal' };
   }
-  return METAL_INDEX.get(value.id) || METAL_INDEX.get('steel');
+  if (METAL_INDEX.has(value.id)) return METAL_INDEX.get(value.id);
+  // Akzent in einem IGP- oder RAL-Pulverlack (z. B. Cup Rail in Gehäusefarbe-Variante)
+  if (BODY_INDEX.has(value.id)) return { ...BODY_INDEX.get(value.id), kind: 'paint' };
+  return METAL_INDEX.get('steel');
 }
 export function resolveWood(value) {
   if (value.id === 'none') return NO_WOOD;

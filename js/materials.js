@@ -69,7 +69,9 @@ export class MaterialManager {
       else if (cat === 'wood') applyWood(m, resolveWood(value), value.finish);
       else {
         const metal = resolveMetal(value);
-        if (metal.kind === 'body' && config) {
+        if (metal.kind === 'paint') {
+          applyPaint(m, metal, value.finish);
+        } else if (metal.kind === 'body' && config) {
           // Akzent in Gehäusefarbe (wie Basis & Tropfschale)
           const base = config.slots['body.base'];
           applyPaint(m, resolveBody(base), base.finish);
@@ -129,7 +131,9 @@ function applyPaint(m, color, finish) {
   const f = CLEARCOAT[finish] ? finish : 'matte';
   m.color.set(color.color);
   m.sheen = 0;
-  m.metalness = e.metal;
+  // helle Effektlacke (Perlweiß, Silber) wirken sonst zu grau
+  const lum = m.color.r * 0.2126 + m.color.g * 0.7152 + m.color.b * 0.0722;
+  m.metalness = fx === 'E' || fx === 'U' ? e.metal * (1 - 0.6 * Math.min(1, Math.max(0, (lum - 0.45) / 0.35))) : e.metal;
   m.roughness = e.rough[f];
   m.clearcoat = CLEARCOAT[f].cc;
   m.clearcoatRoughness = CLEARCOAT[f].ccr;

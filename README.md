@@ -1,6 +1,6 @@
 # Linea Mini R – 360° Konfigurator
 
-Interaktiver 3D-Konfigurator für die Espressomaschine **Linea Mini R**. Die Maschine lässt sich frei um 360° drehen und in allen sichtbaren Materialien individuell gestalten.
+Interaktiver 3D-Konfigurator ausschließlich für die Espressomaschine **Linea Mini R**. Die Maschine lässt sich frei um 360° drehen und in allen sichtbaren Materialien individuell gestalten.
 
 ## Funktionen
 
@@ -31,7 +31,8 @@ Interaktiver 3D-Konfigurator für die Espressomaschine **Linea Mini R**. Die Mas
 - **Details**: Manometer-Zifferblatt in Weiß oder Schwarz.
 - **Lichtstimmungen** (Menü oben rechts im 3D-Bereich): Studio hell, Tageslicht, Dämmerung, Abendlicht und Dunkel. Jede Stimmung setzt Reflexionen, Licht, Schatten und Hintergrund, Wechsel werden weich überblendet. Das **Barista-Licht** (LED unter dem Kopfteil, beleuchtet die Tropfschale) lässt sich separat schalten.
 - **Bauteile direkt anklicken**: Ein Klick auf ein Teil im 3D-Modell öffnet die passende Auswahl.
-- **10 Inspirations-Presets**, darunter fünf Editionen im Stil handwerklich veredelter Maschinen (Elfenbein · Gold · Nuss, Elfenbein · Eiche · DLC, Schwarz · Gold · Olive, Weiß · Nussbaum, Schwarz · Nuss-Wangen), **Link teilen** (die komplette Konfiguration steckt in der URL), **Bild speichern** (PNG), **Liste kopieren** (Textzusammenfassung).
+- **Seitenplatten & Cup Rail** als eigener Schritt: Seitenplatten oben, unten oder beides in jeder Holzart (geölt oder lackiert), Cup Rail montiert oder ohne – in Metall/PVD, Lack, „Wie Gehäuse“ oder jedem IGP-/RAL-Ton
+- **10 Inspirations-Presets** mit IGP-Farben, darunter die rb.crafts-Editionen (Chiffon Silk · Gold · Nuss, Chiffon Silk · Eiche · DLC, Traffic Black · Gold · Olive, Traffic Black · Nuss-Platten, Style 23 · Olive), **Link teilen** (die komplette Konfiguration steckt in der URL), **Bild speichern** (PNG), **Liste kopieren** (Textzusammenfassung).
 
 ## Starten
 
@@ -73,6 +74,18 @@ vendor/three/       Three.js r170 (MIT-Lizenz)
 - **IGP-Farben** sind in `BODY_COLLECTIONS` hinterlegt: `igp('Code', 'Name', '#hex')`. Die Hex-Werte wurden aus Fotos der Farbkarten gemessen und weißabgeglichen. Es sind also Näherungswerte für den Bildschirm, keine Farbmesswerte. Liegen offizielle RGB/Lab-Werte vor, einfach den Hex-Wert ersetzen.
 - **Holzmaserungen** werden über Parameter gesteuert (`style`, `light`/`mid`/`dark`, `freq`, `warp`, `contrast` …). Für `style` gibt es `straight`, `oak`, `zebra`, `olive`, `burl` und `solid`.
 - **Geometrie**: Alle Maße stehen in Millimetern in `js/model.js` (Konstante `M` und die einzelnen Bauteil-Abschnitte).
+
+## Farbzuordnung rb.crafts → IGP
+
+Die Gehäusefarben der rb.crafts-Maschinen auf den Fotos wurden gemessen (Farbabstand ΔE2000, mit Weißabgleich über das Manometer-Zifferblatt) und dem nächstliegenden IGP-Ton zugeordnet:
+
+| Maschine | IGP-Ton | Sicherheit |
+|---|---|---|
+| „Elfenbein“-Editionen (Gold/Nuss, Eiche) | Chiffon Silk 4201E94136L30 | mittel – das Cremige entsteht vor allem durch warmes Studiolicht |
+| Greige-Maschine mit Olivenholz | xal-Style 23 4201E76256L3F | gut |
+| Schwarze Editionen | Traffic Black 4201U90171L10 | plausibel |
+
+Die Zuordnung ist ein Fotoabgleich. Verbindlich ist der Code, den rb.crafts für die jeweilige Maschine verwendet hat.
 
 ## Maße
 

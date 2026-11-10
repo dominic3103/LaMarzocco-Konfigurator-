@@ -287,7 +287,7 @@ export function buildMachine(mm) {
   const knobShapes = {
     // gewellt: 16 weiche Wellen
     wave: ringShape(22.5, (a, R) => R - 1.2 * (0.5 - 0.5 * Math.cos(a * 16))),
-    // gerillt: Zylinder mit 6 schmalen Längsnuten (rb.crafts Eiche/Micra)
+    // gerillt: Zylinder mit 6 schmalen Längsnuten (wie die rb.crafts Eichen-Knöpfe)
     groove: ringShape(22.5, (a, R) => {
       const k = (((a / (Math.PI * 2)) * 6) % 1 + 1) % 1;
       return k > 0.44 && k < 0.56 ? R - 2.2 : R;

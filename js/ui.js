@@ -14,7 +14,6 @@ import {
   PRESETS,
   KNOB_SHAPES,
   HANDLE_SHAPES,
-  NO_WOOD,
   resolveBody,
   resolveMetal,
   resolveWood,
@@ -91,7 +90,7 @@ export class ConfiguratorUI {
     this.opts = opts;
     this.target = { body: 'all', wood: 'all', metal: 'all' };
     const bodyId = opts.getConfig().slots['body.upper'].id;
-    this.colorTab = { body: collectionOf(bodyId) || (bodyId === 'custom' ? 'custom' : BODY_COLLECTIONS[0].id), metal: 'metal' };
+    this.colorTab = { body: collectionOf(bodyId) || (bodyId === 'custom' ? 'custom' : BODY_COLLECTIONS[0].id), metal: 'metal', rail: 'metal' };
     this.open = 'body';
     this.refs = { steps: {} };
     this.build();
@@ -124,8 +123,9 @@ export class ConfiguratorUI {
     const steps = el('div', { class: 'steps' });
     steps.append(this.#buildBodyStep('01'));
     steps.append(this.#buildWoodStep('02'));
-    steps.append(this.#buildPaintStep('metal', '03'));
-    steps.append(this.#buildDetailsStep('04'));
+    steps.append(this.#buildExtrasStep('03'));
+    steps.append(this.#buildPaintStep('metal', '04'));
+    steps.append(this.#buildDetailsStep('05'));
     r.append(steps);
 
     // Zusammenfassung
@@ -180,7 +180,7 @@ export class ConfiguratorUI {
         },
       });
     wrap.append(mk('all', c.allLabel));
-    c.slots.forEach((s) => wrap.append(mk(s.key, s.label)));
+    c.slots.filter((s) => s.chip !== false).forEach((s) => wrap.append(mk(s.key, s.label)));
     return wrap;
   }
 
@@ -272,80 +272,174 @@ export class ConfiguratorUI {
     return step;
   }
 
-  /** Schalter (Checkbox im Stil eines Kippschalters) */
-  #switch(id, label, onChange) {
-    const input = el('input', { type: 'checkbox', id });
-    input.addEventListener('change', () => onChange(input.checked));
-    const row = el('label', { class: 'switch-row inline', for: id }, [
-      input,
-      el('span', { class: 'switch', 'aria-hidden': 'true' }),
-      el('span', { text: label }),
-    ]);
-    return { row, input };
-  }
-
-  #buildPaintStep(cat, num) {
-    const palette = METAL_COLORS;
+  /**
+   * Farbwahl für Akzentteile (Metall/PVD, Lack inkl. "Wie Gehäuse", IGP/RAL-Pulverlack).
+   * @param {string} tabKey  Schlüssel in this.colorTab
+   * @param {() => string[]} getKeys  Ziel-Slots
+   */
+  #accentPicker(tabKey, getKeys) {
     const tabs = [
       { id: 'metal', name: 'Metall / PVD' },
-      { id: 'uni', name: 'Uni-Lacke' },
+      { id: 'uni', name: 'Lack & Gehäuse' },
+      { id: 'igp', name: 'IGP / RAL' },
     ];
     const tabBar = this.#segmented(
       tabs,
       (id) => {
-        this.colorTab[cat] = id;
+        this.colorTab[tabKey] = id;
         this.refresh();
       },
       'tabs',
     );
-    const grids = {};
-    const gridWrap = el('div', { class: 'swatch-wrap' });
-    for (const t of tabs) {
-      const grid = el('div', { class: 'swatches', 'data-tab': t.id, role: 'group', 'aria-label': t.name });
-      for (const c of palette[t.id]) {
-        grid.append(
-          el(
-            'button',
-            {
-              class: 'swatch',
-              type: 'button',
-              title: c.name,
-              'aria-label': c.name,
-              'data-id': c.id,
-              onclick: () => this.opts.onSlots(this.#targetKeys(cat), { id: c.id, color: undefined, kind: undefined }),
-            },
-            [el('span', { class: 'swatch-fill', style: `background:${swatchBackground(c.color, t.id)}` })],
-          ),
-        );
-      }
-      // eigene Farbe
-      const input = el('input', { type: 'color', value: palette[t.id][0].color, 'aria-label': 'Eigene Farbe wählen' });
-      input.addEventListener('input', () =>
-        this.opts.onSlots(this.#targetKeys(cat), { id: 'custom', color: input.value, kind: t.id }),
+    const swatch = (c, bg) =>
+      el(
+        'button',
+        {
+          class: 'swatch',
+          type: 'button',
+          title: c.code ? `${c.name} · ${c.code}` : c.name,
+          'aria-label': c.name,
+          'data-id': c.id,
+          onclick: () => this.opts.onSlots(getKeys(), { id: c.id }),
+        },
+        [el('span', { class: 'swatch-fill', style: `background:${bg}` })],
       );
+    const grids = {};
+    const wrap = el('div', { class: 'swatch-wrap' });
+    for (const t of ['metal', 'uni']) {
+      const grid = el('div', { class: 'swatches', 'data-tab': t, role: 'group' });
+      for (const c of METAL_COLORS[t]) grid.append(swatch(c, swatchBackground(c.color, t)));
+      const input = el('input', { type: 'color', value: METAL_COLORS[t][1].color, 'aria-label': 'Eigene Farbe wählen' });
+      input.addEventListener('input', () => this.opts.onSlots(getKeys(), { id: 'custom', color: input.value, kind: t }));
       grid.append(
         el('label', { class: 'swatch custom', title: 'Eigene Farbe', 'data-id': 'custom' }, [
           el('span', { class: 'swatch-fill', html: ICONS.plus }),
           input,
         ]),
       );
-      grids[t.id] = { grid, input };
-      gridWrap.append(grid);
+      grids[t] = { grid, input };
+      wrap.append(grid);
     }
+    // alle Pulverlacke der Farbkarten (IGP) und RAL, nach Kollektion
+    const igp = el('div', { class: 'swatch-groups', 'data-tab': 'igp' });
+    for (const col of BODY_COLLECTIONS) {
+      const g = el('div', { class: 'swatches' });
+      const seen = new Set();
+      for (const c of col.colors) {
+        if (seen.has(c.id)) continue;
+        seen.add(c.id);
+        g.append(swatch({ ...c, name: c.label || c.name }, paintBackground(c)));
+      }
+      igp.append(el('p', { class: 'swatch-group-title', text: col.name }), g);
+    }
+    grids.igp = { grid: igp, input: null };
+    wrap.append(igp);
     const nameLine = el('p', { class: 'pick-name' });
-    const finishSeg = this.#segmented(METAL_FINISHES, (id) => this.opts.onSlots(this.#targetKeys(cat), { finish: id }));
-    const rail = this.#switch('rail-toggle', 'Cup Rail montieren (Reling über der Tassenablage)', (on) => this.opts.onRail(on));
-
-    const body = [
-      this.#chips(cat),
+    const finishSeg = this.#segmented(METAL_FINISHES, (id) => this.opts.onSlots(getKeys(), { finish: id }));
+    const node = el('div', { class: 'accent-picker' }, [
       tabBar,
-      gridWrap,
+      wrap,
       nameLine,
       el('div', { class: 'field' }, [el('span', { class: 'label', text: 'Oberfläche' }), finishSeg]),
-      el('div', { class: 'field' }, [el('span', { class: 'label', text: 'Anbauteile' }), rail.row]),
+    ]);
+    const refresh = (cfg, keys) => {
+      const vals = keys.map((k) => cfg.slots[k]);
+      const first = vals[0];
+      const same = (key) => vals.every((v) => v[key] === first[key]);
+      const sameId = same('id') && (first.id !== 'custom' || (same('color') && same('kind')));
+      const sameFinish = same('finish');
+      const resolved = resolveMetal(first);
+      const tab = this.colorTab[tabKey];
+      setActive(tabBar, tab);
+      for (const [t, { grid, input }] of Object.entries(grids)) {
+        grid.hidden = t !== tab;
+        grid.querySelectorAll('.swatch').forEach((b) => {
+          const on = sameId && b.dataset.id === first.id && (first.id !== 'custom' || resolved.kind === t);
+          b.classList.toggle('active', on);
+          b.setAttribute('aria-pressed', String(on));
+        });
+        if (input && sameId && first.id === 'custom' && resolved.kind === t) {
+          input.value = first.color;
+          grid.querySelector('.custom .swatch-fill').style.background = first.color;
+        }
+      }
+      const bodyTile = grids.uni.grid.querySelector('[data-id="body"] .swatch-fill');
+      if (bodyTile) bodyTile.style.background = paintBackground(resolveBody(cfg.slots['body.base']));
+      setActive(finishSeg, sameFinish ? first.finish : null);
+      const label = resolved.kind === 'body' ? `Wie Gehäuse (${resolveBody(cfg.slots['body.base']).name})` : resolved.name;
+      const text = sameId ? `${label}${sameFinish ? ' · ' + finishName(METAL_FINISHES, first.finish) : ''}` : 'Individuell kombiniert';
+      nameLine.textContent = sameId
+        ? `${label}${resolved.code ? ' · ' + resolved.code : ''}${sameFinish ? ' · ' + finishName(METAL_FINISHES, first.finish) : ''}`
+        : 'Mehrere Farben – Auswahl gilt für alle markierten Bauteile';
+      return text;
+    };
+    return { node, refresh };
+  }
+
+  #buildPaintStep(cat, num) {
+    const picker = this.#accentPicker('metal', () => this.#targetKeys(cat));
+    const step = this.#step(cat, num, CATEGORIES[cat].title, [this.#chips(cat), picker.node]);
+    Object.assign(this.refs.steps[cat], { picker });
+    return step;
+  }
+
+  /** Seitenplatten (Holz) und Cup Rail – die typischen Anbauteile der veredelten Linea Mini R */
+  #buildExtrasStep(num) {
+    const modes = [
+      { id: 'both', name: 'Oben & unten' },
+      { id: 'upper', name: 'Nur oben' },
+      { id: 'lower', name: 'Nur unten' },
+      { id: 'none', name: 'Ohne' },
     ];
-    const step = this.#step(cat, num, CATEGORIES[cat].title, body);
-    Object.assign(this.refs.steps[cat], { tabBar, grids, finishSeg, nameLine, palette, tabs, railInput: rail.input });
+    const modeSeg = this.#segmented(modes, (id) => this.opts.onPanels(id));
+    const woodGrid = el('div', { class: 'woods compact', role: 'group', 'aria-label': 'Holz der Seitenplatten' });
+    for (const w of WOODS.filter((x) => !x.plastic)) {
+      const tile = el('span', {
+        class: 'wood-tile',
+        style: `background: linear-gradient(100deg, ${w.light}, ${w.mid} 45%, ${w.dark} 55%, ${w.mid} 70%, ${w.light})`,
+      });
+      (w._tiles ||= []).push(tile);
+      woodGrid.append(
+        el('button', { class: 'wood', type: 'button', 'data-id': w.id, title: w.name, onclick: () => this.opts.onPanelWood(w.id) }, [
+          tile,
+          el('span', { class: 'wood-name', text: w.name }),
+        ]),
+      );
+    }
+    const panelKeys = () => {
+      const cfg = this.opts.getConfig();
+      return ['wood.panelUpper', 'wood.panelLower'].filter((k) => cfg.slots[k].id !== 'none');
+    };
+    const panelFinish = this.#segmented(WOOD_FINISHES, (id) => {
+      const keys = panelKeys();
+      if (keys.length) this.opts.onSlots(keys, { finish: id });
+    });
+    const panelName = el('p', { class: 'pick-name' });
+    const railSeg = this.#segmented(
+      [
+        { id: 'on', name: 'Montiert' },
+        { id: 'off', name: 'Ohne' },
+      ],
+      (id) => this.opts.onRail(id === 'on'),
+    );
+    const railPicker = this.#accentPicker('rail', () => ['metal.rail']);
+    const step = this.#step('extras', num, 'Seitenplatten & Cup Rail', [
+      el('div', { class: 'sub' }, [
+        el('h3', { class: 'sub-title', text: 'Seitenplatten aus Holz' }),
+        el('p', { class: 'hint-text tight', text: 'Verkleidung der Seitenwangen oben und/oder der schrägen Seiten des Unterteils.' }),
+        modeSeg,
+        woodGrid,
+        panelName,
+        el('div', { class: 'field' }, [el('span', { class: 'label', text: 'Oberfläche' }), panelFinish]),
+      ]),
+      el('div', { class: 'sub' }, [
+        el('h3', { class: 'sub-title', text: 'Cup Rail' }),
+        el('p', { class: 'hint-text tight', text: 'Stangenreling auf Pfosten über der Tassenablage.' }),
+        railSeg,
+        railPicker.node,
+      ]),
+    ]);
+    Object.assign(this.refs.steps.extras, { modeSeg, woodGrid, panelFinish, panelName, railSeg, railPicker });
     return step;
   }
 
@@ -369,27 +463,16 @@ export class ConfiguratorUI {
           [tile, el('span', { class: 'wood-name', text: w.name })],
         ),
       );
-      w._tile = tile;
+      (w._tiles ||= []).push(tile);
     }
-    const noneBtn = el(
-      'button',
-      {
-        class: 'wood wood-none',
-        type: 'button',
-        'data-id': 'none',
-        title: 'Ohne Holz – Gehäusefarbe',
-        onclick: () => this.opts.onSlots(this.#targetKeys('wood'), { id: 'none' }),
-      },
-      [el('span', { class: 'wood-tile', text: '–' }), el('span', { class: 'wood-name', text: NO_WOOD.name })],
-    );
-    grid.append(noneBtn);
     // echte Maserungs-Vorschau nachladen (rechenintensiv -> nach dem ersten Rendern)
     const loadPreviews = () => {
       let i = 0;
       const next = () => {
         if (i >= WOODS.length) return;
         const w = WOODS[i++];
-        w._tile.style.background = `url(${woodPreviewURL(w)}) center/cover`;
+        const url = woodPreviewURL(w);
+        (w._tiles || []).forEach((t) => (t.style.background = `url(${url}) center/cover`));
         setTimeout(next, 0);
       };
       next();
@@ -398,16 +481,6 @@ export class ConfiguratorUI {
 
     const nameLine = el('p', { class: 'pick-name' });
     const finishSeg = this.#segmented(WOOD_FINISHES, (id) => this.opts.onSlots(this.#targetKeys('wood'), { finish: id }));
-    // Holzverkleidung: übernimmt beim Einschalten die Holzart des Siebträgergriffs
-    const panelOn = (key, on) => {
-      const cfg = this.opts.getConfig();
-      const ref = resolveWood(cfg.slots['wood.handle']);
-      const id = ref.plastic || ref.none ? 'walnut' : ref.id;
-      this.opts.onSlots([key], { id: on ? id : 'none' });
-      if (on) this.opts.onFocus([key]);
-    };
-    const pUpper = this.#switch('panel-upper', 'Seitenwangen oben verkleiden', (on) => panelOn('wood.panelUpper', on));
-    const pLower = this.#switch('panel-lower', 'Seitenteile des Unterteils verkleiden', (on) => panelOn('wood.panelLower', on));
     const knobSeg = this.#segmented(KNOB_SHAPES, (id) => this.opts.onShape('knobs', id));
     const handleSeg = this.#segmented(HANDLE_SHAPES, (id) => this.opts.onShape('handle', id));
     const step = this.#step('wood', num, CATEGORIES.wood.title, [
@@ -415,7 +488,6 @@ export class ConfiguratorUI {
       grid,
       nameLine,
       el('div', { class: 'field' }, [el('span', { class: 'label', text: 'Oberfläche' }), finishSeg]),
-      el('div', { class: 'field' }, [el('span', { class: 'label', text: 'Holzverkleidung' }), pUpper.row, pLower.row]),
       el('div', { class: 'field two' }, [
         el('div', { class: 'field' }, [el('span', { class: 'label', text: 'Form Drehknöpfe' }), knobSeg]),
         el('div', { class: 'field' }, [el('span', { class: 'label', text: 'Form Siebträgergriff' }), handleSeg]),
@@ -425,9 +497,6 @@ export class ConfiguratorUI {
       grid,
       finishSeg,
       nameLine,
-      noneBtn,
-      panelUpper: pUpper.input,
-      panelLower: pLower.input,
       knobSeg,
       handleSeg,
     });
@@ -472,11 +541,20 @@ export class ConfiguratorUI {
 
   /** Bauteil von außen auswählen (z. B. Klick im 3D-Modell). */
   focusSlot(slotKey) {
+    const v = this.opts.getConfig().slots[slotKey];
+    const tabOf = (kind) => (kind === 'metal' ? 'metal' : kind === 'paint' ? 'igp' : 'uni');
+    if (slotKey.startsWith('wood.panel') || slotKey === 'metal.rail') {
+      this.open = 'extras';
+      if (slotKey === 'metal.rail') this.colorTab.rail = tabOf(resolveMetal(v).kind);
+      this.refresh();
+      const sec = this.refs.steps.extras.section;
+      requestAnimationFrame(() => sec.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
+      return;
+    }
     const cat = slotKey.split('.')[0];
     this.open = cat;
     this.target[cat] = slotKey;
-    const v = this.opts.getConfig().slots[slotKey];
-    if (cat === 'metal') this.colorTab.metal = resolveMetal(v).kind;
+    if (cat === 'metal') this.colorTab.metal = tabOf(resolveMetal(v).kind);
     if (cat === 'body') this.colorTab.body = v.id === 'custom' ? 'custom' : collectionOf(v.id) || this.colorTab.body;
     this.refresh();
     const sec = this.refs.steps[cat].section;
@@ -530,34 +608,36 @@ export class ConfiguratorUI {
     }
 
     // Metallakzente
-    for (const cat of ['metal']) {
-      const s = this.refs.steps[cat];
-      const { first, sameId, sameFinish } = this.#commonValue(cat);
-      const resolved = resolveMetal(first);
-      setActive(s.tabBar, this.colorTab[cat]);
-      for (const [tab, { grid, input }] of Object.entries(s.grids)) {
-        grid.hidden = tab !== this.colorTab[cat];
-        grid.querySelectorAll('.swatch').forEach((b) => {
-          const on = sameId && b.dataset.id === first.id && (first.id !== 'custom' || resolved.kind === tab);
-          b.classList.toggle('active', on);
-          b.setAttribute('aria-pressed', String(on));
-        });
-        if (sameId && first.id === 'custom' && resolved.kind === tab) {
-          input.value = first.color;
-          grid.querySelector('.custom .swatch-fill').style.background = first.color;
-        }
-      }
-      setActive(s.finishSeg, sameFinish ? first.finish : null);
-      s.railInput.checked = !!cfg.rail;
-      // Kachel "Wie Gehäuse" zeigt die aktuelle Farbe von Basis & Tropfschale
-      const bodyBase = resolveBody(cfg.slots['body.base']);
-      const bodyTile = s.grids.uni.grid.querySelector('[data-id="body"] .swatch-fill');
-      if (bodyTile) bodyTile.style.background = paintBackground(bodyBase);
-      const text = sameId
-        ? `${resolved.name}${sameFinish ? ' · ' + finishName(METAL_FINISHES, first.finish) : ''}`
-        : 'Individuell kombiniert';
-      s.nameLine.textContent = sameId ? text : 'Mehrere Farben – Auswahl gilt für alle markierten Bauteile';
-      s.current.textContent = text;
+    {
+      const s = this.refs.steps.metal;
+      s.current.textContent = s.picker.refresh(cfg, this.#targetKeys('metal'));
+    }
+
+    // Seitenplatten & Cup Rail
+    {
+      const s = this.refs.steps.extras;
+      const up = cfg.slots['wood.panelUpper'];
+      const lo = cfg.slots['wood.panelLower'];
+      const mode = up.id !== 'none' && lo.id !== 'none' ? 'both' : up.id !== 'none' ? 'upper' : lo.id !== 'none' ? 'lower' : 'none';
+      setActive(s.modeSeg, mode);
+      const enabled = [up, lo].filter((v) => v.id !== 'none');
+      const woodId = enabled.length && enabled.every((v) => v.id === enabled[0].id) ? enabled[0].id : null;
+      s.woodGrid.querySelectorAll('.wood').forEach((b) => {
+        const on = b.dataset.id === woodId;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-pressed', String(on));
+      });
+      s.woodGrid.classList.toggle('dimmed', mode === 'none');
+      const fin = enabled.length && enabled.every((v) => v.finish === enabled[0].finish) ? enabled[0].finish : null;
+      setActive(s.panelFinish, fin);
+      const where = { both: 'oben & unten', upper: 'oben', lower: 'unten' }[mode];
+      const panelText = mode === 'none' ? 'Ohne Seitenplatten' : `${woodId ? resolveWood({ id: woodId }).name : 'Gemischt'} ${where}`;
+      s.panelName.textContent =
+        mode === 'none' ? 'Ohne Seitenplatten – Holz antippen, um Platten unten anzubringen' : `${panelText}${fin ? ' · ' + finishName(WOOD_FINISHES, fin) : ''}`;
+      setActive(s.railSeg, cfg.rail ? 'on' : 'off');
+      const railText = s.railPicker.refresh(cfg, ['metal.rail']);
+      s.railPicker.node.classList.toggle('dimmed', !cfg.rail);
+      s.current.textContent = `${panelText} · ${cfg.rail ? 'Rail ' + railText.split(' · ')[0] : 'ohne Rail'}`;
     }
 
     // Holz
@@ -570,10 +650,6 @@ export class ConfiguratorUI {
         b.setAttribute('aria-pressed', String(on));
       });
       setActive(s.finishSeg, sameFinish ? first.finish : null);
-      const t = this.target.wood;
-      s.noneBtn.hidden = !(t === 'wood.panelUpper' || t === 'wood.panelLower');
-      s.panelUpper.checked = cfg.slots['wood.panelUpper'].id !== 'none';
-      s.panelLower.checked = cfg.slots['wood.panelLower'].id !== 'none';
       setActive(s.knobSeg, cfg.shape.knobs);
       setActive(s.handleSeg, cfg.shape.handle);
       const w = resolveWood(first);
@@ -616,9 +692,11 @@ export class ConfiguratorUI {
           swatch = 'transparent';
           name = 'nicht montiert';
         } else {
-          const r = cat === 'body' ? resolveBody(v) : resolveMetal(v);
+          let r = cat === 'body' ? resolveBody(v) : resolveMetal(v);
           const base = resolveBody(cfg.slots['body.base']);
-          swatch = cat === 'body' ? paintBackground(r) : r.kind === 'body' ? paintBackground(base) : swatchBackground(r.color, r.kind);
+          swatch =
+            cat === 'body' || r.kind === 'paint' ? paintBackground(r) : r.kind === 'body' ? paintBackground(base) : swatchBackground(r.color, r.kind);
+          if (r.kind === 'body') r = { ...r, name: `Wie Gehäuse (${base.name})` };
           name = `${r.name} · ${finishName(cat === 'body' ? BODY_FINISHES : METAL_FINISHES, v.finish)}`;
         }
         dl.append(

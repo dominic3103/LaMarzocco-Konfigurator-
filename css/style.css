@@ -912,6 +912,75 @@ body.ready .loader {
   font-size: 20px;
 }
 
+/* Schritt Seitenplatten & Cup Rail */
+.sub {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sub + .sub {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px dashed var(--line-strong);
+}
+
+.sub-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.hint-text.tight {
+  margin: -6px 0 0;
+}
+
+.woods.compact {
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 10px 8px;
+}
+
+.woods.compact .wood-tile {
+  aspect-ratio: 1;
+}
+
+.woods.compact .wood-name {
+  font-size: 11px;
+}
+
+.dimmed {
+  opacity: 0.5;
+}
+
+.accent-picker {
+  display: flex;
+  flex-direction: column;
+}
+
+.swatch-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.swatch-groups[hidden] {
+  display: none;
+}
+
+.swatch-group-title {
+  margin: 6px 0 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.swatch-groups .swatches {
+  grid-template-columns: repeat(auto-fill, minmax(34px, 1fr));
+  gap: 6px;
+}
+
 /* Holz */
 .woods {
   display: grid;

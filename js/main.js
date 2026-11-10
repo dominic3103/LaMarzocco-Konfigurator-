@@ -152,6 +152,17 @@ const ui = new ConfiguratorUI(document.getElementById('config'), {
     if (on) viewer.flash(mm, ['metal.rail']);
     commit();
   },
+  onPanels: (mode) => {
+    const id = panelWood();
+    setPanelSlots(mode === 'both' || mode === 'upper' ? id : 'none', mode === 'both' || mode === 'lower' ? id : 'none');
+  },
+  onPanelWood: (id) => {
+    const up = config.slots['wood.panelUpper'].id !== 'none';
+    const lo = config.slots['wood.panelLower'].id !== 'none';
+    // noch keine Platten: Holz antippen bringt Platten am Unterteil an (wie bei rb.crafts üblich)
+    if (!up && !lo) setPanelSlots('none', id);
+    else setPanelSlots(up ? id : 'none', lo ? id : 'none');
+  },
   onShape: (part, id) => {
     config.shape = { ...config.shape, [part]: id };
     syncParts();
@@ -160,6 +171,25 @@ const ui = new ConfiguratorUI(document.getElementById('config'), {
   },
   onFocus: (keys) => viewer.flash(mm, keys),
 });
+
+/** Holz für Seitenplatten: vorhandene Platten, sonst Griffholz, sonst Nussbaum */
+function panelWood() {
+  for (const k of ['wood.panelLower', 'wood.panelUpper']) if (config.slots[k].id !== 'none') return config.slots[k].id;
+  const h = resolveWood(config.slots['wood.handle']);
+  return h.plastic || h.none ? 'walnut' : h.id;
+}
+function setPanelSlots(upperId, lowerId) {
+  const next = { 'wood.panelUpper': upperId, 'wood.panelLower': lowerId };
+  prepareWoods({ slots: Object.fromEntries(Object.entries(next).map(([k, id]) => [k, { id }])) }, () => {
+    for (const [k, id] of Object.entries(next)) {
+      config.slots[k] = { id, finish: config.slots[k].finish || 'oiled' };
+      mm.applySlot(k, config.slots[k], config);
+    }
+    syncParts();
+    viewer.flash(mm, Object.keys(next).filter((k) => next[k] !== 'none'));
+    commit();
+  });
+}
 
 /** Holztexturen vorab erzeugen (kurze Rechenzeit), danach anwenden. */
 function prepareWoods(cfg, done) {
