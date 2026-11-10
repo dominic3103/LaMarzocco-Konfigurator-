@@ -237,7 +237,7 @@ export const METAL_FINISHES = [
 // ---------------------------------------------------------------------------
 export const WOODS = [
   // rb.crafts-Sortiment (rb: true): Walnuss, Eiche, Olive – Farben nach den Produktfotos
-  { id: 'walnut', rb: true, name: 'Walnuss', style: 'ring', light: '#9b7359', mid: '#6e4b3a', dark: '#38231a', rings: 30, contrast: 0.6, late: 0.26, warp: 0.035, figure: 4, fiber: 0.7, tone: 0.16, pore: { nx: 240, ny: 70, density: 0.26, dark: 0.2, w: 0.24 }, streak: { color: '#2b1c16', amt: 0.45, fx: 3 }, seed: 3 },
+  { id: 'walnut', rb: true, name: 'Walnuss', style: 'ring', light: '#8f6950', mid: '#644434', dark: '#331f17', rings: 30, contrast: 0.6, late: 0.26, warp: 0.035, figure: 4, fiber: 0.7, tone: 0.16, pore: { nx: 240, ny: 70, density: 0.26, dark: 0.2, w: 0.24 }, streak: { color: '#2b1c16', amt: 0.45, fx: 3 }, seed: 3 },
   { id: 'oak', rb: true, name: 'Eiche', style: 'ring', light: '#e6b068', mid: '#d99c52', dark: '#b67b3a', rings: 26, contrast: 0.5, late: 0.28, warp: 0.03, figure: 8, fiber: 0.6, tone: 0.1, pore: { nx: 200, ny: 80, density: 0.9, dark: 0.3, w: 0.34, ring: 0.3 }, seed: 5 },
   { id: 'olive', rb: true, name: 'Olivenholz', style: 'olive', light: '#f4b257', mid: '#dd9540', dark: '#b56f28', rings: 46, contrast: 0.3, late: 0.3, warp: 0.05, figure: 3, fiber: 0.5, tone: 0.14, pore: { nx: 250, ny: 110, density: 0.18, dark: 0.18 }, streak: { color: '#5a3d24' }, seed: 11 },
   // weitere Hölzer (auf Anfrage)
@@ -365,7 +365,7 @@ const BLACK_DETAILS = {
 
 export const PRESETS = [
   // "Custom Linea Mini R & Bentwood": ruhiges Grau, Walnuss, schwarze Details, Holzumrandung, schwarze Reling
-  preset('Grau · Walnuss · Schwarz', ['#aea097', '#6e4b3a', '#161616'], {
+  preset('Grau · Walnuss · Schwarz', ['#aea097', '#644434', '#161616'], {
     ...allBody('4201E77903L30', 'matte'),
     ...WOODSET('walnut'),
     'wood.panelUpper': { id: 'walnut', finish: 'oiled' },
@@ -382,7 +382,7 @@ export const PRESETS = [
     'metal.logo': { id: 'wood:olive', finish: 'oiled' },
   }, { dial: 'naked' }),
   // "All Black": ultramatt schwarz, DLC, Walnuss mit Holzumrandung
-  preset('All Black · Walnuss', ['#111113', '#6e4b3a', '#232427'], {
+  preset('All Black · Walnuss', ['#111113', '#644434', '#232427'], {
     ...allBody('RAL9005', 'matte'),
     ...WOODSET('walnut'),
     'wood.panelUpper': { id: 'walnut', finish: 'oiled' },
@@ -390,7 +390,7 @@ export const PRESETS = [
     'metal.logo': { id: 'wood:walnut', finish: 'oiled' },
   }, { dial: 'naked', drip: 'diamond', cup: 'diamond' }),
   // Elfenbein mit Gold und Walnuss (Edition mit goldener Cup Rail)
-  preset('Elfenbein · Gold · Walnuss', ['#e5d8bd', '#6e4b3a', '#e1b866'], {
+  preset('Elfenbein · Gold · Walnuss', ['#e5d8bd', '#644434', '#e1b866'], {
     ...allBody('RAL1015', 'satin'),
     ...allWood('walnut'),
     'wood.panelLower': { id: 'walnut', finish: 'oiled' },
@@ -406,14 +406,14 @@ export const PRESETS = [
     'metal.logo': { id: 'wood:oak', finish: 'oiled' },
   }, { dial: 'naked', rail: true }),
   // Weiß mit Walnuss, Edelstahl bleibt sichtbar
-  preset('Weiß · Walnuss', ['#f1f0ea', '#6e4b3a', '#cfd1d3'], {
+  preset('Weiß · Walnuss', ['#f1f0ea', '#644434', '#cfd1d3'], {
     ...allBody('RAL9016', 'gloss'),
     ...allWood('walnut'),
     ...allMetal('steel', 'gloss'),
     'metal.feet': { id: 'black', finish: 'matte' },
   }, {}),
   // "Special Bronze mit Walnuss" (bei rb.crafts als Micra gezeigt)
-  preset('Special Bronze · Walnuss', ['#8c7d64', '#6e4b3a', '#161616'], {
+  preset('Special Bronze · Walnuss', ['#8c7d64', '#644434', '#161616'], {
     ...allBody('4201E13212L3F', 'texture'),
     ...WOODSET('walnut'),
     'wood.panelUpper': { id: 'walnut', finish: 'oiled' },
@@ -422,7 +422,7 @@ export const PRESETS = [
     'metal.logo': { id: 'wood:walnut', finish: 'oiled' },
   }, { dial: 'naked', rail: true }),
   // Gelb mit Walnuss und gebürsteter Edelstahl-Reling (Foto zur Cup Rail)
-  preset('Signalgelb · Walnuss', ['#e9a41c', '#6e4b3a', '#cfd1d3'], {
+  preset('Signalgelb · Walnuss', ['#e9a41c', '#644434', '#cfd1d3'], {
     ...allBody('RAL1003', 'satin'),
     ...allWood('walnut'),
     ...BLACK_DETAILS,
@@ -438,7 +438,7 @@ export const PRESETS = [
     'metal.grates': { id: 'steel', finish: 'satin' },
     'metal.logo': { id: 'wood:olive', finish: 'oiled' },
   }, { dial: 'black', needle: 'gold' }),
-  preset('Jungle Street · Messing', ['#3b4136', '#6e4b3a', '#c9a85c'], {
+  preset('Jungle Street · Messing', ['#3b4136', '#644434', '#c9a85c'], {
     ...allBody('4201E63923L3F', 'matte'),
     ...allWood('walnut'),
     'wood.panelUpper': { id: 'walnut', finish: 'oiled' },
