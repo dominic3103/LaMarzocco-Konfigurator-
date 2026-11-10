@@ -258,7 +258,12 @@ export class Viewer {
     const rect = this.canvas.getBoundingClientRect();
     this.pointer.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
     this.raycaster.setFromCamera(this.pointer, this.camera);
-    const hits = this.raycaster.intersectObjects(this.pickables, false);
+    // ausgeblendete Teile (andere Formvariante, Cup Rail aus …) nicht auswählbar
+    const shown = (o) => {
+      for (let n = o; n; n = n.parent) if (!n.visible) return false;
+      return true;
+    };
+    const hits = this.raycaster.intersectObjects(this.pickables, false).filter((h) => shown(h.object));
     return hits[0] || null;
   }
 

@@ -12,6 +12,9 @@ import {
   WOOD_FINISHES,
   DIALS,
   PRESETS,
+  KNOB_SHAPES,
+  HANDLE_SHAPES,
+  NO_WOOD,
   resolveBody,
   resolveMetal,
   resolveWood,
@@ -269,6 +272,18 @@ export class ConfiguratorUI {
     return step;
   }
 
+  /** Schalter (Checkbox im Stil eines Kippschalters) */
+  #switch(id, label, onChange) {
+    const input = el('input', { type: 'checkbox', id });
+    input.addEventListener('change', () => onChange(input.checked));
+    const row = el('label', { class: 'switch-row inline', for: id }, [
+      input,
+      el('span', { class: 'switch', 'aria-hidden': 'true' }),
+      el('span', { text: label }),
+    ]);
+    return { row, input };
+  }
+
   #buildPaintStep(cat, num) {
     const palette = METAL_COLORS;
     const tabs = [
@@ -319,6 +334,7 @@ export class ConfiguratorUI {
     }
     const nameLine = el('p', { class: 'pick-name' });
     const finishSeg = this.#segmented(METAL_FINISHES, (id) => this.opts.onSlots(this.#targetKeys(cat), { finish: id }));
+    const rail = this.#switch('rail-toggle', 'Cup Rail montieren (Reling über der Tassenablage)', (on) => this.opts.onRail(on));
 
     const body = [
       this.#chips(cat),
@@ -326,9 +342,10 @@ export class ConfiguratorUI {
       gridWrap,
       nameLine,
       el('div', { class: 'field' }, [el('span', { class: 'label', text: 'Oberfläche' }), finishSeg]),
+      el('div', { class: 'field' }, [el('span', { class: 'label', text: 'Anbauteile' }), rail.row]),
     ];
     const step = this.#step(cat, num, CATEGORIES[cat].title, body);
-    Object.assign(this.refs.steps[cat], { tabBar, grids, finishSeg, nameLine, palette, tabs });
+    Object.assign(this.refs.steps[cat], { tabBar, grids, finishSeg, nameLine, palette, tabs, railInput: rail.input });
     return step;
   }
 
@@ -354,6 +371,18 @@ export class ConfiguratorUI {
       );
       w._tile = tile;
     }
+    const noneBtn = el(
+      'button',
+      {
+        class: 'wood wood-none',
+        type: 'button',
+        'data-id': 'none',
+        title: 'Ohne Holz – Gehäusefarbe',
+        onclick: () => this.opts.onSlots(this.#targetKeys('wood'), { id: 'none' }),
+      },
+      [el('span', { class: 'wood-tile', text: '–' }), el('span', { class: 'wood-name', text: NO_WOOD.name })],
+    );
+    grid.append(noneBtn);
     // echte Maserungs-Vorschau nachladen (rechenintensiv -> nach dem ersten Rendern)
     const loadPreviews = () => {
       let i = 0;
@@ -369,13 +398,39 @@ export class ConfiguratorUI {
 
     const nameLine = el('p', { class: 'pick-name' });
     const finishSeg = this.#segmented(WOOD_FINISHES, (id) => this.opts.onSlots(this.#targetKeys('wood'), { finish: id }));
+    // Holzverkleidung: übernimmt beim Einschalten die Holzart des Siebträgergriffs
+    const panelOn = (key, on) => {
+      const cfg = this.opts.getConfig();
+      const ref = resolveWood(cfg.slots['wood.handle']);
+      const id = ref.plastic || ref.none ? 'walnut' : ref.id;
+      this.opts.onSlots([key], { id: on ? id : 'none' });
+      if (on) this.opts.onFocus([key]);
+    };
+    const pUpper = this.#switch('panel-upper', 'Seitenwangen oben verkleiden', (on) => panelOn('wood.panelUpper', on));
+    const pLower = this.#switch('panel-lower', 'Seitenteile des Unterteils verkleiden', (on) => panelOn('wood.panelLower', on));
+    const knobSeg = this.#segmented(KNOB_SHAPES, (id) => this.opts.onShape('knobs', id));
+    const handleSeg = this.#segmented(HANDLE_SHAPES, (id) => this.opts.onShape('handle', id));
     const step = this.#step('wood', num, CATEGORIES.wood.title, [
       this.#chips('wood'),
       grid,
       nameLine,
       el('div', { class: 'field' }, [el('span', { class: 'label', text: 'Oberfläche' }), finishSeg]),
+      el('div', { class: 'field' }, [el('span', { class: 'label', text: 'Holzverkleidung' }), pUpper.row, pLower.row]),
+      el('div', { class: 'field two' }, [
+        el('div', { class: 'field' }, [el('span', { class: 'label', text: 'Form Drehknöpfe' }), knobSeg]),
+        el('div', { class: 'field' }, [el('span', { class: 'label', text: 'Form Siebträgergriff' }), handleSeg]),
+      ]),
     ]);
-    Object.assign(this.refs.steps.wood, { grid, finishSeg, nameLine });
+    Object.assign(this.refs.steps.wood, {
+      grid,
+      finishSeg,
+      nameLine,
+      noneBtn,
+      panelUpper: pUpper.input,
+      panelLower: pLower.input,
+      knobSeg,
+      handleSeg,
+    });
     return step;
   }
 
@@ -395,7 +450,11 @@ export class ConfiguratorUI {
   // -------------------------------------------------------------------------
   #targetKeys(cat) {
     const t = this.target[cat];
-    return t === 'all' ? CATEGORIES[cat].slots.map((s) => s.key) : [t];
+    if (t !== 'all') return [t];
+    const slots = CATEGORIES[cat].slots;
+    if (cat !== 'wood') return slots.map((s) => s.key);
+    const cfg = this.opts.getConfig();
+    return slots.filter((s) => !s.panel || cfg.slots[s.key].id !== 'none').map((s) => s.key);
   }
 
   /** Gemeinsamer Wert der Ziel-Slots oder null bei gemischter Auswahl. */
@@ -489,6 +548,11 @@ export class ConfiguratorUI {
         }
       }
       setActive(s.finishSeg, sameFinish ? first.finish : null);
+      s.railInput.checked = !!cfg.rail;
+      // Kachel "Wie Gehäuse" zeigt die aktuelle Farbe von Basis & Tropfschale
+      const bodyBase = resolveBody(cfg.slots['body.base']);
+      const bodyTile = s.grids.uni.grid.querySelector('[data-id="body"] .swatch-fill');
+      if (bodyTile) bodyTile.style.background = paintBackground(bodyBase);
       const text = sameId
         ? `${resolved.name}${sameFinish ? ' · ' + finishName(METAL_FINISHES, first.finish) : ''}`
         : 'Individuell kombiniert';
@@ -506,6 +570,12 @@ export class ConfiguratorUI {
         b.setAttribute('aria-pressed', String(on));
       });
       setActive(s.finishSeg, sameFinish ? first.finish : null);
+      const t = this.target.wood;
+      s.noneBtn.hidden = !(t === 'wood.panelUpper' || t === 'wood.panelLower');
+      s.panelUpper.checked = cfg.slots['wood.panelUpper'].id !== 'none';
+      s.panelLower.checked = cfg.slots['wood.panelLower'].id !== 'none';
+      setActive(s.knobSeg, cfg.shape.knobs);
+      setActive(s.handleSeg, cfg.shape.handle);
       const w = resolveWood(first);
       const text = sameId ? `${w.name}${sameFinish ? ' · ' + finishName(WOOD_FINISHES, first.finish) : ''}` : 'Individuell kombiniert';
       s.nameLine.textContent = sameId ? text : 'Mehrere Holzarten – Auswahl gilt für alle markierten Bauteile';
@@ -539,10 +609,16 @@ export class ConfiguratorUI {
         if (cat === 'wood') {
           const w = resolveWood(v);
           swatch = `linear-gradient(100deg, ${w.light}, ${w.mid} 50%, ${w.dark})`;
-          name = `${w.name} · ${finishName(WOOD_FINISHES, v.finish)}`;
+          name = w.none ? w.name : `${w.name} · ${finishName(WOOD_FINISHES, v.finish)}`;
+          if (s.key === 'wood.knobs') name += ` · ${finishName(KNOB_SHAPES, cfg.shape.knobs)}`;
+          if (s.key === 'wood.handle') name += ` · ${finishName(HANDLE_SHAPES, cfg.shape.handle)}`;
+        } else if (s.key === 'metal.rail' && !cfg.rail) {
+          swatch = 'transparent';
+          name = 'nicht montiert';
         } else {
           const r = cat === 'body' ? resolveBody(v) : resolveMetal(v);
-          swatch = cat === 'body' ? paintBackground(r) : swatchBackground(r.color, r.kind);
+          const base = resolveBody(cfg.slots['body.base']);
+          swatch = cat === 'body' ? paintBackground(r) : r.kind === 'body' ? paintBackground(base) : swatchBackground(r.color, r.kind);
           name = `${r.name} · ${finishName(cat === 'body' ? BODY_FINISHES : METAL_FINISHES, v.finish)}`;
         }
         dl.append(
@@ -573,8 +649,14 @@ export class ConfiguratorUI {
       for (const s of c.slots) {
         const v = cfg.slots[s.key];
         let name;
-        if (cat === 'wood') name = `${resolveWood(v).name} (${finishName(WOOD_FINISHES, v.finish)})`;
-        else {
+        if (cat === 'wood') {
+          const w = resolveWood(v);
+          name = w.none ? w.name : `${w.name} (${finishName(WOOD_FINISHES, v.finish)})`;
+          if (s.key === 'wood.knobs') name += `, Form ${finishName(KNOB_SHAPES, cfg.shape.knobs)}`;
+          if (s.key === 'wood.handle') name += `, Form ${finishName(HANDLE_SHAPES, cfg.shape.handle)}`;
+        } else if (s.key === 'metal.rail' && !cfg.rail) {
+          name = 'nicht montiert';
+        } else {
           const r = cat === 'body' ? resolveBody(v) : resolveMetal(v);
           const code = r.code ? `, ${r.series} ${r.code}` : '';
           name = `${r.name} (${finishName(cat === 'body' ? BODY_FINISHES : METAL_FINISHES, v.finish)}${code})`;

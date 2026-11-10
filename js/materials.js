@@ -56,17 +56,25 @@ export class MaterialManager {
 
   /** Wendet eine komplette Konfiguration auf alle Materialien an. */
   apply(config) {
-    for (const [slot, value] of Object.entries(config.slots)) this.applySlot(slot, value);
+    for (const [slot, value] of Object.entries(config.slots)) this.applySlot(slot, value, config);
   }
 
-  applySlot(slot, value) {
+  /** @param config komplette Konfiguration (für Akzente "Wie Gehäuse") */
+  applySlot(slot, value, config) {
     const mats = this.slots.get(slot);
     if (!mats) return;
     const cat = categoryOf(slot);
     for (const m of mats) {
       if (cat === 'body') applyPaint(m, resolveBody(value), value.finish);
       else if (cat === 'wood') applyWood(m, resolveWood(value), value.finish);
-      else applyMetal(m, resolveMetal(value), value.finish);
+      else {
+        const metal = resolveMetal(value);
+        if (metal.kind === 'body' && config) {
+          // Akzent in Gehäusefarbe (wie Basis & Tropfschale)
+          const base = config.slots['body.base'];
+          applyPaint(m, resolveBody(base), base.finish);
+        } else applyMetal(m, metal.kind === 'body' ? { ...metal, kind: 'uni' } : metal, value.finish);
+      }
       m.userData.emissiveBase = m.emissive.getHex();
     }
   }
@@ -148,6 +156,7 @@ function applyPaint(m, color, finish) {
 // ---------------------------------------------------------------------------
 function applyWood(m, wood, finish) {
   const lacquer = finish === 'lacquer';
+  if (wood.none) return; // Teil wird ausgeblendet
   if (wood.plastic) {
     setMaps(m, { map: null, bumpMap: null, normalMap: null });
     m.color.set(wood.mid);

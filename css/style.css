@@ -886,6 +886,32 @@ body.ready .loader {
   font-size: 12px;
 }
 
+.switch-row.inline {
+  margin: 0;
+  padding: 4px 0;
+  border-top: 0;
+  font-size: 14px;
+}
+
+.field.two {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  width: 100%;
+}
+
+.step-body > .field + .field {
+  margin-top: 16px;
+}
+
+.wood-none .wood-tile {
+  display: grid;
+  place-items: center;
+  background: repeating-linear-gradient(135deg, var(--seg) 0 6px, var(--surface) 6px 12px);
+  color: var(--muted);
+  font-size: 20px;
+}
+
 /* Holz */
 .woods {
   display: grid;

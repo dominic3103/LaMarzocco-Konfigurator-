@@ -21,6 +21,8 @@ export const CATEGORIES = {
       { key: 'wood.paddle', label: 'Paddle' },
       { key: 'wood.knobs', label: 'Drehknöpfe' },
       { key: 'wood.handle', label: 'Siebträgergriff' },
+      { key: 'wood.panelUpper', label: 'Seitenwangen', panel: true },
+      { key: 'wood.panelLower', label: 'Unterteil-Seiten', panel: true },
     ],
   },
   metal: {
@@ -35,6 +37,8 @@ export const CATEGORIES = {
       { key: 'metal.gauges', label: 'Manometer-Ringe' },
       { key: 'metal.grates', label: 'Gitter & Tassenablage' },
       { key: 'metal.logo', label: 'Schriftzug' },
+      { key: 'metal.rail', label: 'Cup Rail' },
+      { key: 'metal.feet', label: 'Füße' },
     ],
   },
 };
@@ -63,6 +67,8 @@ const igp = (code, name, color, extra = {}) => ({
   effect: code.slice(4, 5) === 'U' ? 'U' : code.slice(4, 5) === 'A' ? 'A' : 'E',
   ...extra,
 });
+
+const ral = (num, name, color) => ({ id: `RAL${num}`, code: `RAL ${num}`, name: `RAL ${num} ${name}`, color, effect: 'A' });
 
 export const BODY_COLLECTIONS = [
   {
@@ -133,6 +139,31 @@ export const BODY_COLLECTIONS = [
     ],
   },
   {
+    id: 'ral',
+    name: 'RAL',
+    series: 'RAL Classic – Wunschfarbe als Pulverlack (Näherungswerte)',
+    colors: [
+      ral('1015', 'Hellelfenbein', '#e5d8bd'),
+      ral('1013', 'Perlweiß', '#e8e1cc'),
+      ral('9001', 'Cremeweiß', '#ece4d3'),
+      ral('9010', 'Reinweiß', '#f1ece1'),
+      ral('9016', 'Verkehrsweiß', '#f1f0ea'),
+      ral('1014', 'Elfenbein', '#dfcea1'),
+      ral('1019', 'Graubeige', '#a39382'),
+      ral('7044', 'Seidengrau', '#b5b0a1'),
+      ral('7039', 'Quarzgrau', '#6b695f'),
+      ral('7016', 'Anthrazitgrau', '#383e42'),
+      ral('7021', 'Schwarzgrau', '#2f3234'),
+      ral('9005', 'Tiefschwarz', '#111113'),
+      ral('6009', 'Tannengrün', '#27352a'),
+      ral('6021', 'Blassgrün', '#8ba27c'),
+      ral('5011', 'Stahlblau', '#1a2b3c'),
+      ral('5024', 'Pastellblau', '#6a93b0'),
+      ral('3004', 'Purpurrot', '#6b1c23'),
+      ral('8017', 'Schokoladenbraun', '#44322d'),
+    ],
+  },
+  {
     id: 'design',
     name: 'Design',
     series: 'IGP-DURA® xal 4601',
@@ -162,12 +193,13 @@ export function collectionOf(colorId) {
 // ---------------------------------------------------------------------------
 export const METAL_COLORS = {
   metal: [
+    { id: 'gold', name: 'Gold', color: '#e1b866' },
     { id: 'steel', name: 'Edelstahl', color: '#cfd1d3' },
+    { id: 'dlc', name: 'Schwarz DLC', color: '#232427' },
     { id: 'chrome', name: 'Chrom', color: '#e4e6e9' },
     { id: 'blackchrome', name: 'Schwarzchrom', color: '#34363a' },
     { id: 'gunmetal', name: 'Gunmetal', color: '#55585d' },
     { id: 'titan', name: 'Titan', color: '#8d8b86' },
-    { id: 'gold', name: 'Gold', color: '#e1b866' },
     { id: 'rosegold', name: 'Roségold', color: '#dba895' },
     { id: 'copper', name: 'Kupfer', color: '#cf8460' },
     { id: 'brass', name: 'Messing', color: '#c9a85c' },
@@ -176,6 +208,7 @@ export const METAL_COLORS = {
     { id: 'bluepvd', name: 'Blau PVD', color: '#3f5f93' },
   ],
   uni: [
+    { id: 'body', name: 'Wie Gehäuse', color: '#b4a998', followsBody: true },
     { id: 'black', name: 'Schwarz', color: '#161616' },
     { id: 'white', name: 'Weiß', color: '#efefea' },
     { id: 'grey', name: 'Grau', color: '#6e6f71' },
@@ -198,7 +231,7 @@ export const METAL_FINISHES = [
 // ---------------------------------------------------------------------------
 export const WOODS = [
   { id: 'olive', name: 'Olivenholz', style: 'olive', light: '#ead3a2', mid: '#bf9259', dark: '#4a2d18', seed: 11 },
-  { id: 'walnut', name: 'Nussbaum', style: 'straight', light: '#8d6446', mid: '#5f4030', dark: '#2e1d13', freq: 13, warp: 0.1, contrast: 0.55, sharp: 2.5, pores: 0.9, seed: 3 },
+  { id: 'walnut', name: 'Nussbaum', style: 'straight', light: '#8a6244', mid: '#644433', dark: '#3a2618', freq: 11, warp: 0.12, contrast: 0.4, sharp: 3, pores: 0.9, seed: 3 },
   { id: 'oak', name: 'Eiche', style: 'oak', light: '#dcbb88', mid: '#c49a64', dark: '#8d6539', freq: 17, warp: 0.06, contrast: 0.55, sharp: 3.5, pores: 1.3, seed: 5 },
   { id: 'maple', name: 'Ahorn', style: 'straight', light: '#f2e3c4', mid: '#e3cda2', dark: '#c4a676', freq: 9, warp: 0.07, contrast: 0.35, sharp: 3, pores: 0.25, seed: 8 },
   { id: 'cherry', name: 'Kirschbaum', style: 'straight', light: '#c47f55', mid: '#a0603c', dark: '#6a3420', freq: 11, warp: 0.09, contrast: 0.45, sharp: 2.5, pores: 0.35, seed: 13 },
@@ -216,6 +249,20 @@ export const WOOD_FINISHES = [
   { id: 'lacquer', name: 'Hochglanz lackiert' },
 ];
 
+/** Formen der Holzteile (wie bei rb.crafts: facettiert, gerillt oder gewellt) */
+export const KNOB_SHAPES = [
+  { id: 'facet', name: 'Facettiert' },
+  { id: 'groove', name: 'Gerillt' },
+  { id: 'wave', name: 'Gewellt' },
+];
+export const HANDLE_SHAPES = [
+  { id: 'facet', name: 'Facettiert' },
+  { id: 'round', name: 'Rund' },
+];
+
+/** Platzhalter für Holzverkleidungen ohne Holz */
+export const NO_WOOD = { id: 'none', name: 'Ohne Holz', none: true, light: '#d9d4cc', mid: '#c9c3ba', dark: '#b9b2a8' };
+
 export const DIALS = [
   { id: 'white', name: 'Weiß' },
   { id: 'black', name: 'Schwarz' },
@@ -224,79 +271,105 @@ export const DIALS = [
 // ---------------------------------------------------------------------------
 // Konfigurationen
 // ---------------------------------------------------------------------------
+const MAIN_WOOD = ['wood.paddle', 'wood.knobs', 'wood.handle'];
 const allBody = (id, finish) =>
   Object.fromEntries(CATEGORIES.body.slots.map((s) => [s.key, { id, finish }]));
-const allWood = (id, finish = 'oiled') =>
-  Object.fromEntries(CATEGORIES.wood.slots.map((s) => [s.key, { id, finish }]));
+const allWood = (id, finish = 'oiled') => Object.fromEntries(MAIN_WOOD.map((k) => [k, { id, finish }]));
 const allMetal = (id, finish = 'gloss') =>
   Object.fromEntries(CATEGORIES.metal.slots.map((s) => [s.key, { id, finish }]));
 
-function preset(name, swatches, slots, dial = 'white') {
-  return { name, swatches, config: { slots, dial } };
+/** Neutrale Werte für optionale Teile (ohne Holzverkleidung, ohne Cup Rail) */
+export const NEUTRAL_SLOTS = {
+  'wood.panelUpper': { id: 'none', finish: 'oiled' },
+  'wood.panelLower': { id: 'none', finish: 'oiled' },
+  'metal.rail': { id: 'steel', finish: 'satin' },
+  'metal.feet': { id: 'black', finish: 'matte' },
+};
+export const NEUTRAL_SHAPE = { knobs: 'wave', handle: 'round' };
+
+function preset(name, swatches, slots, extra = {}) {
+  return {
+    name,
+    swatches,
+    config: {
+      slots: { ...NEUTRAL_SLOTS, ...slots },
+      dial: extra.dial || 'white',
+      rail: !!extra.rail,
+      shape: { knobs: extra.knobs || NEUTRAL_SHAPE.knobs, handle: extra.handle || NEUTRAL_SHAPE.handle },
+    },
+  };
 }
 
 export const PRESETS = [
+  // --- Editionen im Stil der rb.crafts-Maschinen (nach öffentlichen Produktfotos) ---
+  preset('Elfenbein · Gold · Nuss', ['#e5d8bd', '#5f4030', '#e1b866'], {
+    ...allBody('RAL1015', 'satin'),
+    ...allWood('walnut'),
+    'wood.panelLower': { id: 'walnut', finish: 'oiled' },
+    ...allMetal('gold', 'gloss'),
+    'metal.grates': { id: 'body', finish: 'satin' },
+  }, { rail: true, knobs: 'groove', handle: 'round' }),
+  preset('Elfenbein · Eiche · DLC', ['#e5d8bd', '#c49a64', '#232427'], {
+    ...allBody('RAL1015', 'satin'),
+    ...allWood('oak'),
+    ...allMetal('dlc', 'satin'),
+    'metal.grates': { id: 'steel', finish: 'satin' },
+    'metal.caps': { id: 'black', finish: 'matte' },
+  }, { rail: true, knobs: 'groove', handle: 'round' }),
+  preset('Schwarz · Gold · Olive', ['#111113', '#bf9259', '#e1b866'], {
+    ...allBody('RAL9005', 'matte'),
+    ...allWood('olive'),
+    'wood.panelUpper': { id: 'olive', finish: 'oiled' },
+    ...allMetal('gold', 'gloss'),
+    'metal.grates': { id: 'black', finish: 'matte' },
+  }, { rail: true, knobs: 'facet', handle: 'facet' }),
+  preset('Weiß · Nussbaum', ['#f1f0ea', '#5f4030', '#cfd1d3'], {
+    ...allBody('RAL9016', 'gloss'),
+    ...allWood('walnut'),
+    ...allMetal('steel', 'gloss'),
+    'metal.feet': { id: 'black', finish: 'matte' },
+  }, { knobs: 'facet', handle: 'facet' }),
+  preset('Schwarz · Nuss-Wangen', ['#111113', '#5f4030', '#cf8460'], {
+    ...allBody('RAL9005', 'matte'),
+    ...allWood('walnut'),
+    'wood.panelUpper': { id: 'walnut', finish: 'oiled' },
+    ...allMetal('dlc', 'satin'),
+    'metal.logo': { id: 'copper', finish: 'satin' },
+    'metal.grates': { id: 'black', finish: 'matte' },
+  }, { knobs: 'facet', handle: 'facet' }),
+  // --- IGP-DURA® Farben ---
   preset('Style 23 & Olive', ['#b4a998', '#c9a066', '#161616'], {
     ...allBody('4201E76256L3F', 'matte'),
     ...allWood('olive'),
     ...allMetal('black', 'matte'),
     'metal.portafilter': { id: 'steel', finish: 'satin' },
     'metal.grates': { id: 'steel', finish: 'satin' },
-    'metal.group': { id: 'blackchrome', finish: 'satin' },
-  }, 'black'),
-  preset('Style 21 & Olive', ['#8a7450', '#c9a066', '#34363a'], {
+    'metal.group': { id: 'dlc', finish: 'satin' },
+  }, { dial: 'black' }),
+  preset('Style 21 & Olive', ['#8a7450', '#c9a066', '#232427'], {
     ...allBody('4201E82665L3F', 'matte'),
     ...allWood('olive'),
-    ...allMetal('blackchrome', 'satin'),
+    ...allMetal('dlc', 'satin'),
     'metal.grates': { id: 'steel', finish: 'gloss' },
-    'metal.logo': { id: 'blackchrome', finish: 'gloss' },
   }),
-  preset('Traffic Black', ['#2c2b2d', '#1b1b1b', '#e4e6e9'], {
+  preset('Traffic Black & Gold', ['#2c2b2d', '#5f4030', '#e1b866'], {
     ...allBody('4201U90171L10', 'matte'),
-    ...allWood('black'),
-    ...allMetal('chrome', 'gloss'),
-    'metal.screws': { id: 'steel', finish: 'satin' },
-    'metal.caps': { id: 'white', finish: 'gloss' },
-  }),
+    ...allWood('walnut'),
+    ...allMetal('gold', 'satin'),
+    'metal.grates': { id: 'dlc', finish: 'satin' },
+  }, { rail: true, knobs: 'facet', handle: 'facet' }),
   preset('Chiffon Silk & Eiche', ['#e2dfd8', '#dcbb88', '#cfd1d3'], {
     ...allBody('4201E94136L30', 'matte'),
     ...allWood('oak'),
+    'wood.panelLower': { id: 'oak', finish: 'oiled' },
     ...allMetal('steel', 'satin'),
-  }),
-  preset('Jungle Street & Nuss', ['#3b4136', '#5f4030', '#c9a85c'], {
+  }, { rail: true, knobs: 'groove' }),
+  preset('Jungle Street & Messing', ['#3b4136', '#5f4030', '#c9a85c'], {
     ...allBody('4201E63923L3F', 'matte'),
     ...allWood('walnut'),
     ...allMetal('brass', 'satin'),
     'metal.grates': { id: 'steel', finish: 'satin' },
-  }),
-  preset('Rare Earth & Wengé', ['#8a534b', '#3e2c21', '#34363a'], {
-    ...allBody('4201E83618L3F', 'matte'),
-    ...allWood('wenge'),
-    ...allMetal('blackchrome', 'satin'),
-    'metal.grates': { id: 'steel', finish: 'satin' },
-  }, 'black'),
-  preset('Galaxy Depth & Kupfer', ['#51515b', '#3d3530', '#cf8460'], {
-    ...allBody('4201U71386L10', 'matte'),
-    ...allWood('bogoak'),
-    ...allMetal('copper', 'satin'),
-    'metal.grates': { id: 'blackchrome', finish: 'satin' },
-  }, 'black'),
-  preset('Admiral Blue & Wurzel', ['#385878', '#7a5232', '#e1b866'], {
-    ...allBody('4201E54218L30', 'matte'),
-    ...allWood('burl', 'lacquer'),
-    ...allMetal('gold', 'satin'),
-    'metal.grates': { id: 'steel', finish: 'satin' },
-  }),
-  preset('English Bronze & Olive', ['#a18668', '#c9a066', '#55585d'], {
-    ...allBody('4201E83934L30', 'matte'),
-    ...allWood('olive'),
-    ...allMetal('gunmetal', 'satin'),
-  }),
-  preset('Jungle Thicket & Ahorn', ['#6f7f76', '#e3cda2', '#dba895'], {
-    ...allBody('4201E64618L3F', 'matte'),
-    ...allWood('maple'),
-    ...allMetal('rosegold', 'satin'),
-  }),
+  }, { rail: true }),
 ];
 
 export const DEFAULT_CONFIG = PRESETS[0].config;
@@ -313,7 +386,7 @@ for (const col of BODY_COLLECTIONS) {
 export const DEFAULT_BODY_ID = '4201E76256L3F';
 const METAL_INDEX = new Map([
   ...METAL_COLORS.metal.map((c) => [c.id, { ...c, kind: 'metal' }]),
-  ...METAL_COLORS.uni.map((c) => [c.id, { ...c, kind: 'uni' }]),
+  ...METAL_COLORS.uni.map((c) => [c.id, { ...c, kind: c.followsBody ? 'body' : 'uni' }]),
 ]);
 const WOOD_INDEX = new Map(WOODS.map((w) => [w.id, w]));
 
@@ -332,6 +405,7 @@ export function resolveMetal(value) {
   return METAL_INDEX.get(value.id) || METAL_INDEX.get('steel');
 }
 export function resolveWood(value) {
+  if (value.id === 'none') return NO_WOOD;
   return WOOD_INDEX.get(value.id) || WOOD_INDEX.get('olive');
 }
 export const finishName = (list, id) => (list.find((f) => f.id === id) || list[0]).name;

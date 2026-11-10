@@ -1,7 +1,19 @@
 // ---------------------------------------------------------------------------
 // Einstiegspunkt: verbindet Modell, Materialien, Viewer und Oberfläche
 // ---------------------------------------------------------------------------
-import { DEFAULT_CONFIG, CATEGORIES, SLOT_LABELS, categoryOf, resolveBody, resolveMetal, resolveWood } from './data.js';
+import {
+  DEFAULT_CONFIG,
+  CATEGORIES,
+  SLOT_LABELS,
+  NEUTRAL_SLOTS,
+  NEUTRAL_SHAPE,
+  KNOB_SHAPES,
+  HANDLE_SHAPES,
+  categoryOf,
+  resolveBody,
+  resolveMetal,
+  resolveWood,
+} from './data.js';
 import { MaterialManager } from './materials.js';
 import { buildMachine } from './model.js';
 import { Viewer, VIEWS } from './viewer.js';
@@ -19,6 +31,16 @@ function sanitize(cfg) {
   const out = clone(DEFAULT_CONFIG);
   if (!cfg || typeof cfg !== 'object') return out;
   if (cfg.dial === 'white' || cfg.dial === 'black') out.dial = cfg.dial;
+  // ältere Konfigurationen ohne die neuen optionalen Teile: neutral ergänzen
+  if (cfg.slots) {
+    for (const [k, v] of Object.entries(NEUTRAL_SLOTS)) if (!cfg.slots[k]) out.slots[k] = clone(v);
+  }
+  out.rail = typeof cfg.rail === 'boolean' ? cfg.rail : cfg.slots ? false : out.rail;
+  const shape = cfg.shape || (cfg.slots ? NEUTRAL_SHAPE : out.shape);
+  out.shape = {
+    knobs: KNOB_SHAPES.some((x) => x.id === shape.knobs) ? shape.knobs : NEUTRAL_SHAPE.knobs,
+    handle: HANDLE_SHAPES.some((x) => x.id === shape.handle) ? shape.handle : NEUTRAL_SHAPE.handle,
+  };
   for (const k of ALL_SLOTS) {
     const v = cfg.slots?.[k];
     const resolver = { body: resolveBody, wood: resolveWood, metal: resolveMetal }[categoryOf(k)];
@@ -78,8 +100,23 @@ const canvas = document.getElementById('scene');
 const viewerEl = document.getElementById('viewer');
 const mm = new MaterialManager();
 const model = buildMachine(mm);
-mm.apply(config);
-model.setDial(config.dial);
+
+/** Konfiguration komplett auf Materialien und Bauteile anwenden */
+function applyAll() {
+  mm.apply(config);
+  model.setDial(config.dial);
+  syncParts();
+}
+/** Sichtbarkeit optionaler Teile und Formen */
+function syncParts() {
+  model.setRail(config.rail);
+  model.setPanels({
+    upper: config.slots['wood.panelUpper'].id !== 'none',
+    lower: config.slots['wood.panelLower'].id !== 'none',
+  });
+  model.setShapes(config.shape);
+}
+applyAll();
 
 const LIGHT_KEY = 'lm-mini-r-licht';
 let lightId = 'studio';
@@ -104,11 +141,22 @@ const ui = new ConfiguratorUI(document.getElementById('config'), {
     const next = sanitize(preset);
     prepareWoods(next, () => {
       config = next;
-      mm.apply(config);
-      model.setDial(config.dial);
+      applyAll();
       viewer.flash(mm, ALL_SLOTS);
       commit();
     });
+  },
+  onRail: (on) => {
+    config.rail = !!on;
+    syncParts();
+    if (on) viewer.flash(mm, ['metal.rail']);
+    commit();
+  },
+  onShape: (part, id) => {
+    config.shape = { ...config.shape, [part]: id };
+    syncParts();
+    viewer.flash(mm, [part === 'knobs' ? 'wood.knobs' : 'wood.handle']);
+    commit();
   },
   onFocus: (keys) => viewer.flash(mm, keys),
 });
@@ -120,7 +168,7 @@ function prepareWoods(cfg, done) {
   setTimeout(() => {
     ids.forEach((id) => {
       const w = resolveWood({ id });
-      if (!w.plastic) getWoodTextures(w);
+      if (!w.plastic && !w.none) getWoodTextures(w);
       ui.setBusy(id, false);
     });
     done();
@@ -136,8 +184,15 @@ function updateSlots(keys, patch) {
       else if (patch.id) next = { id: patch.id, finish: cur.finish };
       else next = { ...cur, ...patch };
       config.slots[k] = next;
-      mm.applySlot(k, next);
+      mm.applySlot(k, next, config);
     }
+    // Akzente "Wie Gehäuse" folgen der Gehäusefarbe
+    if (keys.some((k) => k === 'body.base')) {
+      for (const k of CATEGORIES.metal.slots.map((s) => s.key)) {
+        if (config.slots[k].id === 'body') mm.applySlot(k, config.slots[k], config);
+      }
+    }
+    syncParts();
     viewer.requestRender();
     commit();
   };
@@ -346,8 +401,7 @@ shotBtn.addEventListener('click', () => {
 });
 document.getElementById('btn-reset').addEventListener('click', () => {
   config = clone(DEFAULT_CONFIG);
-  mm.apply(config);
-  model.setDial(config.dial);
+  applyAll();
   viewer.flash(mm, ALL_SLOTS);
   commit();
   toast('Auf Standard zurückgesetzt');
@@ -361,8 +415,7 @@ window.addEventListener('hashchange', () => {
   if (JSON.stringify(next) === JSON.stringify(config)) return;
   prepareWoods(next, () => {
     config = next;
-    mm.apply(config);
-    model.setDial(config.dial);
+    applyAll();
     commit();
   });
 });

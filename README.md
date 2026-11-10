@@ -13,21 +13,25 @@ Interaktiver 3D-Konfigurator für die Espressomaschine **Linea Mini R**. Die Mas
     - xal 4201 *Style*: xal-Style 21, 22, 23, 25, 26, 30
     - xal 4201 *Trend*: xal-Trend 3, 6
     - xal 4601 *Design*: xal-Design 12, 17, 20, 21
+    - *RAL*: 18 gängige RAL-Classic-Töne als Wunschfarbe (u. a. RAL 1015 Hellelfenbein, 9016, 9005, 7016, 6009), Farbwerte genähert
   - Darstellung nach Code-Typ: `A` = Uni, `E` = Effektfarbton mit feinem metallischem Schimmer, `U` = IGP-Effectives® mit Glitzerpartikeln
   - eigene Farbe (Uni oder Metallic) per Farbwähler, z. B. für RAL-Töne
   - Oberflächen: Tiefmatt (wie IGP-DURA® xal 4201), Seidenmatt, Hochglanz und Struktur zum Vergleich
 - **Holz**: Paddle, Drehknöpfe und Siebträgergriff, zusammen oder einzeln.
+  - **Holzverkleidung** (optional) für die oberen Seitenwangen und die Seitenteile des Unterteils
+  - **Formen**: Drehknöpfe facettiert, gerillt oder gewellt, Siebträgergriff facettiert oder rund
   - Olivenholz, Nussbaum, Eiche, Ahorn, Kirschbaum, Zebrano, Padouk, Wengé, Mooreiche, Makassar, Nuss-Wurzel sowie „Serie Schwarz“ (Kunststoff wie ab Werk)
   - Oberflächen: geölt oder hochglanzlackiert
   - Jede Maserung wird prozedural erzeugt und sieht deshalb je Holzart unterschiedlich aus.
-- **Metallakzente**: Schrauben, Dampflanze & Heißwasser, Siebträger, Brühgruppe, Knopfkappen, Manometer-Ringe, Gitter & Tassenablage, Schriftzug – alle zusammen oder jedes Teil einzeln.
-  - Edelstahl, Chrom, Schwarzchrom, Gunmetal, Titan, Gold, Roségold, Kupfer, Messing, Bronze, Champagner, Blau PVD
-  - Uni-Lacke (Schwarz, Weiß, Grau, Rot, Creme, Marine) und eine eigene Farbe
+- **Metallakzente**: Schrauben, Dampflanze & Heißwasser, Siebträger, Brühgruppe, Knopfkappen, Manometer-Ringe, Gitter & Tassenablage, Schriftzug, Cup Rail und Füße – alle zusammen oder jedes Teil einzeln.
+  - Gold, Edelstahl, Schwarz DLC, Chrom, Schwarzchrom, Gunmetal, Titan, Roségold, Kupfer, Messing, Bronze, Champagner, Blau PVD
+  - Uni-Lacke, **„Wie Gehäuse“** (z. B. Gitter in Gehäusefarbe) und eine eigene Farbe
+  - **Cup Rail** (Stangenreling auf Pfosten über der Tassenablage) an- und abbaubar
   - Oberflächen: Hochglanz, Satiniert, Matt
 - **Details**: Manometer-Zifferblatt in Weiß oder Schwarz.
 - **Lichtstimmungen** (Menü oben rechts im 3D-Bereich): Studio hell, Tageslicht, Dämmerung, Abendlicht und Dunkel. Jede Stimmung setzt Reflexionen, Licht, Schatten und Hintergrund, Wechsel werden weich überblendet. Das **Barista-Licht** (LED unter dem Kopfteil, beleuchtet die Tropfschale) lässt sich separat schalten.
 - **Bauteile direkt anklicken**: Ein Klick auf ein Teil im 3D-Modell öffnet die passende Auswahl.
-- **10 Inspirations-Presets**, **Link teilen** (die komplette Konfiguration steckt in der URL), **Bild speichern** (PNG), **Liste kopieren** (Textzusammenfassung).
+- **10 Inspirations-Presets**, darunter fünf Editionen im Stil handwerklich veredelter Maschinen (Elfenbein · Gold · Nuss, Elfenbein · Eiche · DLC, Schwarz · Gold · Olive, Weiß · Nussbaum, Schwarz · Nuss-Wangen), **Link teilen** (die komplette Konfiguration steckt in der URL), **Bild speichern** (PNG), **Liste kopieren** (Textzusammenfassung).
 
 ## Starten
 

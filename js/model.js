@@ -273,34 +273,57 @@ export function buildMachine(mm) {
     root.add(screen);
   }
 
-  // Drehknöpfe: Hülse + Holzkörper mit Wellenrand + vertiefte Kappe (ragen ca. 60 mm vor)
-  const knobShape = (() => {
-    const s = new THREE.Shape();
-    const R = 22.5;
-    const lobes = 16;
-    const n = 192;
+  // Drehknöpfe: Hülse + Holzkörper (Form wählbar) + vertiefte Kappe (ragen ca. 60 mm vor)
+  const ringShape = (R, fn, n = 192) => {
+    const sh = new THREE.Shape();
     for (let i = 0; i <= n; i++) {
       const a = (i / n) * Math.PI * 2;
-      const r = R - 1.2 * (0.5 - 0.5 * Math.cos(a * lobes));
-      const x = Math.cos(a) * r;
-      const y = Math.sin(a) * r;
-      if (i === 0) s.moveTo(x, y);
-      else s.lineTo(x, y);
+      const r = fn(a, R);
+      if (i === 0) sh.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+      else sh.lineTo(Math.cos(a) * r, Math.sin(a) * r);
     }
-    return s;
-  })();
-  const knobGeo = scaleUV(extrudeZ(knobShape, 42, 2.6, 3, 4), 1 / 80, [0.5, 0.5]);
-  knobGeo.computeBoundingBox();
-  const knobLen = knobGeo.boundingBox.max.z;
+    return sh;
+  };
+  const knobShapes = {
+    // gewellt: 16 weiche Wellen
+    wave: ringShape(22.5, (a, R) => R - 1.2 * (0.5 - 0.5 * Math.cos(a * 16))),
+    // gerillt: Zylinder mit 6 schmalen Längsnuten (rb.crafts Eiche/Micra)
+    groove: ringShape(22.5, (a, R) => {
+      const k = (((a / (Math.PI * 2)) * 6) % 1 + 1) % 1;
+      return k > 0.44 && k < 0.56 ? R - 2.2 : R;
+    }, 360),
+    // facettiert: Achteck (rb.crafts Nussbaum)
+    facet: (() => {
+      const sh = new THREE.Shape();
+      for (let i = 0; i <= 8; i++) {
+        const a = (i / 8) * Math.PI * 2 + Math.PI / 8;
+        const r = 23.5;
+        if (i === 0) sh.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+        else sh.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+      }
+      return sh;
+    })(),
+  };
+  const knobGeos = Object.fromEntries(
+    Object.entries(knobShapes).map(([id, sh]) => [id, scaleUV(extrudeZ(sh, 42, 2.6, 3, 4), 1 / 80, [0.5, 0.5])]),
+  );
+  knobGeos.wave.computeBoundingBox();
+  const knobLen = knobGeos.wave.boundingBox.max.z;
   const knobMat = mm.get('wood.knobs');
   const capMat = mm.get('metal.caps');
   const knobY = 308;
   const knobZ0 = M.headFront + 11;
+  const knobVariants = { wave: [], groove: [], facet: [] };
   for (const x of [-115, 115]) {
     const collarG = new THREE.CylinderGeometry(14.5, 15.5, 12, 40);
     collarG.rotateX(Math.PI / 2);
     plain(collarG, F.blackPlastic).position.set(x, knobY, M.headFront + 6);
-    add(knobGeo, knobMat, 'wood.knobs').position.set(x, knobY, knobZ0);
+    for (const [id, g] of Object.entries(knobGeos)) {
+      const k = add(g, knobMat, 'wood.knobs');
+      k.position.set(x, knobY, knobZ0);
+      k.visible = id === 'wave';
+      knobVariants[id].push(k);
+    }
     const capG = new THREE.CylinderGeometry(17, 17, 2.4, 64);
     capG.rotateX(Math.PI / 2);
     add(capG, capMat, 'metal.caps').position.set(x, knobY, knobZ0 + knobLen + 0.2);
@@ -427,6 +450,7 @@ export function buildMachine(mm) {
     root.add(gasket);
   }
   const pfMat = mm.get('metal.portafilter');
+  const handleVariants = {};
   {
     const pf = new THREE.Group();
     pf.position.set(0, 0, gZ);
@@ -476,13 +500,23 @@ export function buildMachine(mm) {
       [4, 96],
       [0, 96.4],
     ].map(([r, y]) => new THREE.Vector2(r, y));
-    const hg = new THREE.LatheGeometry(hprof, 48);
-    {
-      const uv = hg.attributes.uv;
+    const handleMat = mm.get('wood.handle');
+    const makeHandle = (segments, flat) => {
+      let g = new THREE.LatheGeometry(hprof, segments, Math.PI / segments);
+      const uv = g.attributes.uv;
       for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * 1.1, uv.getY(i) * 1.4 + 0.2);
-    }
-    hg.rotateX(Math.PI / 2);
-    add(hg, mm.get('wood.handle'), 'wood.handle', handle).position.z = 54;
+      if (flat) {
+        g = g.toNonIndexed();
+        g.computeVertexNormals();
+      }
+      g.rotateX(Math.PI / 2);
+      const mesh = add(g, handleMat, 'wood.handle', handle);
+      mesh.position.z = 54;
+      return mesh;
+    };
+    handleVariants.round = makeHandle(48, false);
+    handleVariants.facet = makeHandle(8, true);
+    handleVariants.facet.visible = false;
   }
 
   const wandMat = mm.get('metal.wand');
@@ -579,18 +613,30 @@ export function buildMachine(mm) {
     }
   }
   {
-    // Füße: unten breiter (Ø 35 mm), oben schmal (Ø 20 mm)
-    const g = new THREE.CylinderGeometry(10, 17.5, M.footH, 40);
+    // Füße: konisch (Ø 20 mm oben, Ø 35 mm unten), lackier- oder veredelbar + Gummipuffer
+    const feetMat = mm.get('metal.feet');
+    const g = new THREE.LatheGeometry(
+      [
+        new THREE.Vector2(0, 2),
+        new THREE.Vector2(17, 2),
+        new THREE.Vector2(17.5, 3.2),
+        new THREE.Vector2(14.5, 9),
+        new THREE.Vector2(11.2, 17),
+        new THREE.Vector2(10, M.footH - 1),
+        new THREE.Vector2(10.5, M.footH),
+        new THREE.Vector2(0, M.footH),
+      ],
+      48,
+    );
+    const pad = new THREE.CylinderGeometry(16, 16, 2, 40);
     for (const [x, z] of [
       [-132, 75.6],
       [132, 75.6],
       [-132, -270.6],
       [132, -270.6],
     ]) {
-      const f = new THREE.Mesh(g, F.rubber);
-      f.position.set(x, M.footH / 2, z);
-      f.castShadow = true;
-      root.add(f);
+      add(g, feetMat, 'metal.feet').position.set(x, 0, z);
+      plain(pad, F.rubber).position.set(x, 1, z);
     }
   }
   {
@@ -617,6 +663,87 @@ export function buildMachine(mm) {
     plate.rotation.y = Math.PI / 2;
     plate.position.set(sx + 0.4, 60, -45);
     root.add(plate);
+  }
+
+  // =========================================================================
+  // Cup Rail (Stangenreling auf Pfosten über den Seitenwangen und hinten)
+  // =========================================================================
+  const railGroup = new THREE.Group();
+  railGroup.visible = false;
+  root.add(railGroup);
+  {
+    const railMat = mm.get('metal.rail');
+    const rx = M.halfW - M.slabT / 2;
+    const zF = -22;
+    const zR = -322;
+    const yR = M.top + 15;
+    const rodR = 2.8;
+    const post = new THREE.CylinderGeometry(3.2, 3.6, 15, 24);
+    for (const z of [zF, (zF + zR) / 2, zR]) {
+      for (const sx of [-1, 1]) add(post, railMat, 'metal.rail', railGroup).position.set(sx * rx, M.top + 7.5, z);
+    }
+    const sideRod = new THREE.CylinderGeometry(rodR, rodR, zF - zR, 24);
+    sideRod.rotateX(Math.PI / 2);
+    for (const sx of [-1, 1]) {
+      add(sideRod, railMat, 'metal.rail', railGroup).position.set(sx * rx, yR, (zF + zR) / 2);
+      const cap = add(new THREE.SphereGeometry(rodR * 1.05, 20, 12), railMat, 'metal.rail', railGroup);
+      cap.position.set(sx * rx, yR, zF);
+      const corner = add(new THREE.SphereGeometry(rodR, 20, 12), railMat, 'metal.rail', railGroup);
+      corner.position.set(sx * rx, yR, zR);
+    }
+    const backRod = new THREE.CylinderGeometry(rodR, rodR, rx * 2, 24);
+    backRod.rotateZ(Math.PI / 2);
+    add(backRod, railMat, 'metal.rail', railGroup).position.set(0, yR, zR);
+  }
+
+  // =========================================================================
+  // Holzverkleidungen (optional): Seitenwangen oben, Seitenteile des Unterteils
+  // =========================================================================
+  const panelUpper = new THREE.Group();
+  const panelLower = new THREE.Group();
+  panelUpper.visible = false;
+  panelLower.visible = false;
+  root.add(panelUpper, panelLower);
+  {
+    const inset = 3;
+    const t = 2.6;
+    // Seitenwangen: Profil der Wange, leicht eingerückt, Maserung längs
+    const prof = [
+      [-inset, M.slabBotFront + inset],
+      [-inset, M.top - inset],
+      [M.rearTop + inset, M.top - inset],
+      [M.rearBot + inset * 0.8, M.slabBotRear + inset],
+    ];
+    const g = swapUV(boxProjectUV(profileExtrudeX(prof, t, 0.6), 150));
+    const mat = mm.get('wood.panelUpper');
+    for (const sx of [-1, 1]) {
+      add(g, mat, 'wood.panelUpper', panelUpper).position.x = sx < 0 ? -M.halfW - t + 0.01 : M.halfW - 0.01;
+    }
+    // Unterteil: dünne Platte auf jeder schrägen Seitenfläche
+    const matL = mm.get('wood.panelLower');
+    const bot = M.baseTop + 4;
+    const top = M.slabBotFront - 1;
+    const hwAt = (y) => 135.5 + (y - M.baseTop) * (24 / 140.4);
+    const zFront = -inset - 0.5;
+    const zRearAt = (y) => -288 - (y - M.baseTop) * (21 / 149.4) + inset;
+    for (const sx of [-1, 1]) {
+      const p = (y, z) => [sx * (hwAt(y) + 0.2), y, z];
+      const q = (y, z) => [sx * (hwAt(y) + 0.2 + t), y, z];
+      const a = p(bot, zFront);
+      const b = p(top, zFront);
+      const c = p(top, zRearAt(top));
+      const d = p(bot, zRearAt(bot));
+      const a2 = q(bot, zFront);
+      const b2 = q(top, zFront);
+      const c2 = q(top, zRearAt(top));
+      const d2 = q(bot, zRearAt(bot));
+      const faces =
+        sx > 0
+          ? [[a2, d2, c2, b2], [a, b, c, d], [a, a2, b2, b], [d, c, c2, d2], [b, b2, c2, c], [a, d, d2, a2]]
+          : [[a2, b2, c2, d2], [a, d, c, b], [a, b, b2, a2], [d, d2, c2, c], [b, c, c2, b2], [a, a2, d2, d]];
+      const gl = swapUV(boxProjectUV(polyhedron(faces), 150));
+      add(gl, matL, 'wood.panelLower', panelLower);
+    }
   }
 
   // =========================================================================
@@ -671,6 +798,22 @@ export function buildMachine(mm) {
         g.faceMat.needsUpdate = true;
         old?.dispose();
       }
+    },
+    /** Cup Rail ein-/ausblenden */
+    setRail(on) {
+      railGroup.visible = !!on;
+    },
+    /** Holzverkleidungen ein-/ausblenden */
+    setPanels({ upper, lower }) {
+      panelUpper.visible = !!upper;
+      panelLower.visible = !!lower;
+    },
+    /** Formen der Holzteile */
+    setShapes({ knobs, handle }) {
+      for (const [id, list] of Object.entries(knobVariants)) list.forEach((m) => (m.visible = id === knobs));
+      if (!knobVariants[knobs]) knobVariants.wave.forEach((m) => (m.visible = true));
+      handleVariants.round.visible = handle !== 'facet';
+      handleVariants.facet.visible = handle === 'facet';
     },
     /** Barista-Licht: 0 = aus, 1 = voll */
     setBarista(level) {
