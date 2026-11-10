@@ -211,6 +211,22 @@ button {
   cursor: pointer;
 }
 
+.switch-row.plain {
+  margin-top: 0;
+  border-top: 0;
+  padding-top: 4px;
+}
+
+.light-note {
+  margin: 2px 10px 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.switch-row input:disabled + .switch {
+  opacity: 0.4;
+}
+
 .switch-row input {
   position: absolute;
   opacity: 0;
@@ -1171,6 +1187,67 @@ body.ready .loader {
 .swatch-groups .swatches {
   grid-template-columns: repeat(auto-fill, minmax(34px, 1fr));
   gap: 6px;
+}
+
+/* Manometer-Auswahl */
+.gauge-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dials {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+
+.dial {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 2px;
+  border: 1.5px solid transparent;
+  border-radius: 10px;
+  background: none;
+  min-width: 0;
+}
+
+.dial:hover {
+  background: var(--seg);
+}
+
+.dial.active {
+  border-color: var(--ink);
+  background: var(--surface);
+}
+
+.dial-img {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+}
+
+.dial-name {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--ink-soft);
+}
+
+.swatches.needles {
+  grid-template-columns: repeat(4, 40px);
+}
+
+.gauge-picker .pick-name {
+  margin: 0;
+}
+
+.hint-text.tight-top {
+  margin-top: 8px;
 }
 
 /* Holz */

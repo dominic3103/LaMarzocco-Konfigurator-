@@ -225,22 +225,27 @@ export const METAL_FINISHES = [
 ];
 
 // ---------------------------------------------------------------------------
-// Holzarten – Parameter für die prozedurale Holzmaserung (textures.js)
-//   style:  straight | oak | zebra | olive | burl | solid
-//   light/mid/dark: Farbverlauf hell -> dunkel
+// Holzarten – Kennwerte für die prozedurale Maserung (wood.js)
+//   style:   ring (Jahresringe) | olive | zebra | burl | solid
+//   light/mid/dark: Farbverlauf Frühholz -> Spätholz
+//   rings:   Anzahl Jahresringe bzw. Streifen auf 160 mm Breite
+//   contrast/late: Kontrast und Anteil des Spätholzes
+//   warp/figure: Schlingern der Faser, Stärke der Fladerung
+//   pore:    Gefäße {nx, ny: Raster quer/längs, density, dark, w, ring: nur im Frühholz}
+//   streak:  Kernholzstreifen / Adern {color, amt}
 // ---------------------------------------------------------------------------
 export const WOODS = [
-  { id: 'olive', name: 'Olivenholz', style: 'olive', light: '#ead3a2', mid: '#bf9259', dark: '#4a2d18', seed: 11 },
-  { id: 'walnut', name: 'Nussbaum', style: 'straight', light: '#8a6244', mid: '#644433', dark: '#3a2618', freq: 11, warp: 0.12, contrast: 0.4, sharp: 3, pores: 0.9, seed: 3 },
-  { id: 'oak', name: 'Eiche', style: 'oak', light: '#dcbb88', mid: '#c49a64', dark: '#8d6539', freq: 17, warp: 0.06, contrast: 0.55, sharp: 3.5, pores: 1.3, seed: 5 },
-  { id: 'maple', name: 'Ahorn', style: 'straight', light: '#f2e3c4', mid: '#e3cda2', dark: '#c4a676', freq: 9, warp: 0.07, contrast: 0.35, sharp: 3, pores: 0.25, seed: 8 },
-  { id: 'cherry', name: 'Kirschbaum', style: 'straight', light: '#c47f55', mid: '#a0603c', dark: '#6a3420', freq: 11, warp: 0.09, contrast: 0.45, sharp: 2.5, pores: 0.35, seed: 13 },
-  { id: 'zebrano', name: 'Zebrano', style: 'zebra', light: '#e0caa0', mid: '#bfa073', dark: '#3f2c1b', freq: 15, warp: 0.035, contrast: 0.95, seed: 21 },
-  { id: 'padouk', name: 'Padouk', style: 'straight', light: '#c9603a', mid: '#a4452a', dark: '#6b2414', freq: 14, warp: 0.05, contrast: 0.5, sharp: 2, pores: 0.8, seed: 17 },
-  { id: 'wenge', name: 'Wengé', style: 'straight', light: '#6a5240', mid: '#3e2c21', dark: '#140d09', freq: 24, warp: 0.04, contrast: 0.85, sharp: 1.6, pores: 1.2, seed: 27 },
-  { id: 'bogoak', name: 'Mooreiche', style: 'oak', light: '#5a5048', mid: '#3d3530', dark: '#1d1916', freq: 18, warp: 0.05, contrast: 0.5, sharp: 3, pores: 1.0, seed: 31 },
-  { id: 'ebony', name: 'Makassar', style: 'zebra', light: '#86643f', mid: '#4a3322', dark: '#120b07', freq: 11, warp: 0.06, contrast: 1.0, seed: 37 },
-  { id: 'burl', name: 'Nuss-Wurzel', style: 'burl', light: '#b07c4f', mid: '#7a5232', dark: '#2f1c10', seed: 41 },
+  { id: 'olive', name: 'Olivenholz', style: 'olive', light: '#e9d3a0', mid: '#cfa868', dark: '#9c7340', rings: 46, contrast: 0.3, late: 0.3, warp: 0.05, figure: 3, fiber: 0.5, tone: 0.14, pore: { nx: 250, ny: 110, density: 0.18, dark: 0.18 }, streak: { color: '#41281a' }, seed: 11 },
+  { id: 'walnut', name: 'Nussbaum', style: 'ring', light: '#9c7455', mid: '#7b5641', dark: '#4d3425', rings: 22, contrast: 0.5, late: 0.26, warp: 0.035, figure: 7, fiber: 0.7, tone: 0.16, pore: { nx: 240, ny: 70, density: 0.26, dark: 0.2, w: 0.24 }, streak: { color: '#3a271d', amt: 0.45, fx: 3 }, seed: 3 },
+  { id: 'oak', name: 'Eiche', style: 'ring', light: '#dcbf90', mid: '#c7a26d', dark: '#a07a4a', rings: 26, contrast: 0.5, late: 0.28, warp: 0.03, figure: 8, fiber: 0.6, tone: 0.1, pore: { nx: 200, ny: 80, density: 0.9, dark: 0.3, w: 0.34, ring: 0.3 }, seed: 5 },
+  { id: 'maple', name: 'Ahorn', style: 'ring', light: '#f0e2c6', mid: '#e6d2ae', dark: '#cfb68c', rings: 30, contrast: 0.36, late: 0.25, warp: 0.03, figure: 6, fiber: 0.45, tone: 0.1, pore: { nx: 256, ny: 120, density: 0.12, dark: 0.12 }, seed: 8 },
+  { id: 'cherry', name: 'Kirschbaum', style: 'ring', light: '#cd9468', mid: '#b6744d', dark: '#8d5134', rings: 24, contrast: 0.45, late: 0.22, warp: 0.035, figure: 7, fiber: 0.55, tone: 0.14, pore: { nx: 256, ny: 110, density: 0.22, dark: 0.3 }, streak: { color: '#7a4630', amt: 0.3, fx: 2 }, seed: 13 },
+  { id: 'zebrano', name: 'Zebrano', style: 'zebra', light: '#e2c995', mid: '#cfb07a', dark: '#b8975f', rings: 30, stripe: 0.36, warp: 0.02, fiber: 0.6, tone: 0.08, pore: { nx: 200, ny: 80, density: 0.5, dark: 0.3 }, streak: { color: '#4a3220' }, seed: 21 },
+  { id: 'padouk', name: 'Padouk', style: 'ring', light: '#cf6c40', mid: '#b55230', dark: '#84331c', rings: 18, contrast: 0.4, late: 0.25, warp: 0.03, figure: 5, fiber: 0.6, tone: 0.16, pore: { nx: 180, ny: 70, density: 0.6, dark: 0.34, w: 0.34 }, streak: { color: '#6e2a18', amt: 0.35, fx: 3 }, seed: 17 },
+  { id: 'wenge', name: 'Wengé', style: 'ring', light: '#6b503d', mid: '#422f23', dark: '#1c120c', rings: 64, contrast: 0.95, late: 0.5, warp: 0.02, figure: 5, fiber: 0.7, tone: 0.1, pore: { nx: 170, ny: 60, density: 0.55, dark: 0.3, w: 0.36 }, seed: 27 },
+  { id: 'bogoak', name: 'Mooreiche', style: 'ring', light: '#5f554c', mid: '#443c35', dark: '#26201c', rings: 26, contrast: 0.5, late: 0.28, warp: 0.03, figure: 8, fiber: 0.6, tone: 0.1, pore: { nx: 190, ny: 70, density: 0.95, dark: 0.45, w: 0.36, ring: 0.3 }, seed: 31 },
+  { id: 'ebony', name: 'Makassar', style: 'zebra', light: '#8d6a45', mid: '#775637', dark: '#5f432b', rings: 20, stripe: 0.62, warp: 0.03, fiber: 0.6, tone: 0.1, pore: { nx: 220, ny: 90, density: 0.3, dark: 0.3 }, streak: { color: '#170e09' }, seed: 37 },
+  { id: 'burl', name: 'Nuss-Wurzel', style: 'burl', light: '#b78555', mid: '#8a5f3c', dark: '#553622', fiber: 0.5, tone: 0.16, pore: { nx: 230, ny: 200, density: 0.3, dark: 0.3 }, streak: { color: '#2c1a10' }, seed: 41 },
   { id: 'black', name: 'Serie Schwarz', style: 'solid', light: '#1b1b1b', mid: '#161616', dark: '#101010', seed: 1, plastic: true },
 ];
 
@@ -263,9 +268,30 @@ export const HANDLE_SHAPES = [
 /** Platzhalter für Holzverkleidungen ohne Holz */
 export const NO_WOOD = { id: 'none', name: 'Ohne Holz', none: true, light: '#d9d4cc', mid: '#c9c3ba', dark: '#b9b2a8' };
 
-export const DIALS = [
+/** Manometer: Zifferblatt und Zeiger je Anzeige wählbar */
+export const GAUGES = [
+  { id: 'left', name: 'Brühdruck (links)', short: 'Brühdruck' },
+  { id: 'right', name: 'Dampfdruck (rechts)', short: 'Dampfdruck' },
+];
+export const GAUGE_DIALS = [
   { id: 'white', name: 'Weiß' },
   { id: 'black', name: 'Schwarz' },
+  { id: 'cream', name: 'Creme' },
+  { id: 'naked', name: 'Naked (offenes Werk)' },
+];
+export const NEEDLES = [
+  { id: 'red', name: 'Rot', color: '#c2231d' },
+  { id: 'black', name: 'Schwarz', color: '#161616' },
+  { id: 'white', name: 'Weiß', color: '#f1eee6' },
+  { id: 'gold', name: 'Gold', color: '#d6ae58', metal: true },
+];
+export const needleById = (id) => NEEDLES.find((n) => n.id === id) || NEEDLES[0];
+export const DEFAULT_GAUGE = { dial: 'white', needle: 'red' };
+
+/** Schraubenköpfe: ab Werk Linsenkopf mit Schlitz */
+export const SCREW_HEADS = [
+  { id: 'slot', name: 'Schlitz' },
+  { id: 'hex', name: 'Innensechskant' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -293,7 +319,12 @@ function preset(name, swatches, slots, extra = {}) {
     swatches,
     config: {
       slots: { ...NEUTRAL_SLOTS, ...slots },
-      dial: extra.dial || 'white',
+      // Manometer: Zifferblatt + Zeiger je Anzeige (extra.dial/needle gilt für beide)
+      gauges: {
+        left: { dial: extra.dial || 'white', needle: extra.needle || 'red', ...(extra.gauges?.left || {}) },
+        right: { dial: extra.dial || 'white', needle: extra.needle || 'red', ...(extra.gauges?.right || {}) },
+      },
+      screwHead: extra.screws || 'slot',
       rail: !!extra.rail,
       shape: { knobs: extra.knobs || NEUTRAL_SHAPE.knobs, handle: extra.handle || NEUTRAL_SHAPE.handle },
     },
@@ -309,6 +340,16 @@ export const PRESETS = [
     ...allMetal('gold', 'gloss'),
     'metal.grates': { id: 'body', finish: 'matte' },
   }, { rail: true, knobs: 'groove', handle: 'round' }),
+  preset('Style 30 · Schwarz · Nuss · Naked', ['#7d6b58', '#644433', '#161616'], {
+    ...allBody('4201E81872L3F', 'texture'),
+    ...allWood('walnut'),
+    'wood.panelLower': { id: 'walnut', finish: 'oiled' },
+    ...allMetal('black', 'matte'),
+    'metal.wand': { id: 'dlc', finish: 'satin' },
+    'metal.group': { id: 'dlc', finish: 'satin' },
+    'metal.portafilter': { id: 'dlc', finish: 'satin' },
+    'metal.grates': { id: 'dlc', finish: 'satin' },
+  }, { dial: 'naked', needle: 'red', knobs: 'facet', handle: 'facet' }),
   preset('Chiffon Silk · Eiche · DLC', ['#e2dfd8', '#c49a64', '#232427'], {
     ...allBody('4201E94136L30', 'matte'),
     ...allWood('oak'),
@@ -338,7 +379,7 @@ export const PRESETS = [
     'metal.portafilter': { id: 'steel', finish: 'satin' },
     'metal.grates': { id: 'steel', finish: 'satin' },
     'metal.group': { id: 'dlc', finish: 'satin' },
-  }, { dial: 'black' }),
+  }, { dial: 'black', needle: 'gold' }),
   preset('Style 23 · Olive · Gold-Rail', ['#b4a998', '#c9a066', '#e1b866'], {
     ...allBody('4201E76256L3F', 'matte'),
     ...allWood('olive'),
@@ -355,13 +396,6 @@ export const PRESETS = [
     ...allMetal('gold', 'satin'),
     'metal.grates': { id: 'steel', finish: 'satin' },
   }, { rail: true, knobs: 'facet', handle: 'facet' }),
-  preset('English Bronze · Olive', ['#a18668', '#c9a066', '#232427'], {
-    ...allBody('4201E83934L30', 'matte'),
-    ...allWood('olive'),
-    'wood.panelUpper': { id: 'olive', finish: 'oiled' },
-    ...allMetal('dlc', 'satin'),
-    'metal.rail': { id: 'body', finish: 'matte' },
-  }, { rail: true, knobs: 'groove' }),
   preset('Jungle Street · Messing', ['#3b4136', '#644433', '#c9a85c'], {
     ...allBody('4201E63923L3F', 'matte'),
     ...allWood('walnut'),

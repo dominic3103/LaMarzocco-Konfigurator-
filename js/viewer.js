@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { makeContactShadowTexture } from './textures.js';
 import { LightingRig, lightingById } from './lighting.js';
+import { RenderPipeline, makeGroundMaterial } from './pipeline.js';
 
 const TARGET = new THREE.Vector3(0, 0.185, 0);
 
@@ -19,7 +20,10 @@ export const VIEWS = {
 };
 
 export class Viewer {
-  constructor(canvas, container, { lighting = 'studio' } = {}) {
+  /**
+   * @param {{lighting?: string, quality?: 'auto'|'high'|'low', samples?: number}} options
+   */
+  constructor(canvas, container, { lighting = 'studio', quality = 'auto', samples = 0 } = {}) {
     this.canvas = canvas;
     this.container = container;
     this.listeners = { hover: [], pick: [] };
@@ -63,9 +67,17 @@ export class Viewer {
     scene.add(rim);
     const hemi = new THREE.HemisphereLight(0xffffff, 0x8a8076, 0.35);
     scene.add(hemi);
+    // Himmelslicht-Sample für das progressive Rendering (wird von der Pipeline gesteuert)
+    const sky = new THREE.DirectionalLight(0xffffff, 0);
+    sky.castShadow = true;
+    sky.shadow.mapSize.set(1024, 1024);
+    Object.assign(sky.shadow.camera, { left: -0.62, right: 0.62, top: 0.62, bottom: -0.62, near: 0.3, far: 3.4 });
+    sky.shadow.bias = -0.0006;
+    sky.shadow.normalBias = 0.002;
+    sky.target.position.set(0, 0.14, 0);
 
-    // Boden: weicher Schlagschatten + Kontaktschatten
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(4, 4), new THREE.ShadowMaterial({ opacity: 0.2 }));
+    // Boden: Schattenfänger (Hauptlicht + Himmel) und einfacher Kontaktschatten für bewegte Bilder
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(4, 4), makeGroundMaterial());
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
     scene.add(ground);
@@ -79,6 +91,7 @@ export class Viewer {
 
     // Lichtstimmungen (Umgebung, Lichter, Belichtung, Schatten, Barista-Licht)
     this.rig = new LightingRig({ renderer, scene, key, rim, hemi, ground, contact });
+    this.sky = sky;
     this.rig.set(lighting, false);
 
     // Steuerung
@@ -105,6 +118,27 @@ export class Viewer {
     this.shift = { x: 0, y: 0, tx: 0, ty: 0 };
 
     this.setView('threeQuarter', false);
+
+    const isPhone = Math.min(window.innerWidth, window.innerHeight) < 600;
+    this.pipeline = new RenderPipeline({
+      renderer,
+      scene,
+      camera,
+      key,
+      sky,
+      hemi,
+      ground,
+      contact,
+      quality,
+      samples: samples || (isPhone ? 40 : 64),
+      applyView: (jx, jy) => this.#applyView(jx, jy),
+      focusDistance: () => this.#focusDistance(),
+      viewHeight: () => this.container.clientHeight || 1,
+      onQualityChange: (q) => {
+        this.dirty = true;
+        this.onQualityChange?.(q);
+      },
+    });
 
     this.raycaster = new THREE.Raycaster();
     this.pointer = new THREE.Vector2();
@@ -174,11 +208,46 @@ export class Viewer {
     this.dirty = true;
   }
 
-  #applyShift() {
+  /** Bildausschnitt (Verschiebung + Sub-Pixel-Versatz der Pipeline, CSS-Pixel) setzen */
+  #applyView(jx = 0, jy = 0) {
     const w = this.container.clientWidth;
     const h = this.container.clientHeight;
-    if (Math.abs(this.shift.x) < 0.5 && Math.abs(this.shift.y) < 0.5) this.camera.clearViewOffset();
-    else this.camera.setViewOffset(w, h, this.shift.x, this.shift.y, w, h);
+    const x = this.shift.x + jx;
+    const y = this.shift.y + jy;
+    if (Math.abs(x) < 1e-4 && Math.abs(y) < 1e-4) this.camera.clearViewOffset();
+    else this.camera.setViewOffset(w, h, x, y, w, h);
+    this.camera.updateProjectionMatrix();
+  }
+
+  #shown(o) {
+    for (let n = o; n; n = n.parent) if (!n.visible) return false;
+    return true;
+  }
+
+  /** Entfernung der Schärfeebene: die Oberfläche in Bildmitte (Blickrichtung zum Drehpunkt) */
+  #focusDistance() {
+    const cam = this.camera;
+    const dir = this.controls.target.clone().sub(cam.position);
+    const dist = dir.length();
+    if (!this.model) return dist;
+    this.raycaster.set(cam.position, dir.normalize());
+    const hit = this.raycaster.intersectObject(this.model.root, true).find((h) => h.object.isMesh && this.#shown(h.object));
+    return hit ? Math.max(0.15, hit.distance) : dist;
+  }
+
+  /** true, wenn das Bild vollständig berechnet ist (progressives Rendering abgeschlossen) */
+  get converged() {
+    return !this.dirty && this.pipeline.converged;
+  }
+
+  get quality() {
+    return this.pipeline.quality;
+  }
+
+  /** Darstellung umschalten: 'high' = fotorealistisch (verfeinert im Stillstand), 'low' = schnell */
+  setQuality(mode) {
+    this.pipeline.setQuality(mode);
+    this.dirty = true;
   }
 
   /** Maus-/Touch-Bedienung sperren (z. B. während der Montage-Animation) */
@@ -259,17 +328,20 @@ export class Viewer {
     const h = this.container.clientHeight;
     if (!w || !h) return;
     this.renderer.setSize(w, h, false);
+    const buf = this.renderer.getDrawingBufferSize(new THREE.Vector2());
+    this.pipeline.setSize(buf.x, buf.y);
     this.camera.aspect = w / h;
     // Auf schmalen Displays etwas mehr Abstand, damit die Maschine ganz sichtbar bleibt
     this.camera.fov = w / h < 0.8 ? 38 : h < 520 ? 34 : 30;
-    this.#applyShift();
-    this.camera.updateProjectionMatrix();
+    this.#applyView();
     this.dirty = true;
   }
 
   /** Aktuelle Ansicht als PNG (mit Hintergrund) erzeugen. */
   snapshot() {
-    this.#render();
+    // Zeichenpuffer neu füllen (wird nach jedem Bild vom Browser geleert)
+    if (this.pipeline.quality === 'high') this.pipeline.present();
+    else this.pipeline.render(true);
     const src = this.renderer.domElement;
     const out = document.createElement('canvas');
     out.width = src.width;
@@ -298,7 +370,7 @@ export class Viewer {
       down = null;
       if (moved > 6) return;
       const hit = this.#pick(e);
-      this.listeners.pick.forEach((fn) => fn(hit ? hit.object.userData.slot : null, e));
+      this.listeners.pick.forEach((fn) => fn(hit ? hit.object.userData.slot : null, e, hit ? hit.object.userData : null));
     });
     el.addEventListener('pointermove', (e) => {
       if (e.pointerType !== 'mouse' || e.buttons || !this.interactive) return;
@@ -315,11 +387,7 @@ export class Viewer {
     this.pointer.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
     this.raycaster.setFromCamera(this.pointer, this.camera);
     // ausgeblendete Teile (andere Formvariante, Cup Rail aus …) nicht auswählbar
-    const shown = (o) => {
-      for (let n = o; n; n = n.parent) if (!n.visible) return false;
-      return true;
-    };
-    const hits = this.raycaster.intersectObjects(this.pickables, false).filter((h) => shown(h.object));
+    const hits = this.raycaster.intersectObjects(this.pickables, false).filter((h) => this.#shown(h.object));
     return hits[0] || null;
   }
 
@@ -376,8 +444,7 @@ export class Viewer {
         sh.x = sh.tx;
         sh.y = sh.ty;
       }
-      this.#applyShift();
-      this.camera.updateProjectionMatrix();
+      this.#applyView();
       this.dirty = true;
     }
 
@@ -389,13 +456,11 @@ export class Viewer {
     }
 
     const changed = this.controls.update(dt);
-    if (changed || this.dirty || this.controls.autoRotate) {
-      this.#render();
+    const dirty = changed || this.dirty || this.controls.autoRotate;
+    // bei Stillstand rechnet die Pipeline das Bild Schritt für Schritt feiner
+    if (dirty || this.refining) {
+      this.refining = this.pipeline.render(dirty);
       this.dirty = false;
     }
-  }
-
-  #render() {
-    this.renderer.render(this.scene, this.camera);
   }
 }

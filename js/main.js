@@ -9,6 +9,9 @@ import {
   NEUTRAL_SHAPE,
   KNOB_SHAPES,
   HANDLE_SHAPES,
+  GAUGE_DIALS,
+  NEEDLES,
+  SCREW_HEADS,
   categoryOf,
   resolveBody,
   resolveMetal,
@@ -18,7 +21,7 @@ import { MaterialManager } from './materials.js';
 import { buildMachine } from './model.js';
 import { Viewer, VIEWS } from './viewer.js';
 import { ConfiguratorUI } from './ui.js';
-import { getWoodTextures } from './textures.js';
+import { getWoodTextures } from './wood.js';
 import { LIGHTINGS, lightingById } from './lighting.js';
 import { AssemblyShow, isInnerStage } from './assembly.js';
 
@@ -31,7 +34,13 @@ const clone = (o) => JSON.parse(JSON.stringify(o));
 function sanitize(cfg) {
   const out = clone(DEFAULT_CONFIG);
   if (!cfg || typeof cfg !== 'object') return out;
-  if (cfg.dial === 'white' || cfg.dial === 'black') out.dial = cfg.dial;
+  // Manometer: neue Form je Anzeige; ältere Konfigurationen kannten nur ein Zifferblatt für beide
+  for (const side of ['left', 'right']) {
+    const g = cfg.gauges?.[side];
+    if (g && GAUGE_DIALS.some((d) => d.id === g.dial) && NEEDLES.some((n) => n.id === g.needle)) out.gauges[side] = { dial: g.dial, needle: g.needle };
+    else if (cfg.dial === 'white' || cfg.dial === 'black') out.gauges[side] = { dial: cfg.dial, needle: cfg.dial === 'black' ? 'gold' : 'red' };
+  }
+  if (SCREW_HEADS.some((h) => h.id === cfg.screwHead)) out.screwHead = cfg.screwHead;
   // ältere Konfigurationen ohne die neuen optionalen Teile: neutral ergänzen
   if (cfg.slots) {
     for (const [k, v] of Object.entries(NEUTRAL_SLOTS)) if (!cfg.slots[k]) out.slots[k] = clone(v);
@@ -105,7 +114,6 @@ const model = buildMachine(mm);
 /** Konfiguration komplett auf Materialien und Bauteile anwenden */
 function applyAll() {
   mm.apply(config);
-  model.setDial(config.dial);
   syncParts();
 }
 /** Sichtbarkeit optionaler Teile und Formen */
@@ -116,6 +124,9 @@ function syncParts() {
     lower: config.slots['wood.panelLower'].id !== 'none',
   });
   model.setShapes(config.shape);
+  model.setGauge('left', config.gauges.left);
+  model.setGauge('right', config.gauges.right);
+  model.setScrewHead(config.screwHead);
 }
 applyAll();
 
@@ -126,16 +137,31 @@ try {
 } catch {
   /* Speicher nicht verfügbar */
 }
-const viewer = new Viewer(canvas, viewerEl, { lighting: lightId });
+// Darstellungsqualität: automatisch, per ?q=high|low erzwingbar (z. B. für Tests)
+const params = new URLSearchParams(location.search);
+const qParam = params.get('q');
+const viewer = new Viewer(canvas, viewerEl, {
+  lighting: lightId,
+  quality: qParam === 'high' || qParam === 'low' ? qParam : 'auto',
+  samples: Number(params.get('samples')) || 0,
+});
 viewer.setModel(model);
 
 // ---------- Oberfläche ----------
 const ui = new ConfiguratorUI(document.getElementById('config'), {
   getConfig: () => config,
   onSlots: (keys, patch) => updateSlots(keys, patch),
-  onDial: (id) => {
-    config.dial = id;
-    model.setDial(id);
+  /** Manometer: Zifferblatt/Zeiger für eine oder beide Anzeigen */
+  onGauge: (sides, patch) => {
+    for (const side of sides) config.gauges[side] = { ...config.gauges[side], ...patch };
+    syncParts();
+    viewer.flash(mm, ['metal.gauges']);
+    commit();
+  },
+  onScrewHead: (id) => {
+    config.screwHead = id;
+    syncParts();
+    viewer.flash(mm, ['metal.screws']);
     commit();
   },
   onPreset: (preset) => {
@@ -293,9 +319,9 @@ viewer.on('hover', (slot, e) => {
     tooltip.hidden = true;
   }
 });
-viewer.on('pick', (slot) => {
+viewer.on('pick', (slot, e, part) => {
   if (!slot) return;
-  ui.selectPart(slot);
+  ui.selectPart(slot, part);
   viewer.flash(mm, [slot]);
 });
 
@@ -320,7 +346,8 @@ function setAutoRotate(on) {
 }
 rotateBtn.addEventListener('click', () => setAutoRotate(!viewer.controls.autoRotate));
 viewer.onInteraction(() => setAutoRotate(false));
-setAutoRotate(!matchMedia('(prefers-reduced-motion: reduce)').matches);
+// Start im Stillstand: so rechnet sich das Bild sofort in voller Qualität fertig
+setAutoRotate(false);
 
 // ---------- Lichtstimmungen ----------
 const LIGHT_ICONS = {
@@ -393,6 +420,26 @@ baristaToggle.addEventListener('change', () => {
   viewer.setBarista(baristaToggle.checked ? Math.max(preset.barista, 0.8) : 0);
 });
 applyLighting(lightId, false);
+
+// Darstellungsqualität (automatisch gewählt, hier umschaltbar)
+const qualityToggle = document.getElementById('quality-toggle');
+const qualityNote = document.getElementById('quality-note');
+function syncQuality() {
+  const high = viewer.quality === 'high';
+  qualityToggle.checked = high;
+  qualityToggle.disabled = !viewer.pipeline.supportsHigh;
+  qualityNote.textContent = !viewer.pipeline.supportsHigh
+    ? 'Dieses Gerät unterstützt nur die schnelle Darstellung.'
+    : high
+      ? 'Im Stillstand wird das Bild in wenigen Sekunden verfeinert.'
+      : 'Schnelle Darstellung ohne weiche Schatten.';
+}
+qualityToggle.addEventListener('change', () => {
+  viewer.setQuality(qualityToggle.checked ? 'high' : 'low');
+  syncQuality();
+});
+viewer.onQualityChange = syncQuality;
+syncQuality();
 
 // ---------- Aktionen ----------
 const toastEl = document.getElementById('toast');

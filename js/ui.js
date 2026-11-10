@@ -10,7 +10,11 @@ import {
   METAL_FINISHES,
   WOODS,
   WOOD_FINISHES,
-  DIALS,
+  GAUGES,
+  GAUGE_DIALS,
+  NEEDLES,
+  needleById,
+  SCREW_HEADS,
   PRESETS,
   KNOB_SHAPES,
   HANDLE_SHAPES,
@@ -20,7 +24,8 @@ import {
   finishName,
   categoryOf,
 } from './data.js';
-import { woodPreviewURL } from './textures.js';
+import { woodPreviewURL } from './wood.js';
+import { gaugePreviewURL } from './textures.js';
 
 const el = (tag, attrs = {}, children = []) => {
   const node = document.createElement(tag);
@@ -99,6 +104,7 @@ export class ConfiguratorUI {
     this.root = root;
     this.opts = opts;
     this.target = { body: 'all', wood: 'all', metal: 'all' };
+    this.gaugeTarget = { step: 'both', edit: 'both' };
     const bodyId = opts.getConfig().slots['body.upper'].id;
     this.colorTab = { body: collectionOf(bodyId) || (bodyId === 'custom' ? 'custom' : BODY_COLLECTIONS[0].id), metal: 'metal', rail: 'metal' };
     this.colorTab.edit = 'metal';
@@ -580,16 +586,78 @@ export class ConfiguratorUI {
     return step;
   }
 
+  /**
+   * Manometer-Auswahl: welche Anzeige, Zifferblatt (inkl. offenes Werk) und Zeigerfarbe.
+   * @param {'step'|'edit'} key  eigener Zustand für Schritt und Auswahlkarte
+   */
+  #gaugePicker(key) {
+    const sides = () => (this.gaugeTarget[key] === 'both' ? ['left', 'right'] : [this.gaugeTarget[key]]);
+    const targetSeg = this.#segmented([{ id: 'both', name: 'Beide' }, ...GAUGES.map((g) => ({ id: g.id, name: g.name }))], (id) => {
+      this.gaugeTarget[key] = id;
+      this.refresh();
+    });
+    const dials = el('div', { class: 'dials', role: 'group', 'aria-label': 'Zifferblatt' });
+    const imgs = {};
+    for (const d of GAUGE_DIALS) {
+      const img = el('img', { class: 'dial-img', alt: '', width: 48, height: 48 });
+      imgs[d.id] = img;
+      dials.append(
+        el('button', { class: 'dial', type: 'button', 'data-id': d.id, title: d.name, onclick: () => this.opts.onGauge(sides(), { dial: d.id }) }, [
+          img,
+          el('span', { class: 'dial-name', text: d.name }),
+        ]),
+      );
+    }
+    const needles = el('div', { class: 'swatches needles', role: 'group', 'aria-label': 'Zeigerfarbe' });
+    for (const n of NEEDLES) {
+      needles.append(
+        el(
+          'button',
+          { class: 'swatch', type: 'button', title: n.name, 'aria-label': `Zeiger ${n.name}`, 'data-id': n.id, onclick: () => this.opts.onGauge(sides(), { needle: n.id }) },
+          [el('span', { class: 'swatch-fill', style: `background:${swatchBackground(n.color, n.metal ? 'metal' : 'uni')}` })],
+        ),
+      );
+    }
+    const nameLine = el('p', { class: 'pick-name' });
+    const node = el('div', { class: 'gauge-picker' }, [
+      targetSeg,
+      el('div', { class: 'field' }, [el('span', { class: 'label', text: 'Zifferblatt' }), dials]),
+      el('div', { class: 'field' }, [el('span', { class: 'label', text: 'Zeiger' }), needles]),
+      nameLine,
+    ]);
+    const refresh = (cfg) => {
+      setActive(targetSeg, this.gaugeTarget[key]);
+      const vals = sides().map((sd) => cfg.gauges[sd]);
+      const sameDial = vals.every((v) => v.dial === vals[0].dial);
+      const sameNeedle = vals.every((v) => v.needle === vals[0].needle);
+      const col = needleById(vals[0].needle).color;
+      for (const d of GAUGE_DIALS) imgs[d.id].src = gaugePreviewURL(d.id, col);
+      setActive(dials, sameDial ? vals[0].dial : null);
+      setActive(needles, sameNeedle ? vals[0].needle : null);
+      nameLine.textContent = GAUGES.map((g) => `${g.short}: ${this.gaugeText(cfg, g.id)}`).join(' · ');
+    };
+    return { node, refresh };
+  }
+
+  /** z. B. "Naked, Zeiger Rot" */
+  gaugeText(cfg, side) {
+    const g = cfg.gauges[side];
+    return `${finishName(GAUGE_DIALS, g.dial).replace(' (offenes Werk)', '')}, Zeiger ${needleById(g.needle).name}`;
+  }
+
   #buildDetailsStep(num) {
-    const dialSeg = this.#segmented(DIALS, (id) => this.opts.onDial(id));
-    const step = this.#step('details', num, 'Details', [
-      el('div', { class: 'field' }, [el('span', { class: 'label', text: 'Manometer-Zifferblatt' }), dialSeg]),
+    const picker = this.#gaugePicker('step');
+    const screwSeg = this.#segmented(SCREW_HEADS, (id) => this.opts.onScrewHead(id));
+    const step = this.#step('details', num, 'Manometer & Schrauben', [
+      picker.node,
+      el('p', { class: 'hint-text tight-top', text: 'Die Farbe der Manometer-Ringe wählst du unter „Metallakzente“ oder per Klick auf ein Manometer.' }),
+      el('div', { class: 'field' }, [el('span', { class: 'label', text: 'Schraubenköpfe' }), screwSeg]),
       el('p', {
         class: 'hint-text',
         text: 'Tipp: Klicke in der 3D-Ansicht direkt auf ein Bauteil – z. B. eine Seitenplatte, die Reling oder eine Schraube. Oben im Panel erscheint dann eine Karte mit allen Optionen für genau dieses Teil.',
       }),
     ]);
-    Object.assign(this.refs.steps.details, { dialSeg });
+    Object.assign(this.refs.steps.details, { picker, screwSeg });
     return step;
   }
 
@@ -659,7 +727,7 @@ export class ConfiguratorUI {
   }
 
   /** Bauteil auswählen (Klick im 3D-Modell) und die passende Karte zeigen. */
-  selectPart(slot) {
+  selectPart(slot, part = null) {
     const cfg = this.opts.getConfig();
     const cat = categoryOf(slot);
     const info = SLOT_INFO[slot];
@@ -758,6 +826,18 @@ export class ConfiguratorUI {
         blocks.push(railSeg);
         refreshers.push((c) => setActive(railSeg, c.rail ? 'on' : 'off'));
       }
+      if (slot === 'metal.gauges') {
+        // angeklicktes Manometer vorwählen; Zifferblatt und Zeiger je Anzeige
+        this.gaugeTarget.edit = part?.gauge || 'both';
+        const gp = this.#gaugePicker('edit');
+        blocks.push(gp.node, el('span', { class: 'label', text: 'Ring (beide Manometer)' }));
+        refreshers.push((c) => gp.refresh(c));
+      }
+      if (slot === 'metal.screws') {
+        const seg = this.#segmented(SCREW_HEADS, (id) => this.opts.onScrewHead(id));
+        blocks.push(el('div', { class: 'field' }, [el('span', { class: 'label', text: 'Kopfform' }), seg]));
+        refreshers.push((c) => setActive(seg, c.screwHead));
+      }
       const picker = this.#accentPicker('edit', () => [slot]);
       blocks.push(picker.node);
       refreshers.push((c) => {
@@ -774,7 +854,7 @@ export class ConfiguratorUI {
     if (cat !== 'wood' || !slot.startsWith('wood.panel')) {
       if (slot !== 'metal.rail') this.target[cat] = slot;
     }
-    ed.title.textContent = info.label;
+    ed.title.textContent = slot === 'metal.gauges' ? 'Manometer' : info.label;
     ed.sub.textContent = info.cat;
     ed.body.replaceChildren(...blocks);
     ed.card.classList.remove('empty');
@@ -846,11 +926,15 @@ export class ConfiguratorUI {
       s.current.textContent = s.picker.refresh(cfg, this.#targetKeys('wood'));
     }
 
-    // Details
+    // Manometer & Schrauben
     {
       const s = this.refs.steps.details;
-      setActive(s.dialSeg, cfg.dial);
-      s.current.textContent = `Zifferblatt ${finishName(DIALS, cfg.dial)}`;
+      s.picker.refresh(cfg);
+      setActive(s.screwSeg, cfg.screwHead);
+      const dl = cfg.gauges.left.dial;
+      const dr = cfg.gauges.right.dial;
+      const short = (id) => finishName(GAUGE_DIALS, id).replace(' (offenes Werk)', '');
+      s.current.textContent = `${dl === dr ? short(dl) : `${short(dl)} / ${short(dr)}`} · ${finishName(SCREW_HEADS, cfg.screwHead)}`;
     }
 
     // Auswahlkarte
@@ -898,12 +982,21 @@ export class ConfiguratorUI {
         );
       }
     }
-    dl.append(el('dt', { class: 'sum-cat', text: 'Details' }));
+    dl.append(el('dt', { class: 'sum-cat', text: 'Manometer & Schrauben' }));
+    for (const g of GAUGES) {
+      dl.append(
+        el('dd', {}, [
+          el('span', { class: 'sum-dot', style: `background:${needleById(cfg.gauges[g.id].needle).color}` }),
+          el('span', { class: 'sum-part', text: g.short }),
+          el('span', { class: 'sum-val', text: this.gaugeText(cfg, g.id) }),
+        ]),
+      );
+    }
     dl.append(
       el('dd', {}, [
-        el('span', { class: 'sum-dot', style: `background:${cfg.dial === 'black' ? '#151515' : '#f4f2ec'}` }),
-        el('span', { class: 'sum-part', text: 'Zifferblatt' }),
-        el('span', { class: 'sum-val', text: finishName(DIALS, cfg.dial) }),
+        el('span', { class: 'sum-dot', style: 'background:transparent' }),
+        el('span', { class: 'sum-part', text: 'Schraubenköpfe' }),
+        el('span', { class: 'sum-val', text: finishName(SCREW_HEADS, cfg.screwHead) }),
       ]),
     );
   }
@@ -944,7 +1037,7 @@ export class ConfiguratorUI {
       base: ['Basis', p('body.base')],
       drip: ['Tropfschale', p('body.base')],
       lower: ['Unterteil', p('body.lower')],
-      gauges: ['Manometer', p('metal.gauges')],
+      gauges: ['Manometer', `${p('metal.gauges')}, ${cfg.gauges.left.dial === 'naked' || cfg.gauges.right.dial === 'naked' ? 'offenes Werk' : finishName(GAUGE_DIALS, cfg.gauges.left.dial)}`],
       upper: ['Oberteil', p('body.upper')],
       head: ['Kopfteil', p('body.head')],
       groupcap: ['Brühgruppe', p('metal.group')],
@@ -1021,6 +1114,10 @@ export class ConfiguratorUI {
       n === metalKeys.length ? this.#paintName(cfg, topKey) : `${this.#paintName(cfg, topKey)} (${n} von ${metalKeys.length} Teilen)`,
       accentBg(resolveMetal(cfg.slots[topKey])),
     ]);
+    // Manometer
+    const gl = this.gaugeText(cfg, 'left');
+    const gr = this.gaugeText(cfg, 'right');
+    rows.push(['Manometer', gl === gr ? gl : `${gl} / ${gr}`, needleById(cfg.gauges.left.needle).color]);
     return rows;
   }
 
@@ -1048,7 +1145,9 @@ export class ConfiguratorUI {
         lines.push(`  ${s.label}: ${name}`);
       }
     }
-    lines.push(`Zifferblatt: ${finishName(DIALS, cfg.dial)}`);
+    lines.push('Manometer & Schrauben');
+    for (const g of GAUGES) lines.push(`  ${g.name}: ${this.gaugeText(cfg, g.id)}`);
+    lines.push(`  Schraubenköpfe: ${finishName(SCREW_HEADS, cfg.screwHead)}`);
     return lines.join('\n');
   }
 }

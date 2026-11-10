@@ -14,14 +14,27 @@ export const LIGHTINGS = [
     name: 'Studio hell',
     icon: 'sun',
     tone: 'light',
-    env: 'room',
-    envIntensity: 0.85,
-    exposure: 0.92,
-    key: { color: '#ffffff', intensity: 1.6, pos: [0.55, 1.25, 0.85] },
-    rim: { color: '#fff4e6', intensity: 0.7, pos: [-0.9, 0.7, -0.9] },
-    hemi: { sky: '#ffffff', ground: '#8a8076', intensity: 0.35 },
-    shadow: 0.2,
-    contact: 1,
+    // Fotostudio: dunkler Raum, große Softbox als Hauptlicht, Aufheller und Streiflichter
+    env: {
+      top: '#4c4c4e',
+      mid: '#a2a2a4',
+      bottom: '#8e8a84',
+      sigma: 0.02,
+      panels: [
+        { color: '#ffffff', intensity: 9, w: 2.6, h: 2.6, pos: [2.3, 2.75, 3.8] }, // Hauptlicht-Softbox
+        { color: '#fff8f0', intensity: 2.4, w: 3.2, h: 3, pos: [-4.2, 1.9, 3.2] }, // Aufheller vorne links
+        { color: '#ffffff', intensity: 5, w: 4.2, h: 1.1, pos: [0, 4.6, -1.6] }, // Streiflicht oben hinten
+        { color: '#ffffff', intensity: 6, w: 0.55, h: 3.2, pos: [-4.4, 1.6, -2.4] }, // Kantenlicht links hinten
+        { color: '#ffffff', intensity: 5, w: 0.5, h: 3, pos: [4.8, 1.5, -1.2] }, // Kantenlicht rechts
+      ],
+    },
+    envIntensity: 1.0,
+    exposure: 1.0,
+    key: { color: '#ffffff', intensity: 2.4, pos: [0.78, 0.94, 1.3] },
+    rim: { color: '#fff4e6', intensity: 0.8, pos: [-0.9, 0.7, -0.9] },
+    hemi: { sky: '#ffffff', ground: '#8f877c', intensity: 0.85 },
+    shadow: 0.62,
+    contact: 0.55,
     barista: 0,
     bg: {
       css: 'radial-gradient(ellipse 70% 60% at 50% 42%, #fdfcfa 0%, #efece7 58%, #e2ddd4 100%)',
@@ -43,12 +56,12 @@ export const LIGHTINGS = [
       ],
     },
     envIntensity: 1.0,
-    exposure: 0.95,
-    key: { color: '#fff3e2', intensity: 2.4, pos: [1.3, 0.9, 0.35] },
+    exposure: 1.0,
+    key: { color: '#fff1dc', intensity: 2.5, pos: [1.3, 0.95, 0.7] },
     rim: { color: '#d9e6ff', intensity: 0.5, pos: [-1, 0.8, -0.6] },
-    hemi: { sky: '#dce8ff', ground: '#8f8578', intensity: 0.4 },
-    shadow: 0.3,
-    contact: 0.9,
+    hemi: { sky: '#dfe9ff', ground: '#8f8578', intensity: 1.15 },
+    shadow: 0.62,
+    contact: 0.55,
     barista: 0,
     bg: {
       css: 'radial-gradient(ellipse 85% 70% at 70% 35%, #fbfaf7 0%, #eceff1 55%, #d4d9dd 100%)',
@@ -71,11 +84,11 @@ export const LIGHTINGS = [
     },
     envIntensity: 0.9,
     exposure: 1.0,
-    key: { color: '#ffae7a', intensity: 1.9, pos: [-1.5, 0.32, 0.55] },
-    rim: { color: '#7f8cff', intensity: 1.0, pos: [1.0, 0.9, -0.8] },
-    hemi: { sky: '#5a6794', ground: '#2a1d18', intensity: 0.55 },
-    shadow: 0.38,
-    contact: 0.8,
+    key: { color: '#ffae7a', intensity: 2.3, pos: [-1.5, 0.42, 0.75] },
+    rim: { color: '#7f8cff', intensity: 0.9, pos: [1.0, 0.9, -0.8] },
+    hemi: { sky: '#6f7fb4', ground: '#2a1d18', intensity: 1.0 },
+    shadow: 0.7,
+    contact: 0.6,
     barista: 0.45,
     bg: {
       css: 'radial-gradient(ellipse 85% 65% at 28% 78%, #e8935c 0%, #a2605a 28%, #4a3f5e 60%, #1b1f33 100%)',
@@ -96,13 +109,13 @@ export const LIGHTINGS = [
         { color: '#ffe0bf', intensity: 3, w: 6, h: 4, pos: [-10, 3, 8] },
       ],
     },
-    envIntensity: 0.7,
+    envIntensity: 0.8,
     exposure: 1.0,
-    key: { color: '#ffd8ae', intensity: 1.45, pos: [0.2, 1.4, 0.6] },
+    key: { color: '#ffd8ae', intensity: 1.7, pos: [0.35, 1.3, 0.9] },
     rim: { color: '#ffbb8c', intensity: 0.5, pos: [-0.9, 0.6, -0.8] },
-    hemi: { sky: '#5e4a3a', ground: '#140e0a', intensity: 0.25 },
-    shadow: 0.45,
-    contact: 1,
+    hemi: { sky: '#8a6c52', ground: '#140e0a', intensity: 0.6 },
+    shadow: 0.75,
+    contact: 0.7,
     barista: 0.8,
     bg: {
       css: 'radial-gradient(ellipse 70% 60% at 50% 40%, #5c4535 0%, #2c2119 60%, #140f0b 100%)',
@@ -126,11 +139,11 @@ export const LIGHTINGS = [
     },
     envIntensity: 0.65,
     exposure: 1.05,
-    key: { color: '#ffffff', intensity: 0.5, pos: [0.1, 1.6, 0.3] },
+    key: { color: '#ffffff', intensity: 0.75, pos: [0.3, 1.5, 0.7] },
     rim: { color: '#cdd6ff', intensity: 1.4, pos: [-1.1, 0.6, -0.9] },
-    hemi: { sky: '#2a2a33', ground: '#000000', intensity: 0.08 },
-    shadow: 0.55,
-    contact: 1.2,
+    hemi: { sky: '#3a3a46', ground: '#000000', intensity: 0.3 },
+    shadow: 0.85,
+    contact: 0.8,
     barista: 1,
     bg: {
       css: 'radial-gradient(ellipse 60% 55% at 50% 45%, #2b2b2f 0%, #121214 60%, #060607 100%)',
@@ -190,7 +203,7 @@ export class LightingRig {
   #envFor(preset) {
     if (this.envCache.has(preset.id)) return this.envCache.get(preset.id);
     const scene = preset.env === 'room' ? new RoomEnvironment() : gradientEnvScene(preset.env);
-    const tex = this.pmrem.fromScene(scene, 0.035).texture;
+    const tex = this.pmrem.fromScene(scene, preset.env.sigma ?? 0.035).texture;
     this.envCache.set(preset.id, tex);
     return tex;
   }

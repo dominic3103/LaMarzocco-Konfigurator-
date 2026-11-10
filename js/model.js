@@ -13,10 +13,12 @@ import {
   makeCupTrayTexture,
   makeDripGrateTexture,
   makeGaugeTexture,
+  gaugeAngle,
   makeLogoTexture,
   makeDisplayTexture,
   makePlateTexture,
 } from './textures.js';
+import { needleById } from './data.js';
 
 // Wichtige Maße (aus den Werkszeichnungen, Maßstab 1,709 px/mm vermessen)
 const M = {
@@ -145,6 +147,240 @@ function polyhedron(faces) {
   return g;
 }
 
+/**
+ * Konvexer Körper mit gerundeten Kanten (wie gekantetes Blech).
+ * Flächen bleiben eben, Kanten und Ecken werden mit Radius r verrundet.
+ * @param {number[][]} verts  Eckpunkte
+ * @param {number[][]} faces  je Fläche die Eckpunkt-Indizes (gegen den Uhrzeigersinn von außen)
+ */
+function roundedPolyhedron(verts, faces, r = 2, seg = 3) {
+  const V = verts.map((v) => new THREE.Vector3(...v));
+  // Flächennormalen (Newell) und Ebenenabstand
+  const N = faces.map((f) => {
+    const n = new THREE.Vector3();
+    for (let i = 0; i < f.length; i++) {
+      const a = V[f[i]];
+      const b = V[f[(i + 1) % f.length]];
+      n.x += (a.y - b.y) * (a.z + b.z);
+      n.y += (a.z - b.z) * (a.x + b.x);
+      n.z += (a.x - b.x) * (a.y + b.y);
+    }
+    return n.normalize();
+  });
+  const D = faces.map((f, i) => N[i].dot(V[f[0]]));
+  // nach innen versetzte Ecken: Schnitt der drei um r verschobenen Ebenen
+  const facesOf = V.map((_, vi) => faces.map((f, fi) => (f.includes(vi) ? fi : -1)).filter((x) => x >= 0));
+  const C = V.map((_, vi) => {
+    const [a, b, c] = facesOf[vi];
+    const m = new THREE.Matrix3().set(N[a].x, N[a].y, N[a].z, N[b].x, N[b].y, N[b].z, N[c].x, N[c].y, N[c].z).invert();
+    return new THREE.Vector3(D[a] - r, D[b] - r, D[c] - r).applyMatrix3(m);
+  });
+  const pos = [];
+  const nor = [];
+  const tri = (p0, n0, p1, n1, p2, n2) => {
+    // Umlaufsinn so wählen, dass die Fläche nach außen zeigt
+    const out = new THREE.Vector3().addVectors(n0, n1).add(n2);
+    const fn = new THREE.Vector3().subVectors(p1, p0).cross(new THREE.Vector3().subVectors(p2, p0));
+    const pts = fn.dot(out) >= 0 ? [p0, n0, p1, n1, p2, n2] : [p0, n0, p2, n2, p1, n1];
+    for (let i = 0; i < 6; i += 2) {
+      pos.push(pts[i].x, pts[i].y, pts[i].z);
+      nor.push(pts[i + 1].x, pts[i + 1].y, pts[i + 1].z);
+    }
+  };
+  const P = (vi, n) => C[vi].clone().addScaledVector(n, r);
+  // ebene Flächen
+  faces.forEach((f, fi) => {
+    for (let i = 1; i < f.length - 1; i++) tri(P(f[0], N[fi]), N[fi], P(f[i], N[fi]), N[fi], P(f[i + 1], N[fi]), N[fi]);
+  });
+  // Kanten: Viertelzylinder zwischen zwei Flächen
+  const done = new Set();
+  faces.forEach((f, fa) => {
+    for (let i = 0; i < f.length; i++) {
+      const a = f[i];
+      const b = f[(i + 1) % f.length];
+      const key = a < b ? `${a}-${b}` : `${b}-${a}`;
+      if (done.has(key)) continue;
+      done.add(key);
+      const fb = faces.findIndex((g, gi) => gi !== fa && g.includes(a) && g.includes(b));
+      if (fb < 0) continue;
+      for (let k = 0; k < seg; k++) {
+        const n0 = N[fa].clone().lerp(N[fb], k / seg).normalize();
+        const n1 = N[fa].clone().lerp(N[fb], (k + 1) / seg).normalize();
+        tri(P(a, n0), n0, P(b, n0), n0, P(b, n1), n1);
+        tri(P(a, n0), n0, P(b, n1), n1, P(a, n1), n1);
+      }
+    }
+  });
+  // Ecken: Kugeldreieck zwischen den drei Flächennormalen
+  V.forEach((_, vi) => {
+    const [a, b, c] = facesOf[vi].map((fi) => N[fi]);
+    const dir = (i, j) => a.clone().multiplyScalar(seg - i - j).addScaledVector(b, i).addScaledVector(c, j).normalize();
+    for (let i = 0; i < seg; i++) {
+      for (let j = 0; j < seg - i; j++) {
+        const n00 = dir(i, j);
+        const n10 = dir(i + 1, j);
+        const n01 = dir(i, j + 1);
+        tri(P(vi, n00), n00, P(vi, n10), n10, P(vi, n01), n01);
+        if (i + j < seg - 1) {
+          const n11 = dir(i + 1, j + 1);
+          tri(P(vi, n10), n10, P(vi, n11), n11, P(vi, n01), n01);
+        }
+      }
+    }
+  });
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  return g;
+}
+
+/**
+ * Linsenkopf-Schraube mit Schlitz (Achse +Z, Auflage bei z = 0).
+ * Kuppel als Kugelkappe, Schlitz mit Boden und Wänden ausmodelliert.
+ */
+function slottedScrewHead(R = 4.9, H = 3.3, w = 1.5, depth = 1.6, skirt = 0.5) {
+  const pos = [];
+  const nor = [];
+  const Rs = (R * R + H * H) / (2 * H);
+  const hAt = (x, y) => Math.sqrt(Math.max(0, Rs * Rs - x * x - y * y)) - (Rs - H) + skirt;
+  const nAt = (x, y) => {
+    const z = Math.sqrt(Math.max(1e-6, Rs * Rs - x * x - y * y));
+    return [x / Rs, y / Rs, z / Rs];
+  };
+  const quad = (a, b, c, d, na, nb, nc, nd) => {
+    for (const [p, n] of [[a, na], [b, nb], [c, nc], [a, na], [c, nc], [d, nd]]) {
+      pos.push(...p);
+      nor.push(...n);
+    }
+  };
+  const nx = 20;
+  const ny = 9;
+  const hw = w / 2;
+  for (const side of [1, -1]) {
+    // Kuppelhälfte
+    for (let j = 0; j < ny; j++) {
+      const y0 = hw + (R - hw) * Math.sin((Math.PI / 2) * (j / ny));
+      const y1 = hw + (R - hw) * Math.sin((Math.PI / 2) * ((j + 1) / ny));
+      const xm0 = Math.sqrt(Math.max(0, R * R - y0 * y0));
+      const xm1 = Math.sqrt(Math.max(0, R * R - y1 * y1));
+      for (let i = 0; i < nx; i++) {
+        const t0 = -1 + (2 * i) / nx;
+        const t1 = -1 + (2 * (i + 1)) / nx;
+        const A = [t0 * xm0, side * y0];
+        const B = [t1 * xm0, side * y0];
+        const Cc = [t1 * xm1, side * y1];
+        const Dd = [t0 * xm1, side * y1];
+        const pt = ([x, y]) => [x, y, hAt(x, y)];
+        if (side > 0) quad(pt(A), pt(B), pt(Cc), pt(Dd), nAt(...A), nAt(...B), nAt(...Cc), nAt(...Dd));
+        else quad(pt(B), pt(A), pt(Dd), pt(Cc), nAt(...B), nAt(...A), nAt(...Dd), nAt(...Cc));
+      }
+    }
+    // Schlitzwand
+    const xm = Math.sqrt(R * R - hw * hw);
+    const floor = (x) => Math.min(H - depth + skirt, hAt(x, hw));
+    for (let i = 0; i < nx; i++) {
+      const x0 = -xm + (2 * xm * i) / nx;
+      const x1 = -xm + (2 * xm * (i + 1)) / nx;
+      const n = [0, -side, 0];
+      const a = [x0, side * hw, floor(x0)];
+      const b = [x1, side * hw, floor(x1)];
+      const c = [x1, side * hw, hAt(x1, hw)];
+      const d = [x0, side * hw, hAt(x0, hw)];
+      if (side > 0) quad(b, a, d, c, n, n, n, n);
+      else quad(a, b, c, d, n, n, n, n);
+    }
+  }
+  // Schlitzboden
+  {
+    const xm = Math.sqrt(R * R - hw * hw);
+    const floor = (x) => Math.min(H - depth + skirt, hAt(x, hw));
+    const n = [0, 0, 1];
+    for (let i = 0; i < nx; i++) {
+      const x0 = -xm + (2 * xm * i) / nx;
+      const x1 = -xm + (2 * xm * (i + 1)) / nx;
+      quad([x0, -hw, floor(x0)], [x1, -hw, floor(x1)], [x1, hw, floor(x1)], [x0, hw, floor(x0)], n, n, n, n);
+    }
+  }
+  // Rand (Auflage)
+  const ns = 32;
+  for (let i = 0; i < ns; i++) {
+    const a0 = (i / ns) * Math.PI * 2;
+    const a1 = ((i + 1) / ns) * Math.PI * 2;
+    const p0 = [Math.cos(a0) * R, Math.sin(a0) * R];
+    const p1 = [Math.cos(a1) * R, Math.sin(a1) * R];
+    const n0 = [Math.cos(a0), Math.sin(a0), 0];
+    const n1 = [Math.cos(a1), Math.sin(a1), 0];
+    quad([...p0, 0], [...p1, 0], [...p1, skirt], [...p0, skirt], n0, n1, n1, n0);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  return g;
+}
+
+// Holz-UVs in echter Größe: eine Texturkachel = 160 mm quer × 400 mm längs zur Faser
+const WOOD_U = 160;
+const WOOD_V = 400;
+
+/**
+ * Holz-UVs für kantige Teile: V läuft entlang der Faserachse (`along`: 0 = X, 1 = Y, 2 = Z),
+ * U quer dazu – je Fläche aus der Koordinate, die in der Fläche liegt.
+ */
+function woodBoxUV(geom, along, offset = [0, 0]) {
+  if (!geom.attributes.normal) geom.computeVertexNormals();
+  const pos = geom.attributes.position;
+  const nor = geom.attributes.normal;
+  const uv = new Float32Array(pos.count * 2);
+  const B = (along + 1) % 3;
+  const C = (along + 2) % 3;
+  const p = [0, 0, 0];
+  const n = [0, 0, 0];
+  for (let i = 0; i < pos.count; i++) {
+    p[0] = pos.getX(i);
+    p[1] = pos.getY(i);
+    p[2] = pos.getZ(i);
+    n[0] = Math.abs(nor.getX(i));
+    n[1] = Math.abs(nor.getY(i));
+    n[2] = Math.abs(nor.getZ(i));
+    let u;
+    let v;
+    if (n[along] > n[B] && n[along] > n[C]) {
+      // Hirnholz (Stirnfläche)
+      u = p[B] / WOOD_U;
+      v = p[C] / WOOD_V;
+    } else {
+      v = p[along] / WOOD_V;
+      u = (n[B] > n[C] ? p[C] : p[B]) / WOOD_U;
+    }
+    uv[i * 2] = u + offset[0];
+    uv[i * 2 + 1] = v + offset[1];
+  }
+  geom.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  return geom;
+}
+
+/**
+ * Holz-UVs für gedrehte Teile (Achse Z): U läuft einmal um den Umfang, V entlang der Achse.
+ * Erwartet nicht-indizierte Geometrie (z. B. ExtrudeGeometry).
+ */
+function woodCylUV(geom, offset = [0, 0]) {
+  const g = geom.index ? geom.toNonIndexed() : geom;
+  const pos = g.attributes.position;
+  const uv = new Float32Array(pos.count * 2);
+  for (let i = 0; i < pos.count; i += 3) {
+    const us = [0, 1, 2].map((k) => Math.atan2(pos.getY(i + k), pos.getX(i + k)) / (Math.PI * 2) + 0.5);
+    // Dreiecke über der Naht zusammenhalten
+    const max = Math.max(...us);
+    for (let k = 0; k < 3; k++) {
+      const u = max - us[k] > 0.5 ? us[k] + 1 : us[k];
+      uv[(i + k) * 2] = u + offset[0];
+      uv[(i + k) * 2 + 1] = pos.getZ(i + k) / WOOD_V + offset[1];
+    }
+  }
+  g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  return g;
+}
+
 /** Vertauscht U und V (Maserung um 90° drehen). */
 function swapUV(geom) {
   const uv = geom.attributes.uv;
@@ -153,6 +389,9 @@ function swapUV(geom) {
   return geom;
 }
 
+
+// gestanzte Bleche: Schlitze per Alpha ausgeschnitten, werfen Schatten in den Innenraum
+const GRATE = { alphaTest: 0.5, alphaToCoverage: true, side: THREE.DoubleSide, shadowSide: THREE.DoubleSide };
 
 export function buildMachine(mm) {
   const root = new THREE.Group();
@@ -193,6 +432,15 @@ export function buildMachine(mm) {
   };
   const F = mm.fixed;
   const logoTex = makeLogoTexture('LA MARZOCCO');
+  // erhabener Schriftzug: mehrere Lagen übereinander ergeben 1,2 mm Materialstärke
+  const logoMat = mm.get('metal.logo', { map: logoTex, alphaTest: 0.4, alphaToCoverage: true });
+  const logoGeo = new THREE.PlaneGeometry(132, 16.5);
+  const makeLogo = () => {
+    const grp = new THREE.Group();
+    for (let i = 0; i < 5; i++) add(logoGeo, logoMat, 'metal.logo', grp).position.z = 0.25 + i * 0.3;
+    root.add(grp);
+    return grp;
+  };
 
   // Rückseite des Oberkorpus: schräge Ebene von (rearTop, top) nach (rearBot, slabBotRear)
   const rearZAt = (y) => M.rearTop + ((M.top - y) / (M.top - M.slabBotRear)) * (M.rearBot - M.rearTop);
@@ -215,23 +463,25 @@ export function buildMachine(mm) {
   {
     const coreProfile = [
       [-1, M.slabBotFront + 2],
-      [-1, M.tray],
-      [rearZAt(M.tray), M.tray],
+      [-1, M.tray - 8],
+      [rearZAt(M.tray - 8), M.tray - 8],
       [M.rearBot + 1, M.slabBotRear],
     ];
     const g = boxProjectUV(profileExtrudeX(coreProfile, M.inner * 2));
     add(g, body.upper, 'body.upper').position.x = -M.inner;
   }
   {
-    const g = boxProjectUV(rbox(M.inner * 2, M.top - M.tray, 9, 1.5, 2));
-    add(g, body.upper, 'body.upper').position.set(0, (M.top + M.tray) / 2 - 0.5, -5.5);
+    // Reling vorne/hinten reicht bis zum abgesenkten Boden der Tassenablage (kein Spalt)
+    const railBot = M.tray - 9;
+    const g = boxProjectUV(rbox(M.inner * 2, M.top - railBot, 9, 1.5, 2));
+    add(g, body.upper, 'body.upper').position.set(0, (M.top + railBot) / 2 - 0.5, -5.5);
     const back = boxProjectUV(
       profileExtrudeX(
         [
-          [-328, M.tray - 1],
+          [-328, railBot],
           [-328, M.top - 0.5],
           [M.rearTop + 0.6, M.top - 0.5],
-          [rearZAt(M.tray - 1), M.tray - 1],
+          [rearZAt(railBot) + 0.6, railBot],
         ],
         M.inner * 2,
       ),
@@ -240,16 +490,18 @@ export function buildMachine(mm) {
   }
   stage = 'tray';
   {
-    const w = 287;
-    const d = 316;
+    // gelochtes Blech über dunklem Innenraum: Schlitze sind echte Öffnungen
+    const w = M.inner * 2 - 1;
+    const d = 317;
     const zc = -10 - d / 2;
-    const plate = new THREE.Mesh(new THREE.BoxGeometry(w, 1.2, d), F.trayInner);
-    plate.position.set(0, M.tray + 0.3, zc);
+    const plate = new THREE.Mesh(new THREE.BoxGeometry(w, 1, d), F.trayInner);
+    plate.position.set(0, M.tray - 7.4, zc);
+    plate.receiveShadow = true;
     root.add(plate);
-    const mat = mm.get('metal.grates', { map: makeCupTrayTexture(w, d) });
+    const mat = mm.get('metal.grates', { map: makeCupTrayTexture(w, d), ...GRATE });
     const g = new THREE.PlaneGeometry(w, d);
     g.rotateX(-Math.PI / 2);
-    add(g, mat, 'metal.grates').position.set(0, M.tray + 1, zc);
+    add(g, mat, 'metal.grates').position.set(0, M.tray + 0.6, zc);
   }
   stage = 'logo';
   // Schriftzug auf der schrägen Rückwand (laut Rückansicht oben, zur +X-Seite versetzt)
@@ -257,10 +509,9 @@ export function buildMachine(mm) {
     const yc = 319.5;
     // Normale der Rückwand zeigt nach hinten und leicht nach unten
     const tilt = -Math.atan2(M.rearBot - M.rearTop, M.top - M.slabBotRear);
-    const logoMat = mm.get('metal.logo', { map: logoTex, transparent: true, alphaTest: 0.35 });
-    const logo = add(new THREE.PlaneGeometry(126, 15.75), logoMat, 'metal.logo');
+    const logo = makeLogo();
     logo.rotation.set(tilt, Math.PI, 0, 'XYZ');
-    logo.position.set(78, yc, rearZAt(yc) - 0.35);
+    logo.position.set(78, yc, rearZAt(yc) - 0.2);
   }
 
   stage = 'head';
@@ -316,7 +567,7 @@ export function buildMachine(mm) {
     })(),
   };
   const knobGeos = Object.fromEntries(
-    Object.entries(knobShapes).map(([id, sh]) => [id, scaleUV(extrudeZ(sh, 42, 2.6, 3, 4), 1 / 80, [0.5, 0.5])]),
+    Object.entries(knobShapes).map(([id, sh]) => [id, woodCylUV(extrudeZ(sh, 42, 2.6, 3, 4), [0.13, 0.31])]),
   );
   knobGeos.wave.computeBoundingBox();
   const knobLen = knobGeos.wave.boundingBox.max.z;
@@ -337,11 +588,25 @@ export function buildMachine(mm) {
       k.visible = id === 'wave';
       knobVariants[id].push(k);
     }
-    const capG = new THREE.CylinderGeometry(17, 17, 2.4, 64);
+    // Kappe: leicht gewölbte Linse mit Fase und umlaufender Rille (spiegelt dadurch lebendig)
+    const capG = new THREE.LatheGeometry(
+      [
+        [17, -1.2],
+        [17, 0.9],
+        [16.5, 1.5],
+        [15.6, 1.75],
+        [15.1, 1.35],
+        [14.5, 1.75],
+        [10, 2.25],
+        [5, 2.5],
+        [0, 2.6],
+      ].map(([r, z]) => new THREE.Vector2(r, z)),
+      72,
+    );
     capG.rotateX(Math.PI / 2);
     add(capG, capMat, 'metal.caps').position.set(x, knobY, knobZ0 + knobLen + 0.2);
     const mark = new THREE.Mesh(new THREE.BoxGeometry(1.6, 11, 0.6), F.darkGap);
-    mark.position.set(x, knobY + 8, knobZ0 + knobLen + 1.5);
+    mark.position.set(x, knobY + 8, knobZ0 + knobLen + 2.5);
     root.add(mark);
   }
 
@@ -357,7 +622,7 @@ export function buildMachine(mm) {
     s.quadraticCurveTo(0, 273, -66, 286);
     s.quadraticCurveTo(-84, 286, -84, 300);
     s.quadraticCurveTo(-84, 314, -66, 314);
-    const g = swapUV(scaleUV(extrudeZ(s, 13, 3, 3, 16), 1 / 110, [0.3, -2.4]));
+    const g = woodBoxUV(extrudeZ(s, 13, 3, 3, 16), 0, [0.42, 0.52]);
     g.computeBoundingBox();
     const front = g.boundingBox.max.z;
     add(g, paddleMat, 'wood.paddle').position.z = M.headFront;
@@ -369,7 +634,7 @@ export function buildMachine(mm) {
       stud.position.set(x, 301, M.headFront + front - 0.6);
       root.add(stud);
     }
-    const lever = boxProjectUV(rbox(41, 56, 34, 6, 4), 70);
+    const lever = woodBoxUV(rbox(41, 56, 34, 6, 4), 1, [0.71, 0.12]);
     const lv = add(lever, paddleMat, 'wood.paddle');
     lv.position.set(47.5, 312, M.headFront + front + 13);
     lv.rotation.x = -0.08;
@@ -411,48 +676,157 @@ export function buildMachine(mm) {
     const rbr = [hwB, bot, zRB];
     const rtl = [-hwTR, topR, zRT];
     const rtr = [hwTR, topR, zRT];
-    const g = polyhedron([
-      [fbl, fbr, ftr, ftl],
-      [rbr, rbl, rtl, rtr],
-      [rbl, fbl, ftl, rtl],
-      [fbr, rbr, rtr, ftr],
-      [ftl, ftr, rtr, rtl],
-      [rbl, rbr, fbr, fbl],
-    ]);
+    // gekantetes Blech: Kanten mit kleinem Radius statt messerscharf
+    const g = roundedPolyhedron(
+      [fbl, fbr, ftr, ftl, rbl, rbr, rtr, rtl],
+      [
+        [0, 1, 2, 3],
+        [5, 4, 7, 6],
+        [4, 0, 3, 7],
+        [1, 5, 6, 2],
+        [3, 2, 6, 7],
+        [4, 5, 1, 0],
+      ],
+      2.4,
+      4,
+    );
     boxProjectUV(g);
     add(g, body.lower, 'body.lower');
   }
 
   stage = 'gauges';
-  // Manometer (zwei gleich große, laut Frontansicht)
+  // Manometer (zwei gleich große, laut Frontansicht): Ring, Gehäuse, Zifferblatt
+  // oder offenes Messwerk ("Naked"), Zeiger als eigenes Teil, Glas
   const gaugeMat = mm.get('metal.gauges');
-  const gauges = [];
-  const makeGauge = (x, y, R, spec) => {
+  const gauges = {};
+  const dialTextures = new Map();
+  const dialTex = (spec, dial) => {
+    const key = `${spec.id}:${dial}`;
+    if (!dialTextures.has(key)) dialTextures.set(key, makeGaugeTexture(spec, dial));
+    return dialTextures.get(key);
+  };
+  const makeGauge = (id, x, y, R, spec) => {
     const grp = new THREE.Group();
     grp.position.set(x, y, -0.5);
     root.add(grp);
+    const Ri = R - 4.6; // Innenradius
+    const pick = (mesh) => {
+      mesh.userData.slot = 'metal.gauges';
+      mesh.userData.gauge = id;
+      pickables.push(mesh);
+      return mesh;
+    };
+    // Ring (Lünette)
+    // Profil außen unten beginnend (so zeigen die Flächen nach außen)
     const prof = [
-      new THREE.Vector2(R - 4, 3.2),
-      new THREE.Vector2(R - 4, 7.2),
-      new THREE.Vector2(R - 2.6, 8.2),
-      new THREE.Vector2(R - 0.8, 7.6),
-      new THREE.Vector2(R, 6),
-      new THREE.Vector2(R, 0),
-    ];
-    const ring = new THREE.LatheGeometry(prof, 64);
+      [R, 0],
+      [R, 6.4],
+      [R - 0.5, 7.7],
+      [R - 1.6, 8.4],
+      [Ri + 1.6, 8.5],
+      [Ri + 0.5, 7.9],
+      [Ri, 7.0],
+      [Ri, 2.4],
+    ].map(([r, z]) => new THREE.Vector2(r, z));
+    const ring = new THREE.LatheGeometry(prof, 72);
     ring.rotateX(Math.PI / 2);
-    add(ring, gaugeMat, 'metal.gauges', grp);
-    const faceMat = new THREE.MeshStandardMaterial({ map: makeGaugeTexture(spec, 'white'), roughness: 0.45 });
-    const face = new THREE.Mesh(new THREE.CircleGeometry(R - 4, 64), faceMat);
-    face.position.z = 3.4;
-    grp.add(face);
-    const glass = new THREE.Mesh(new THREE.CircleGeometry(R - 4, 64), F.glass);
-    glass.position.z = 7.0;
+    add(ring, gaugeMat, 'metal.gauges', grp).userData.gauge = id;
+    // Gehäuseboden (schwarz)
+    const back = plain(new THREE.CircleGeometry(Ri, 48), F.gaugeCase, grp);
+    back.position.z = 2.2;
+    pick(back);
+    // Zifferblatt
+    const faceMat = new THREE.MeshStandardMaterial({ map: dialTex(spec, 'white'), roughness: 0.55, alphaTest: 0.5, alphaToCoverage: true });
+    const face = plain(new THREE.CircleGeometry(Ri - 0.1, 64), faceMat, grp);
+    face.position.z = 5.2;
+    face.castShadow = false;
+    pick(face);
+
+    // offenes Messwerk (nur bei "Naked" sichtbar)
+    const works = new THREE.Group();
+    works.visible = false;
+    grp.add(works);
+    {
+      const z0 = 2.3;
+      // Rohrfeder (Bourdon-Rohr): C-förmiges Messingrohr am Rand
+      const tube = plain(new THREE.TorusGeometry(Ri * 0.84, 1.15, 12, 72, Math.PI * 1.5), F.brassPolished, works);
+      tube.rotation.z = Math.PI * 1.36;
+      tube.position.z = z0 + 1.6;
+      // Anschlussblock unten
+      plain(rbox(8.5, 6, 3.6, 0.6, 1), F.brassPolished, works).position.set(0, -Ri * 0.66, z0 + 1.8);
+      // Werkplatine: zwei Lappen mit Bohrung
+      const sh = new THREE.Shape();
+      sh.moveTo(-9.5, 2);
+      sh.quadraticCurveTo(-11.5, 2, -11.5, 4.2);
+      sh.quadraticCurveTo(-11.5, 7, -8.5, 7);
+      sh.lineTo(-4, 5.2);
+      sh.lineTo(4, 5.2);
+      sh.lineTo(8.5, 7);
+      sh.quadraticCurveTo(11.5, 7, 11.5, 4.2);
+      sh.quadraticCurveTo(11.5, 2, 9.5, 2);
+      sh.lineTo(5.4, -5.5);
+      sh.lineTo(-5.4, -5.5);
+      sh.closePath();
+      for (const hx of [-8.6, 8.6]) {
+        const h = new THREE.Path();
+        h.absarc(hx, 4.4, 1.3, 0, Math.PI * 2, true);
+        sh.holes.push(h);
+      }
+      const plate = plain(new THREE.ExtrudeGeometry(sh, { depth: 1.1, bevelEnabled: false, curveSegments: 12 }), F.brassPolished, works);
+      plate.position.set(0, -1.2, z0 + 2.2);
+      // Pfeiler unter der Platine
+      for (const px of [-8.6, 8.6]) {
+        const post = new THREE.CylinderGeometry(1.5, 1.5, 2.2, 16);
+        post.rotateX(Math.PI / 2);
+        plain(post, F.brassPolished, works).position.set(px, 3.2, z0 + 1.1);
+      }
+      // zwei schwarze Schrauben auf der Platine
+      for (const px of [-2.6, 2.6]) {
+        const sc = new THREE.CylinderGeometry(1.35, 1.35, 0.9, 16);
+        sc.rotateX(Math.PI / 2);
+        plain(sc, F.blackPlastic, works).position.set(px, -4.2, z0 + 3.7);
+      }
+      // Zugstange vom Rohrende zum Werk
+      const link = plain(new THREE.TorusGeometry(5.4, 0.55, 8, 24, Math.PI * 0.95), F.brassPolished, works);
+      link.position.set(8.2, -3.2, z0 + 2.9);
+      link.rotation.z = -Math.PI * 0.42;
+      // Zahnsegment
+      const sector = plain(new THREE.CircleGeometry(4.2, 16, Math.PI * 1.1, Math.PI * 0.55), F.brassPolished, works);
+      sector.position.set(0.8, 0.6, z0 + 3.45);
+    }
+
+    // Zeiger: schlanke Nadel mit Gegengewicht und Nabe
+    const needleMat = new THREE.MeshStandardMaterial({ color: 0xc2231d, roughness: 0.5 });
+    const needle = new THREE.Group();
+    needle.position.z = 6.1;
+    grp.add(needle);
+    {
+      const L = Ri * 0.84;
+      const ns = new THREE.Shape();
+      ns.moveTo(-6.5, -0.9);
+      ns.lineTo(-6.5, 0.9);
+      ns.lineTo(0, 0.85);
+      ns.lineTo(L, 0.22);
+      ns.lineTo(L, -0.22);
+      ns.lineTo(0, -0.85);
+      ns.closePath();
+      plain(new THREE.ExtrudeGeometry(ns, { depth: 0.45, bevelEnabled: false }), needleMat, needle);
+      const hub = new THREE.CylinderGeometry(2.7, 2.9, 1.3, 28);
+      hub.rotateX(Math.PI / 2);
+      plain(hub, needleMat, needle).position.z = 0.6;
+    }
+    // Canvas-Winkel (y nach unten) -> mathematischer Winkel
+    needle.rotation.z = -gaugeAngle(spec.value, spec.max);
+
+    // Glas
+    const glass = new THREE.Mesh(new THREE.CircleGeometry(Ri + 0.3, 64), F.glass);
+    glass.position.z = 7.6;
     grp.add(glass);
-    gauges.push({ spec, faceMat });
+    pick(glass);
+    gauges[id] = { spec, faceMat, works, needleMat, dial: 'white' };
   };
-  makeGauge(-117.6, 175.6, 22, { max: 16, step: 1, label: 2, value: 9, unit: 'bar', zone: [8, 10] });
-  makeGauge(117.6, 175.6, 22, { max: 3, step: 0.25, label: 1, value: 1.3, unit: 'bar', zone: [1, 1.5] });
+  makeGauge('left', -117.6, 175.6, 22, { id: 'brew', max: 16, step: 1, label: 4, value: 10, unit: 'bar', zone: [8, 10] });
+  makeGauge('right', 117.6, 175.6, 22, { id: 'steam', max: 3, step: 0.5, label: 1, value: 1.3, unit: 'bar', zone: [1, 1.5] });
 
   stage = 'groupcap';
   // =========================================================================
@@ -523,7 +897,9 @@ export function buildMachine(mm) {
     const makeHandle = (segments, flat) => {
       let g = new THREE.LatheGeometry(hprof, segments, Math.PI / segments);
       const uv = g.attributes.uv;
-      for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * 1.1, uv.getY(i) * 1.4 + 0.2);
+      // U einmal um den Umfang (nahtlos), V entlang des Griffs in echter Länge
+      const hp = g.attributes.position;
+      for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) + 0.37, hp.getY(i) / WOOD_V + 0.66);
       if (flat) {
         g = g.toNonIndexed();
         g.computeVertexNormals();
@@ -613,17 +989,17 @@ export function buildMachine(mm) {
     add(rimG, mm.get('metal.grates'), 'metal.grates').position.y = M.dripLipBot + 0.6;
     const gw = M.dripHalfW * 2 - 18;
     const gd = M.dripFront - 9 - (dz0 + 8);
-    const gMat = mm.get('metal.grates', { map: makeDripGrateTexture(gw, gd) });
+    const gMat = mm.get('metal.grates', { map: makeDripGrateTexture(gw, gd), ...GRATE });
     const gg = new THREE.PlaneGeometry(gw, gd);
     gg.rotateX(-Math.PI / 2);
     const grate = add(gg, gMat, 'metal.grates');
     grate.position.set(0, M.dripLipBot + lipH - 2.5, (M.dripFront - 9 + dz0 + 8) / 2);
     const inner = new THREE.Mesh(new THREE.BoxGeometry(gw, 1, gd), F.trayInner);
-    inner.position.set(0, M.dripLipBot - 4, grate.position.z);
+    inner.position.set(0, M.dripLipBot + 0.7, grate.position.z);
+    inner.receiveShadow = true;
     root.add(inner);
 
-    const logoMat = mm.get('metal.logo', { map: logoTex, transparent: true, alphaTest: 0.35 });
-    add(new THREE.PlaneGeometry(126, 15.75), logoMat, 'metal.logo').position.set(81, 57, M.dripFront - 1.15);
+    makeLogo().position.set(81, 57, M.dripFront - 1.3);
 
     stage = 'chassis';
     // Edelstahl-Bodenwanne unter der Basis (in Seiten- und Frontansicht sichtbar)
@@ -744,7 +1120,7 @@ export function buildMachine(mm) {
       [M.rearTop + inset, M.top - inset],
       [M.rearBot + inset * 0.8, M.slabBotRear + inset],
     ];
-    const g = swapUV(boxProjectUV(profileExtrudeX(prof, t, 0.6), 150));
+    const g = woodBoxUV(profileExtrudeX(prof, t, 0.6), 2, [0.05, 0.02]);
     const mat = mm.get('wood.panelUpper');
     for (const sx of [-1, 1]) {
       add(g, mat, 'wood.panelUpper', panelUpper).position.x = sx < 0 ? -M.halfW - t + 0.01 : M.halfW - 0.01;
@@ -771,7 +1147,7 @@ export function buildMachine(mm) {
         sx > 0
           ? [[a2, d2, c2, b2], [a, b, c, d], [a, a2, b2, b], [d, c, c2, d2], [b, b2, c2, c], [a, d, d2, a2]]
           : [[a2, b2, c2, d2], [a, d, c, b], [a, b, b2, a2], [d, d2, c2, c], [b, c, c2, b2], [a, a2, d2, d]];
-      const gl = swapUV(boxProjectUV(polyhedron(faces), 150));
+      const gl = woodBoxUV(polyhedron(faces), 2, [sx > 0 ? 0.52 : 0.08, 0.4]);
       add(gl, matL, 'wood.panelLower', panelLower);
     }
   }
@@ -781,29 +1157,42 @@ export function buildMachine(mm) {
   // Schrauben (Positionen laut Frontansicht; Rückwand ist laut Zeichnung glatt)
   // =========================================================================
   const screwMat = mm.get('metal.screws');
-  const screwHead = new THREE.LatheGeometry(
+  // ab Werk: Linsenkopf mit Schlitz; alternativ Innensechskant
+  const slotHead = slottedScrewHead();
+  const hexHead = new THREE.LatheGeometry(
     [
-      new THREE.Vector2(0, 2.3),
-      new THREE.Vector2(2.2, 2.15),
-      new THREE.Vector2(3.4, 1.6),
-      new THREE.Vector2(4.1, 0.8),
-      new THREE.Vector2(4.2, 0),
-    ],
-    28,
+      [4.9, 0],
+      [4.9, 0.4],
+      [4.7, 1.1],
+      [3.9, 2.1],
+      [2.4, 2.75],
+      [0, 2.9],
+    ].map(([r, z]) => new THREE.Vector2(r, z)),
+    32,
   );
-  screwHead.rotateX(Math.PI / 2);
-  const socket = new THREE.CylinderGeometry(1.5, 1.5, 0.8, 6);
+  hexHead.rotateX(Math.PI / 2);
+  const socket = new THREE.CylinderGeometry(1.7, 1.7, 1, 6);
   socket.rotateX(Math.PI / 2);
   const Zaxis = new THREE.Vector3(0, 0, 1);
+  const screwVariants = { slot: [], hex: [] };
+  let screwNo = 0;
   const addScrew = (x, y, z, normal = [0, 0, 1]) => {
     const grp = new THREE.Group();
     grp.position.set(x, y, z);
     grp.quaternion.setFromUnitVectors(Zaxis, new THREE.Vector3(...normal).normalize());
+    // jede Schraube steht etwas anders (wie von Hand angezogen)
+    grp.rotateZ(((screwNo++ * 2.39996) % Math.PI) - 0.6);
     root.add(grp);
-    add(screwHead, screwMat, 'metal.screws', grp);
+    const slot = add(slotHead, screwMat, 'metal.screws', grp);
+    const hex = new THREE.Group();
+    hex.visible = false;
+    grp.add(hex);
+    add(hexHead, screwMat, 'metal.screws', hex);
     const s = new THREE.Mesh(socket, F.darkGap);
-    s.position.z = 2.05;
-    grp.add(s);
+    s.position.z = 2.55;
+    hex.add(s);
+    screwVariants.slot.push(slot);
+    screwVariants.hex.push(hex);
   };
   for (const sx of [-1, 1]) {
     addScrew(sx * 165.5, 362, 0.2);
@@ -992,13 +1381,28 @@ export function buildMachine(mm) {
     root,
     pickables,
     skeleton,
-    setDial(dial) {
-      for (const g of gauges) {
-        const old = g.faceMat.map;
-        g.faceMat.map = makeGaugeTexture(g.spec, dial);
-        g.faceMat.needsUpdate = true;
-        old?.dispose();
-      }
+    /**
+     * Manometer einstellen.
+     * @param {'left'|'right'} id
+     * @param {{dial: string, needle: string}} cfg  Zifferblatt (white|black|cream|naked) und Zeigerfarbe
+     */
+    setGauge(id, cfg) {
+      const g = gauges[id];
+      if (!g) return;
+      const naked = cfg.dial === 'naked';
+      g.faceMat.map = dialTex(g.spec, cfg.dial);
+      g.faceMat.needsUpdate = true;
+      g.works.visible = naked;
+      const n = needleById(cfg.needle);
+      g.needleMat.color.set(n.color);
+      g.needleMat.metalness = n.metal ? 1 : 0;
+      g.needleMat.roughness = n.metal ? 0.25 : 0.5;
+    },
+    /** Schraubenköpfe: 'slot' (Schlitz) oder 'hex' (Innensechskant) */
+    setScrewHead(type) {
+      const hex = type === 'hex';
+      screwVariants.slot.forEach((m) => (m.visible = !hex));
+      screwVariants.hex.forEach((m) => (m.visible = hex));
     },
     /** Cup Rail ein-/ausblenden */
     setRail(on) {

@@ -28,7 +28,8 @@ Interaktiver 3D-Konfigurator ausschließlich für die Espressomaschine **Linea M
   - Uni-Lacke, **„Wie Gehäuse“** (z. B. Gitter in Gehäusefarbe) und eine eigene Farbe
   - **Cup Rail** (Stangenreling auf Pfosten über der Tassenablage) an- und abbaubar
   - Oberflächen: Hochglanz, Satiniert, Matt
-- **Details**: Manometer-Zifferblatt in Weiß oder Schwarz.
+- **Manometer & Schrauben**: Für jedes der beiden Manometer einzeln (oder für beide) wählbar: Zifferblatt Weiß, Schwarz, Creme oder **Naked** (offenes Messwerk mit Rohrfeder und Messingwerk, nur der Skalenbogen bleibt stehen) und die Zeigerfarbe (Rot, Schwarz, Weiß, Gold). Die Ringe gehören zu den Metallakzenten. Schraubenköpfe als Linsenkopf mit Schlitz (wie ab Werk) oder mit Innensechskant.
+- **Fotorealistische Darstellung**: Im Stillstand wird das Bild in wenigen Sekunden verfeinert – weiche Schatten wie von einer Softbox, echte Verschattung in Ecken, unter dem Kopfteil und am Boden, saubere Kantenglättung, leichte Tiefenunschärfe. In Bewegung bleibt die Ansicht flüssig. Langsame Geräte schalten automatisch auf die schnelle Darstellung; im Licht-Menü lässt sich das umschalten. Holz mit Jahresringen, Fladerung, Poren und Relief in echter Größe, Pulverlack mit Feinstruktur, gestanzte Gitter mit echten Öffnungen.
 - **Lichtstimmungen** (Menü oben rechts im 3D-Bereich): Studio hell, Tageslicht, Dämmerung, Abendlicht und Dunkel. Jede Stimmung setzt Reflexionen, Licht, Schatten und Hintergrund, Wechsel werden weich überblendet. Das **Barista-Licht** (LED unter dem Kopfteil, beleuchtet die Tropfschale) lässt sich separat schalten.
 - **Bauteile direkt anklicken**: Ein Klick auf ein Teil im 3D-Modell öffnet oben im Panel eine hervorgehobene Karte mit den Optionen für genau dieses Teil:
   - Gehäuseteile: alle IGP-/RAL-Farben und Oberflächen, „Auf das ganze Gehäuse übertragen“, dazu „Holz-Seitenplatten anbringen“ bzw. „Cup Rail montieren“
@@ -66,7 +67,10 @@ js/model.js         Prozedurales 3D-Modell der Maschine (Maße in mm, nach Werks
 js/lighting.js      Lichtstimmungen (Umgebung, Lichter, Hintergrund, Überblendung)
 js/assembly.js      Montage-Animation "Konfiguration abschließen" (Ablaufplan, Flugbahnen, Kamerafahrt)
 js/materials.js     Materialien je Bauteil-Gruppe (Lack, Holz, Metall)
-js/textures.js      Prozedurale Texturen: Holzmaserung, Struktur-/Metallic-Lack, Gitter, Manometer
+js/textures.js      Prozedurale Texturen: Pulverlack-Struktur, Metallic-Lack, Gitter, Zifferblätter
+js/wood.js          Prozedurale Holztexturen (Farbe, Relief, Glanz) je Holzart
+js/noise.js         Rauschfunktionen für die Texturen
+js/pipeline.js      Render-Pipeline: progressives Rendering, Tone-Mapping, Bloom
 js/viewer.js        Renderer, Licht, 360°-Kamera, Auswahl per Klick, Screenshot
 js/ui.js            Konfigurations-Panel
 js/data.js          Farbpaletten, Holzarten, Presets, Bauteil-Gruppen
@@ -77,7 +81,8 @@ vendor/three/       Three.js r170 (MIT-Lizenz)
 
 - **Farben, Holzarten und Presets** stehen in `js/data.js`. Ein neuer Eintrag erscheint automatisch in der Oberfläche.
 - **IGP-Farben** sind in `BODY_COLLECTIONS` hinterlegt: `igp('Code', 'Name', '#hex')`. Die Hex-Werte wurden aus Fotos der Farbkarten gemessen und weißabgeglichen. Es sind also Näherungswerte für den Bildschirm, keine Farbmesswerte. Liegen offizielle RGB/Lab-Werte vor, einfach den Hex-Wert ersetzen.
-- **Holzmaserungen** werden über Parameter gesteuert (`style`, `light`/`mid`/`dark`, `freq`, `warp`, `contrast` …). Für `style` gibt es `straight`, `oak`, `zebra`, `olive`, `burl` und `solid`.
+- **Holzmaserungen** werden über Kennwerte gesteuert (`style`, `light`/`mid`/`dark`, `rings`, `contrast`, `late`, `figure`, `pore`, `streak` …). Für `style` gibt es `ring`, `olive`, `zebra`, `burl` und `solid`.
+- **Darstellung testen**: `?q=high` bzw. `?q=low` in der Adresse erzwingt die fotorealistische bzw. schnelle Darstellung, `&samples=32` setzt die Zahl der gemittelten Bilder.
 - **Geometrie**: Alle Maße stehen in Millimetern in `js/model.js` (Konstante `M` und die einzelnen Bauteil-Abschnitte).
 
 ## Farbzuordnung rb.crafts → IGP

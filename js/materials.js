@@ -3,7 +3,8 @@
 // ---------------------------------------------------------------------------
 import * as THREE from 'three';
 import { categoryOf, resolveBody, resolveMetal, resolveWood } from './data.js';
-import { getFlakeNormalMap, getSparkleMaps, getStructureBumpMap, getWoodTextures } from './textures.js';
+import { getFlakeNormalMap, getSparkleMaps, getPowderNormalMap } from './textures.js';
+import { getWoodTextures } from './wood.js';
 
 export class MaterialManager {
   constructor() {
@@ -38,24 +39,28 @@ export class MaterialManager {
       blackPlastic: new THREE.MeshStandardMaterial({ color: 0x0f0f0f, roughness: 0.45 }),
       darkGap: new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.9 }),
       gasket: new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.6 }),
+      // Glas: additiv – zeigt nur die Spiegelung der Umgebung, der Blick ins Innere bleibt klar
       glass: new THREE.MeshPhysicalMaterial({
-        color: 0xffffff,
-        roughness: 0.03,
+        color: 0x000000,
+        roughness: 0.02,
         metalness: 0,
-        transparent: true,
-        opacity: 0.18,
         clearcoat: 1,
+        clearcoatRoughness: 0.02,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
         depthWrite: false,
       }),
       displayGlass: new THREE.MeshPhysicalMaterial({ color: 0x050505, roughness: 0.08, clearcoat: 1, clearcoatRoughness: 0.02 }),
       white: new THREE.MeshStandardMaterial({ color: 0xf2f2f2, roughness: 0.5 }),
       trayInner: new THREE.MeshStandardMaterial({ color: 0x0c0c0c, roughness: 0.7 }),
+      gaugeCase: new THREE.MeshStandardMaterial({ color: 0x0b0b0b, roughness: 0.6 }),
       steel: new THREE.MeshStandardMaterial({ color: 0xcfd1d3, metalness: 1, roughness: 0.34 }),
       // Rohbau (Montage-Animation)
       frame: new THREE.MeshStandardMaterial({ color: 0x8c9094, metalness: 0.75, roughness: 0.45 }),
       chrome: new THREE.MeshStandardMaterial({ color: 0xe4e6e9, metalness: 1, roughness: 0.12 }),
       copper: new THREE.MeshStandardMaterial({ color: 0xd08a63, metalness: 1, roughness: 0.28 }),
       brass: new THREE.MeshStandardMaterial({ color: 0xd3b066, metalness: 1, roughness: 0.3 }),
+      brassPolished: new THREE.MeshStandardMaterial({ color: 0xc9a660, metalness: 1, roughness: 0.26 }),
       motor: new THREE.MeshStandardMaterial({ color: 0x2b2c2e, metalness: 0.3, roughness: 0.55 }),
       motorRib: new THREE.MeshStandardMaterial({ color: 0x55575a, metalness: 0.6, roughness: 0.4 }),
       pcb: new THREE.MeshStandardMaterial({ color: 0x1f6b3a, metalness: 0.1, roughness: 0.6 }),
@@ -148,20 +153,24 @@ function applyPaint(m, color, finish) {
   m.clearcoatRoughness = CLEARCOAT[f].ccr;
   m.envMapIntensity = 1;
   const sparkle = fx === 'U' || color.sparkle;
-  const structure = f === 'texture' ? getStructureBumpMap() : null;
-  let normalMap = null;
+  // Oberflächenrelief: Pulverlack ist nie spiegelglatt – je nach Oberfläche feine bis deutliche Struktur
+  const POWDER = { texture: 0.55, matte: 0.2, satin: 0.1, gloss: 0.035 };
+  let normalMap = getPowderNormalMap();
+  let ns = POWDER[f];
   let map = m.userData.baseMap || null;
-  if (sparkle) {
+  if (sparkle && f !== 'texture') {
     const sp = getSparkleMaps();
-    normalMap = structure ? null : sp.normalMap;
+    normalMap = sp.normalMap;
     map = sp.map;
-    m.normalScale.set(0.55, 0.55);
-  } else if ((fx === 'E' || fx === 'M') && !structure) {
+    ns = 0.55;
+  } else if (sparkle) {
+    map = getSparkleMaps().map;
+  } else if (fx === 'M' && f !== 'texture') {
     normalMap = getFlakeNormalMap();
-    m.normalScale.set(fx === 'E' ? 0.12 : 0.22, fx === 'E' ? 0.12 : 0.22);
+    ns = 0.22;
   }
-  setMaps(m, { normalMap, bumpMap: structure, map });
-  m.bumpScale = 1.6;
+  m.normalScale.set(ns, ns);
+  setMaps(m, { normalMap, bumpMap: null, map });
 }
 
 // ---------------------------------------------------------------------------
@@ -170,23 +179,24 @@ function applyPaint(m, color, finish) {
 function applyWood(m, wood, finish) {
   const lacquer = finish === 'lacquer';
   if (wood.none) return; // Teil wird ausgeblendet
+  m.metalness = 0;
   if (wood.plastic) {
-    setMaps(m, { map: null, bumpMap: null, normalMap: null });
+    setMaps(m, { map: null, bumpMap: null, normalMap: null, roughnessMap: null });
     m.color.set(wood.mid);
-    m.metalness = 0;
     m.roughness = lacquer ? 0.25 : 0.5;
     m.clearcoat = lacquer ? 0.8 : 0.1;
     m.clearcoatRoughness = 0.15;
     return;
   }
   const tex = getWoodTextures(wood);
-  setMaps(m, { map: tex.map, bumpMap: tex.bumpMap, normalMap: null });
+  setMaps(m, { map: tex.map, bumpMap: null, normalMap: tex.normalMap, roughnessMap: tex.roughnessMap });
   m.color.set(0xffffff);
-  m.metalness = 0;
-  m.roughness = lacquer ? 0.38 : 0.62;
-  m.clearcoat = lacquer ? 1 : 0.12;
-  m.clearcoatRoughness = lacquer ? 0.04 : 0.45;
-  m.bumpScale = lacquer ? 0.6 : 1.4;
+  // Rauheit kommt aus der Glanzkarte (Poren matter, Spätholz glatter)
+  m.roughness = lacquer ? 0.6 : 1;
+  m.clearcoat = lacquer ? 1 : 0;
+  m.clearcoatRoughness = lacquer ? 0.05 : 0.4;
+  const ns = lacquer ? 0.25 : 0.6;
+  m.normalScale.set(ns, ns);
 }
 
 // ---------------------------------------------------------------------------
