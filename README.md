@@ -30,7 +30,10 @@ Interaktiver 3D-Konfigurator ausschließlich für die Espressomaschine **Linea M
   - Oberflächen: Hochglanz, Satiniert, Matt
 - **Details**: Manometer-Zifferblatt in Weiß oder Schwarz.
 - **Lichtstimmungen** (Menü oben rechts im 3D-Bereich): Studio hell, Tageslicht, Dämmerung, Abendlicht und Dunkel. Jede Stimmung setzt Reflexionen, Licht, Schatten und Hintergrund, Wechsel werden weich überblendet. Das **Barista-Licht** (LED unter dem Kopfteil, beleuchtet die Tropfschale) lässt sich separat schalten.
-- **Bauteile direkt anklicken**: Ein Klick auf ein Teil im 3D-Modell öffnet die passende Auswahl.
+- **Bauteile direkt anklicken**: Ein Klick auf ein Teil im 3D-Modell öffnet oben im Panel eine hervorgehobene Karte mit den Optionen für genau dieses Teil:
+  - Gehäuseteile: alle IGP-/RAL-Farben und Oberflächen, „Auf das ganze Gehäuse übertragen“, dazu „Holz-Seitenplatten anbringen“ bzw. „Cup Rail montieren“
+  - Holzteile: Holzart, Oberfläche und Form; bei Seitenplatten zusätzlich „Gleiches Holz auch oben/unten“ und „Seitenplatten entfernen“
+  - Reling und Metallteile: Metall/PVD, Lack, „Wie Gehäuse“, IGP/RAL, Oberfläche; Reling montiert/ohne; „Auf alle Metallakzente übertragen“
 - **Seitenplatten & Cup Rail** als eigener Schritt: Seitenplatten oben, unten oder beides in jeder Holzart (geölt oder lackiert), Cup Rail montiert oder ohne – in Metall/PVD, Lack, „Wie Gehäuse“ oder jedem IGP-/RAL-Ton
 - **10 Inspirations-Presets** mit IGP-Farben, darunter die rb.crafts-Editionen (Chiffon Silk · Gold · Nuss, Chiffon Silk · Eiche · DLC, Traffic Black · Gold · Olive, Traffic Black · Nuss-Platten, Style 23 · Olive), **Link teilen** (die komplette Konfiguration steckt in der URL), **Bild speichern** (PNG), **Liste kopieren** (Textzusammenfassung).
 

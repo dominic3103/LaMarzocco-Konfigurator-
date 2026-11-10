@@ -487,6 +487,198 @@ body.ready .loader {
   margin: 0 0 10px;
 }
 
+/* Auswahlkarte (angeklicktes Bauteil) */
+.part-editor {
+  margin: 18px 8px 4px;
+  padding: 14px 14px 16px;
+  border-radius: 14px;
+  background: var(--surface);
+  border: 1.5px solid var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft), var(--shadow);
+  scroll-margin-top: 12px;
+}
+
+.part-editor.empty {
+  padding: 10px 12px;
+  border: 1px dashed var(--line-strong);
+  background: transparent;
+  box-shadow: none;
+}
+
+.part-editor.empty .editor-head,
+.part-editor.empty .editor-body,
+.part-editor:not(.empty) .editor-empty {
+  display: none;
+}
+
+.part-editor.glow {
+  animation: editor-glow 1.6s ease-out;
+}
+
+@keyframes editor-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(138, 90, 43, 0.55), var(--shadow);
+    background: var(--accent-soft);
+  }
+  45% {
+    box-shadow: 0 0 0 12px rgba(138, 90, 43, 0), var(--shadow);
+  }
+  100% {
+    box-shadow: 0 0 0 4px var(--accent-soft), var(--shadow);
+    background: var(--surface);
+  }
+}
+
+.editor-empty {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.editor-empty-icon {
+  display: inline-flex;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  color: var(--accent);
+}
+
+.editor-empty-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.editor-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.editor-sub {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.editor-title {
+  margin: 2px 0 0;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink-soft);
+}
+
+.icon-btn:hover {
+  border-color: var(--ink-soft);
+}
+
+.icon-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.editor-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.editor-body .pick-name {
+  margin: 10px 0 12px;
+}
+
+.editor-body .hint-text.small {
+  display: none;
+}
+
+.editor-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.editor-note.warn {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.editor-extra,
+.editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.editor-extra .label {
+  width: 100%;
+}
+
+.editor-actions {
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.btn.small {
+  padding: 7px 12px;
+  font-size: 13px;
+  border-radius: 9px;
+}
+
+.btn.small.accent {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.paints.compact {
+  grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+  gap: 10px 6px;
+}
+
+.paints.compact .paint-tile {
+  aspect-ratio: 1;
+}
+
+.paints.compact .paint-code {
+  display: none;
+}
+
+.paints.compact .paint-name {
+  font-size: 11px;
+}
+
+.tooltip strong,
+.tooltip span {
+  display: block;
+}
+
+.tooltip span {
+  font-weight: 400;
+  opacity: 0.7;
+  font-size: 11px;
+}
+
 /* Presets */
 .preset-row {
   display: flex;
@@ -1231,7 +1423,8 @@ body.ready .loader {
 
   .step,
   .presets,
-  .summary {
+  .summary,
+  .part-editor {
     scroll-margin-top: calc(48svh + 8px);
   }
 

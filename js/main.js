@@ -156,6 +156,33 @@ const ui = new ConfiguratorUI(document.getElementById('config'), {
     const id = panelWood();
     setPanelSlots(mode === 'both' || mode === 'upper' ? id : 'none', mode === 'both' || mode === 'lower' ? id : 'none');
   },
+  /** Seitenplatten an einem Bereich anbringen (aus der Auswahlkarte) */
+  onPanelAdd: (region) => {
+    const id = panelWood();
+    const up = config.slots['wood.panelUpper'].id;
+    const lo = config.slots['wood.panelLower'].id;
+    setPanelSlots(region === 'upper' ? id : up, region === 'lower' ? id : lo);
+  },
+  /** Wert eines Bauteils auf andere Bauteile übertragen */
+  onCopy: (keys, value) => {
+    if (!keys.length) return;
+    const v = clone(value);
+    prepareWoods({ slots: Object.fromEntries(keys.map((k) => [k, v])) }, () => {
+      for (const k of keys) {
+        config.slots[k] = clone(v);
+        mm.applySlot(k, config.slots[k], config);
+      }
+      if (keys.includes('body.base')) {
+        for (const k of CATEGORIES.metal.slots.map((s) => s.key)) {
+          if (config.slots[k].id === 'body') mm.applySlot(k, config.slots[k], config);
+        }
+      }
+      syncParts();
+      viewer.flash(mm, keys);
+      commit();
+    });
+  },
+  onHoverPart: (slot) => viewer.setHover(mm, slot),
   onPanelWood: (id) => {
     const up = config.slots['wood.panelUpper'].id !== 'none';
     const lo = config.slots['wood.panelLower'].id !== 'none';
@@ -255,7 +282,10 @@ viewer.on('hover', (slot, e) => {
   canvas.style.cursor = slot ? 'pointer' : '';
   if (slot && e) {
     const rect = viewerEl.getBoundingClientRect();
-    tooltip.textContent = SLOT_LABELS[slot];
+    tooltip.replaceChildren(
+      Object.assign(document.createElement('strong'), { textContent: SLOT_LABELS[slot] }),
+      Object.assign(document.createElement('span'), { textContent: 'Klicken zum Anpassen' }),
+    );
     tooltip.style.transform = `translate(${e.clientX - rect.left + 14}px, ${e.clientY - rect.top + 16}px)`;
     tooltip.hidden = false;
   } else {
@@ -264,7 +294,7 @@ viewer.on('hover', (slot, e) => {
 });
 viewer.on('pick', (slot) => {
   if (!slot) return;
-  ui.focusSlot(slot);
+  ui.selectPart(slot);
   viewer.flash(mm, [slot]);
 });
 

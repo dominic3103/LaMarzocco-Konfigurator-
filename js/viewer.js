@@ -170,6 +170,7 @@ export class Viewer {
       TARGET.y + v.dist * Math.sin(el),
       TARGET.z + v.dist * Math.cos(el) * Math.cos(az),
     );
+    this.#stopDamping();
     if (!animate) {
       this.camera.position.copy(to);
       this.controls.target.copy(TARGET);
@@ -184,6 +185,16 @@ export class Viewer {
     while (dTheta > Math.PI) dTheta -= Math.PI * 2;
     while (dTheta < -Math.PI) dTheta += Math.PI * 2;
     this.tween = { from, dTheta, target, t: 0, duration: 1.1 };
+  }
+
+  /** Restbewegung der gedämpften Steuerung (z. B. nach Auto-Rotation) verwerfen */
+  #stopDamping() {
+    const pos = this.camera.position.clone();
+    this.controls.enableDamping = false;
+    this.controls.update();
+    this.camera.position.copy(pos);
+    this.controls.update();
+    this.controls.enableDamping = true;
   }
 
   /** Kurzes Aufleuchten von Bauteilen (z. B. bei Auswahl). */
