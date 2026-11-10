@@ -1506,6 +1506,16 @@ body.ready .loader {
   transform: translateY(-1px);
 }
 
+.show-list li.inner::before {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--muted);
+}
+
+/* nur die letzten zehn Schritte zeigen */
+.show-list li:not(:nth-last-child(-n + 10)) {
+  display: none;
+}
+
 .show-part {
   font-weight: 600;
   color: var(--ink);

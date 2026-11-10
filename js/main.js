@@ -20,7 +20,7 @@ import { Viewer, VIEWS } from './viewer.js';
 import { ConfiguratorUI } from './ui.js';
 import { getWoodTextures } from './textures.js';
 import { LIGHTINGS, lightingById } from './lighting.js';
-import { AssemblyShow } from './assembly.js';
+import { AssemblyShow, isInnerStage } from './assembly.js';
 
 const STORAGE_KEY = 'lm-mini-r-konfigurator';
 const ALL_SLOTS = Object.values(CATEGORIES).flatMap((c) => c.slots.map((s) => s.key));
@@ -486,14 +486,20 @@ const appEl = document.querySelector('.app');
 const showUi = document.getElementById('show-ui');
 const showList = document.getElementById('show-list');
 const showBar = document.getElementById('show-bar');
+const showTitle = document.querySelector('#show-ui .show-title');
+const showEyebrow = document.querySelector('#show-ui .show-eyebrow');
 const finalCard = document.getElementById('show-final');
 const finishBtn = document.getElementById('btn-finish');
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
 const show = new AssemblyShow(viewer, model, {
   onStage: (id) => {
+    const inner = isInnerStage(id);
+    showTitle.textContent = inner ? 'Das Innenleben wird montiert' : 'Deine Konfiguration kommt dazu';
+    showEyebrow.textContent = inner ? 'Montage · Innenleben' : 'Montage · Deine Konfiguration';
     const { part, material } = ui.stageLabel(id);
     const li = document.createElement('li');
+    if (inner) li.className = 'inner';
     const name = document.createElement('span');
     name.className = 'show-part';
     name.textContent = part;
@@ -544,13 +550,19 @@ function openFinalCard() {
   });
 }
 
+function resetShowText() {
+  showEyebrow.textContent = 'Montage';
+  showTitle.textContent = 'Deine Linea Mini R entsteht – von null an';
+  showList.replaceChildren();
+}
+
 function startShow() {
   closeLightMenu();
   setAutoRotate(false);
   ui.clearSelection();
   appEl.classList.add('show-mode');
   finalCard.hidden = true;
-  showList.replaceChildren();
+  resetShowText();
   showBar.style.transform = 'scaleX(0)';
   showUi.hidden = false;
   window.scrollTo({ top: 0 });
@@ -576,7 +588,7 @@ document.getElementById('show-skip').addEventListener('click', () => show.skip()
 document.getElementById('final-replay').addEventListener('click', () => {
   viewer.setFrameShift(0, 0);
   finalCard.hidden = true;
-  showList.replaceChildren();
+  resetShowText();
   showUi.hidden = false;
   show.play();
 });

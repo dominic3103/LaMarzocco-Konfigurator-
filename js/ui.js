@@ -925,6 +925,22 @@ export class ConfiguratorUI {
     const w = (k) => resolveWood(cfg.slots[k]).name;
     const panels = ['wood.panelUpper', 'wood.panelLower'].filter((k) => cfg.slots[k].id !== 'none');
     const labels = {
+      // Innenleben
+      chassis: ['Füße & Bodenwanne', p('metal.feet')],
+      'sk-base': ['Bodenrahmen', 'Stahl verzinkt'],
+      'sk-front': ['Frontblech', 'Stahl verzinkt'],
+      'sk-rear': ['Rückwand-Stütze', 'Stahl verzinkt'],
+      'sk-struts': ['Pfosten & Streben', 'Stahl verzinkt'],
+      'sk-tank': ['Wassertank', '2,5 l'],
+      'sk-pump': ['Pumpe & Motor', 'Rotationspumpe'],
+      'sk-steam': ['Dampfkessel', 'Edelstahl, 3 l'],
+      'sk-brew': ['Brühkessel & Brühgruppe', 'Edelstahl'],
+      'sk-head': ['Ventile & Paddle-Mechanik', 'Messing'],
+      'sk-valves': ['Magnetventile', ''],
+      'sk-pcb': ['Elektronik', 'Steuerplatine'],
+      'sk-pipes': ['Leitungen', 'Kupfer, Messingverschraubungen'],
+      'sk-wires': ['Kabelbaum', ''],
+      // Konfiguration
       base: ['Basis', p('body.base')],
       drip: ['Tropfschale', p('body.base')],
       lower: ['Unterteil', p('body.lower')],

@@ -658,8 +658,12 @@ export function buildMachine(mm) {
       [-132, -270.6],
       [132, -270.6],
     ]) {
-      add(g, feetMat, 'metal.feet').position.set(x, 0, z);
-      plain(pad, F.rubber).position.set(x, 1, z);
+      // Fuß + Gummipuffer als Einheit (fallen in der Montage-Animation gemeinsam)
+      const foot = new THREE.Group();
+      foot.position.set(x, 0, z);
+      root.add(foot);
+      add(g, feetMat, 'metal.feet', foot);
+      plain(pad, F.rubber, foot).position.y = 1;
     }
   }
   stage = 'base';
@@ -822,6 +826,14 @@ export function buildMachine(mm) {
   root.add(skeleton);
   {
     const S = skeleton;
+    // Montageschritt je Innenteil (Animation "von 0 an")
+    let sk = 'sk-base';
+    let pipeNo = 0;
+    const skAdd = S.add.bind(S);
+    S.add = (...objs) => {
+      for (const o of objs) if (!o.userData.stage) o.userData.stage = sk;
+      return skAdd(...objs);
+    };
     const Y = new THREE.Vector3(0, 1, 0);
     const box = (w, h, d, mat, x, y, z, r = 1) => {
       const m = plain(rbox(w, h, d, r, 1), mat, S);
@@ -845,10 +857,14 @@ export function buildMachine(mm) {
     // Leitung mit Messing-Überwurfmuttern an beiden Enden
     const pipe = (pts, r, mat, nuts = true) => {
       const curve = new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(...p)), false, 'centripetal');
-      plain(new THREE.TubeGeometry(curve, 64, r, 12, false), mat, S);
+      const tube = plain(new THREE.TubeGeometry(curve, 64, r, 12, false), mat, S);
+      const no = pipeNo++;
+      // Leitung "wächst" in der Animation von einem Anschluss zum anderen
+      Object.assign(tube.userData, { kind: 'tube', pipe: no, segments: 64, radial: 12 });
       if (!nuts) return;
       for (const t of [0, 1]) {
         const nut = plain(new THREE.CylinderGeometry(r + 2.6, r + 2.6, 9, 6), F.brass, S);
+        Object.assign(nut.userData, { kind: 'nut', pipe: no, end: t });
         nut.position.copy(curve.getPointAt(t));
         nut.quaternion.setFromUnitVectors(Y, curve.getTangentAt(t));
       }
@@ -858,6 +874,7 @@ export function buildMachine(mm) {
     box(262, 4, 372, F.frame, 0, M.footH + 2, -98);
     for (const sx of [-1, 1]) box(10, 6, 372, F.frame, sx * 132, M.footH + 1, -98);
     for (const sx of [-1, 1]) box(6, 40, 272, F.frame, sx * 124, M.footH + 24, -142);
+    sk = 'sk-front';
     // Frontblech mit Aussparungen (Pos. 8 im Katalog)
     {
       const fs = new THREE.Shape();
@@ -889,14 +906,18 @@ export function buildMachine(mm) {
       plain(fg, F.frame, S).position.z = -12.5;
     }
     // Rückstütze, Pfosten und obere Streben
+    sk = 'sk-rear';
     box(240, 204, 3, F.frame, 0, 196, -273);
+    sk = 'sk-struts';
     for (const sx of [-1, 1]) {
       box(8, 60, 8, F.frame, sx * 116, 272, -16);
       box(8, 8, 258, F.frame, sx * 116, 298, -144);
     }
     box(240, 8, 8, F.frame, 0, 298, -16);
+    sk = 'sk-tank';
     // Wassertank (transparent) im Unterbau
     box(220, 50, 190, F.tank, 0, 60, -172, 6);
+    sk = 'sk-steam';
     // Dampfkessel, liegend (3 l), mit Kesselböden und Spannbändern
     cylZ(52, 210, F.steel, -34, 212, -150, 48);
     for (const z of [-45, -255]) cylZ(53.5, 4, F.brass, -34, 212, z, 48);
@@ -905,6 +926,7 @@ export function buildMachine(mm) {
       band.position.set(-34, 212, z);
     }
     cylZ(16, 14, F.brass, -34, 212, -262, 24); // Heizelement-Flansch
+    sk = 'sk-brew';
     // Brühkessel hinter der Gruppe + Gruppenhals + Brühgruppe
     cylZ(32, 116, F.steel, 56, 300, -64);
     for (const z of [-6, -122]) cylZ(33, 3, F.brass, 56, 300, z);
@@ -923,6 +945,7 @@ export function buildMachine(mm) {
       const g = plain(new THREE.CylinderGeometry(38, 41, 28, 48), F.chrome, S);
       g.position.set(0, 250, M.groupZ);
     }
+    sk = 'sk-pump';
     // Rotationspumpe mit Motor
     cylX(40, 110, F.motor, 30, 136, -205);
     for (const x of [-10, 12, 34, 56, 78]) {
@@ -931,20 +954,24 @@ export function buildMachine(mm) {
       rib.position.set(x, 136, -205);
     }
     cylX(23, 42, F.brass, 106, 136, -205, 24);
+    sk = 'sk-pcb';
     // Elektronik an der Rückstütze
     box(118, 86, 3, F.pcb, -56, 172, -270);
     box(30, 18, 8, F.motor, -84, 190, -266, 1);
     box(22, 22, 6, F.motor, -40, 160, -266, 1);
     box(16, 10, 6, F.brass, -30, 196, -266, 1);
+    sk = 'sk-valves';
     // Magnetventile
     box(26, 32, 22, F.motor, -96, 140, -64, 3);
     box(26, 32, 22, F.motor, 70, 236, -150, 3);
+    sk = 'sk-head';
     // Halteblech im Kopfteil für die Ventile
     box(250, 3, 142, F.frame, 0, 324, 55);
     for (const sx of [-1, 1]) box(4, 30, 120, F.frame, sx * 123, 310, 62);
     // Ventilschäfte für Dampf/Heißwasser und Paddle-Ventil im Kopfteil
     for (const sx of [-1, 1]) cylZ(7, 32, F.brass, sx * 115, 308, 114, 20);
     box(46, 22, 24, F.brass, 0, 304, 112, 3);
+    sk = 'sk-pipes';
     // Kupferleitungen
     pipe([[128, 136, -205], [134, 162, -214], [108, 204, -224], [60, 226, -220], [16, 228, -212]], 4, F.copper);
     pipe([[-20, 262, -60], [30, 276, -12], [97, 282, 40], [97, 270, 80], [97, 254, 89]], 4, F.copper);
@@ -952,6 +979,7 @@ export function buildMachine(mm) {
     pipe([[128, 150, -196], [126, 230, -150], [92, 288, -112], [56, 300, -124]], 4, F.copper);
     pipe([[56, 322, -4], [32, 316, 58], [12, 306, 100]], 4, F.copper);
     pipe([[-96, 156, -64], [-70, 190, -90], [-50, 214, -120]], 3.5, F.copper);
+    sk = 'sk-wires';
     // Kabelbaum
     pipe([[-56, 215, -268], [-10, 246, -220], [20, 180, -212], [30, 176, -205]], 2.4, F.motor, false);
     pipe([[-20, 130, -268], [-80, 120, -150], [-96, 124, -64]], 2.4, F.motor, false);
