@@ -46,50 +46,116 @@ export const SLOT_LABELS = Object.fromEntries(
 export const categoryOf = (slotKey) => slotKey.split('.')[0];
 
 // ---------------------------------------------------------------------------
-// Gehäuse-Lacke
+// Gehäuse-Lacke: IGP-DURA® Pulverlacke laut Farbkarten
+//
+// Code-Aufbau (laut Karte): 4201A = Uni, 4201E = Effektfarbton (metallischer
+// Schimmer), 4201U = Effektfarbton mit IGP-Effectives®-Technologie (Glitzer).
+// IGP-DURA® xal 4201 ist "glattverlaufend, tiefmatt".
+//
+// Die Hex-Werte sind aus Fotos der Farbkarten gemessen und weißabgeglichen –
+// Näherungswerte für die Bildschirmdarstellung, keine Farbmesswerte.
 // ---------------------------------------------------------------------------
-export const BODY_COLORS = {
-  uni: [
-    { id: 'schwarz', name: 'Tiefschwarz', color: '#141414' },
-    { id: 'weiss', name: 'Reinweiß', color: '#f1f0eb' },
-    { id: 'creme', name: 'Cremeweiß', color: '#e6dcc8' },
-    { id: 'kiesel', name: 'Kieselgrau', color: '#a39c91' },
-    { id: 'sand', name: 'Sand', color: '#c8b89a' },
-    { id: 'lichtgrau', name: 'Lichtgrau', color: '#c5c6c2' },
-    { id: 'beton', name: 'Betongrau', color: '#6f706d' },
-    { id: 'rot', name: 'Signalrot', color: '#a81f1d' },
-    { id: 'orange', name: 'Orange', color: '#cf5b25' },
-    { id: 'senf', name: 'Senfgelb', color: '#c8962c' },
-    { id: 'salbei', name: 'Salbeigrün', color: '#93a08a' },
-    { id: 'oliv', name: 'Olivgrün', color: '#545a3f' },
-    { id: 'petrol', name: 'Petrol', color: '#24525a' },
-    { id: 'pastellblau', name: 'Pastellblau', color: '#9cb6cc' },
-    { id: 'marine', name: 'Marineblau', color: '#1f2e48' },
-    { id: 'altrosa', name: 'Altrosa', color: '#c9a09c' },
-  ],
-  metallic: [
-    { id: 'champagner', name: 'Champagner', color: '#c9b48e' },
-    { id: 'goldbronze', name: 'Goldbronze', color: '#b89a62' },
-    { id: 'bronze', name: 'Bronze', color: '#7d5a3a' },
-    { id: 'kupfer', name: 'Kupfer', color: '#a65b37' },
-    { id: 'rosegold', name: 'Roségold', color: '#c3907c' },
-    { id: 'silber', name: 'Silber', color: '#b9bbbd' },
-    { id: 'titan', name: 'Titangrau', color: '#77787a' },
-    { id: 'anthrazit', name: 'Anthrazit', color: '#3a3c40' },
-    { id: 'graphit', name: 'Graphitschwarz', color: '#1f2022' },
-    { id: 'nachtblau', name: 'Nachtblau', color: '#1d2c4d' },
-    { id: 'petrolmet', name: 'Petrol Metallic', color: '#1f4a52' },
-    { id: 'racing', name: 'Racing Green', color: '#1e3a2c' },
-    { id: 'bordeaux', name: 'Bordeaux', color: '#5a1824' },
-  ],
-};
+const igp = (code, name, color, extra = {}) => ({
+  id: code,
+  code,
+  name,
+  color,
+  effect: code.slice(4, 5) === 'U' ? 'U' : code.slice(4, 5) === 'A' ? 'A' : 'E',
+  ...extra,
+});
+
+export const BODY_COLLECTIONS = [
+  {
+    id: 'warm',
+    name: 'Warm Radiation',
+    series: 'IGP-DURA® xal 42 · 4201',
+    colors: [
+      igp('4201E94136L30', 'Chiffon Silk', '#e2dfd8'),
+      igp('4201E77499L30', 'Silver Tinsel', '#bdb8b3'),
+      igp('4201E76256L3F', 'Style 23', '#b4a998'),
+      igp('4201E77903L30', 'Titan Power', '#aea097'),
+      igp('4201E83775L30', 'Velvet Brown', '#b7a28d'),
+      igp('4201E82467L3F', 'Style 24', '#b79066'),
+      igp('4201E83934L30', 'English Bronze', '#a18668'),
+      igp('4201E83829L30', 'Amaranth Glow', '#8c755d', { sparkle: true }),
+    ],
+  },
+  {
+    id: 'tech',
+    name: 'Tech Cold',
+    series: 'IGP-DURA® xal 42 · 4201',
+    colors: [
+      igp('4201E79975L30', 'Natural Silver', '#c6c2c3'),
+      igp('4201E94063L30', 'Fine Palladium', '#b0b2b9'),
+      igp('4201E75307L3F', 'Radiant Silver', '#858489'),
+      igp('4201U71386L10', 'Galaxy Depth', '#51515b'),
+      igp('4201E83361L30', 'Quarzo Fumo', '#8f7670'),
+      igp('4201U75249L10', 'Blued Metal', '#5b6170'),
+      igp('4201E63923L3F', 'Jungle Street', '#3b4136'),
+      igp('4201U90171L10', 'Traffic Black', '#2c2b2d'),
+    ],
+  },
+  {
+    id: 'brave',
+    name: 'Brave Colours',
+    series: 'IGP-DURA® xal 42 · 4201',
+    colors: [
+      igp('4201E32377L30', 'Warm Grey', '#c0bdc0'),
+      igp('4201E54218L30', 'Admiral Blue', '#385878'),
+      igp('4201E84585L30', 'Technical Ceramics', '#b6886e'),
+      igp('4201E83618L3F', 'Rare Earth', '#8a534b'),
+      igp('4201E64618L3F', 'Jungle Thicket', '#6f7f76'),
+      igp('4201E41754L30', 'Rhodonite Stone', '#bd6e74'),
+      igp('4201E94085L30', 'Silver Beige', '#bfbfb0'),
+      igp('4201E13343L3F', 'Glory Curry', '#ccae63'),
+    ],
+  },
+  {
+    id: 'style',
+    name: 'Style',
+    series: 'IGP-DURA® xal 4201',
+    colors: [
+      igp('4201E82665L3F', 'xal-Style 21', '#8a7450'),
+      igp('4201E13212L3F', 'xal-Style 22', '#8c7d64'),
+      igp('4201E76256L3F', 'Style 23', '#b4a998', { label: 'xal-Style 23' }),
+      igp('4201E13343L3F', 'Glory Curry', '#ccae63', { label: 'xal-Style 25' }),
+      igp('4201E82291L3F', 'xal-Style 26', '#4a4944'),
+      igp('4201E81872L3F', 'xal-Style 30', '#7d6b58'),
+    ],
+  },
+  {
+    id: 'trend',
+    name: 'Trend',
+    series: 'IGP-DURA® xal 4201',
+    colors: [
+      igp('4201E92246L3F', 'xal-Trend 3', '#5a4a3c'),
+      igp('4201E90071L3F', 'xal-Trend 6', '#8a857b'),
+    ],
+  },
+  {
+    id: 'design',
+    name: 'Design',
+    series: 'IGP-DURA® xal 4601',
+    colors: [
+      igp('4601A81423L10', 'xal-Design 12', '#9b8046'),
+      igp('4601A50240L10', 'xal-Design 17', '#6f98b6'),
+      igp('4601A11572L10', 'xal-Design 20', '#cf831c'),
+      igp('4601A62175L10', 'xal-Design 21', '#5b8f1d'),
+    ],
+  },
+];
 
 export const BODY_FINISHES = [
-  { id: 'gloss', name: 'Hochglanz' },
+  { id: 'matte', name: 'Tiefmatt' },
   { id: 'satin', name: 'Seidenmatt' },
-  { id: 'matte', name: 'Matt' },
+  { id: 'gloss', name: 'Hochglanz' },
   { id: 'texture', name: 'Struktur' },
 ];
+
+/** Kollektion, in der eine Farbe (zuerst) vorkommt. */
+export function collectionOf(colorId) {
+  return BODY_COLLECTIONS.find((c) => c.colors.some((x) => x.id === colorId))?.id || null;
+}
 
 // ---------------------------------------------------------------------------
 // Metallakzente
@@ -170,66 +236,67 @@ function preset(name, swatches, slots, dial = 'white') {
 }
 
 export const PRESETS = [
-  preset('Olive & Kiesel', ['#a39c91', '#c9a066', '#161616'], {
-    ...allBody('kiesel', 'satin'),
+  preset('Style 23 & Olive', ['#b4a998', '#c9a066', '#161616'], {
+    ...allBody('4201E76256L3F', 'matte'),
     ...allWood('olive'),
     ...allMetal('black', 'matte'),
     'metal.portafilter': { id: 'steel', finish: 'satin' },
     'metal.grates': { id: 'steel', finish: 'satin' },
     'metal.group': { id: 'blackchrome', finish: 'satin' },
   }, 'black'),
-  preset('Goldbronze Struktur', ['#b89a62', '#c9a066', '#34363a'], {
-    ...allBody('goldbronze', 'texture'),
+  preset('Style 21 & Olive', ['#8a7450', '#c9a066', '#34363a'], {
+    ...allBody('4201E82665L3F', 'matte'),
     ...allWood('olive'),
     ...allMetal('blackchrome', 'satin'),
     'metal.grates': { id: 'steel', finish: 'gloss' },
     'metal.logo': { id: 'blackchrome', finish: 'gloss' },
   }),
-  preset('Classic Black', ['#141414', '#1b1b1b', '#e4e6e9'], {
-    ...allBody('schwarz', 'matte'),
+  preset('Traffic Black', ['#2c2b2d', '#1b1b1b', '#e4e6e9'], {
+    ...allBody('4201U90171L10', 'matte'),
     ...allWood('black'),
     ...allMetal('chrome', 'gloss'),
     'metal.screws': { id: 'steel', finish: 'satin' },
     'metal.caps': { id: 'white', finish: 'gloss' },
   }),
-  preset('Arctic Oak', ['#f1f0eb', '#dcbb88', '#cfd1d3'], {
-    ...allBody('weiss', 'gloss'),
+  preset('Chiffon Silk & Eiche', ['#e2dfd8', '#dcbb88', '#cfd1d3'], {
+    ...allBody('4201E94136L30', 'matte'),
     ...allWood('oak'),
     ...allMetal('steel', 'satin'),
   }),
-  preset('Racing Walnut', ['#1e3a2c', '#5f4030', '#c9a85c'], {
-    ...allBody('racing', 'gloss'),
-    ...allWood('walnut', 'lacquer'),
-    ...allMetal('brass', 'gloss'),
-    'metal.grates': { id: 'steel', finish: 'gloss' },
+  preset('Jungle Street & Nuss', ['#3b4136', '#5f4030', '#c9a85c'], {
+    ...allBody('4201E63923L3F', 'matte'),
+    ...allWood('walnut'),
+    ...allMetal('brass', 'satin'),
+    'metal.grates': { id: 'steel', finish: 'satin' },
   }),
-  preset('Rosso Wengé', ['#a81f1d', '#3e2c21', '#e4e6e9'], {
-    ...allBody('rot', 'gloss'),
+  preset('Rare Earth & Wengé', ['#8a534b', '#3e2c21', '#34363a'], {
+    ...allBody('4201E83618L3F', 'matte'),
     ...allWood('wenge'),
-    ...allMetal('chrome', 'gloss'),
+    ...allMetal('blackchrome', 'satin'),
+    'metal.grates': { id: 'steel', finish: 'satin' },
   }, 'black'),
-  preset('Copper Noir', ['#3a3c40', '#3d3530', '#cf8460'], {
-    ...allBody('anthrazit', 'satin'),
+  preset('Galaxy Depth & Kupfer', ['#51515b', '#3d3530', '#cf8460'], {
+    ...allBody('4201U71386L10', 'matte'),
     ...allWood('bogoak'),
     ...allMetal('copper', 'satin'),
     'metal.grates': { id: 'blackchrome', finish: 'satin' },
   }, 'black'),
-  preset('Midnight Burl', ['#1d2c4d', '#7a5232', '#e1b866'], {
-    ...allBody('nachtblau', 'gloss'),
+  preset('Admiral Blue & Wurzel', ['#385878', '#7a5232', '#e1b866'], {
+    ...allBody('4201E54218L30', 'matte'),
     ...allWood('burl', 'lacquer'),
-    ...allMetal('gold', 'gloss'),
-    'metal.grates': { id: 'steel', finish: 'gloss' },
+    ...allMetal('gold', 'satin'),
+    'metal.grates': { id: 'steel', finish: 'satin' },
   }),
-  preset('Salbei & Ahorn', ['#93a08a', '#e3cda2', '#dba895'], {
-    ...allBody('salbei', 'matte'),
+  preset('English Bronze & Olive', ['#a18668', '#c9a066', '#55585d'], {
+    ...allBody('4201E83934L30', 'matte'),
+    ...allWood('olive'),
+    ...allMetal('gunmetal', 'satin'),
+  }),
+  preset('Jungle Thicket & Ahorn', ['#6f7f76', '#e3cda2', '#dba895'], {
+    ...allBody('4201E64618L3F', 'matte'),
     ...allWood('maple'),
     ...allMetal('rosegold', 'satin'),
   }),
-  preset('Zebrano Titan', ['#77787a', '#bfa073', '#8d8b86'], {
-    ...allBody('titan', 'satin'),
-    ...allWood('zebrano'),
-    ...allMetal('titan', 'satin'),
-  }, 'black'),
 ];
 
 export const DEFAULT_CONFIG = PRESETS[0].config;
@@ -237,10 +304,13 @@ export const DEFAULT_CONFIG = PRESETS[0].config;
 // ---------------------------------------------------------------------------
 // Nachschlagen von Farben (inkl. "Eigene Farbe")
 // ---------------------------------------------------------------------------
-const BODY_INDEX = new Map([
-  ...BODY_COLORS.uni.map((c) => [c.id, { ...c, kind: 'uni' }]),
-  ...BODY_COLORS.metallic.map((c) => [c.id, { ...c, kind: 'metallic' }]),
-]);
+const BODY_INDEX = new Map();
+for (const col of BODY_COLLECTIONS) {
+  for (const c of col.colors) {
+    if (!BODY_INDEX.has(c.id)) BODY_INDEX.set(c.id, { ...c, kind: c.effect === 'A' ? 'uni' : 'metallic', series: col.series });
+  }
+}
+export const DEFAULT_BODY_ID = '4201E76256L3F';
 const METAL_INDEX = new Map([
   ...METAL_COLORS.metal.map((c) => [c.id, { ...c, kind: 'metal' }]),
   ...METAL_COLORS.uni.map((c) => [c.id, { ...c, kind: 'uni' }]),
@@ -250,9 +320,10 @@ const WOOD_INDEX = new Map(WOODS.map((w) => [w.id, w]));
 /** Liefert {name,color,kind} für einen Slot-Wert (inkl. eigener Farbe). */
 export function resolveBody(value) {
   if (value.id === 'custom') {
-    return { id: 'custom', name: `Eigene Farbe ${value.color}`, color: value.color, kind: value.kind || 'uni' };
+    const kind = value.kind === 'metallic' ? 'metallic' : 'uni';
+    return { id: 'custom', name: `Eigene Farbe ${value.color}`, color: value.color, kind, effect: kind === 'metallic' ? 'M' : 'A' };
   }
-  return BODY_INDEX.get(value.id) || BODY_INDEX.get('kiesel');
+  return BODY_INDEX.get(value.id) || BODY_INDEX.get(DEFAULT_BODY_ID);
 }
 export function resolveMetal(value) {
   if (value.id === 'custom') {

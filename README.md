@@ -6,8 +6,16 @@ Interaktiver 3D-Konfigurator für die Espressomaschine **Linea Mini R**. Die Mas
 
 - **360°-Ansicht**: Drehen per Maus/Touch, Zoomen per Scrollen/Pinch, automatische Rotation sowie Schnellansichten (Front, 3/4, Links, Rechts, Hinten, Oben).
 - **Gehäuse**: komplett oder getrennt nach Oberteil, Kopfteil, Unterteil und Basis/Tropfschale.
-  - 16 Uni-Lacke, 13 Metallic-Lacke und eine eigene Farbe per Farbwähler
-  - Oberflächen: Hochglanz, Seidenmatt, Matt, Struktur (Pulverbeschichtung)
+  - Farbauswahl nach den **IGP-DURA® Pulverlack-Farbkarten**, jeweils mit Name und Farbcode:
+    - xal 42 / 4201 *Warm Radiation*: Chiffon Silk, Silver Tinsel, Style 23, Titan Power, Velvet Brown, Style 24, English Bronze, Amaranth Glow
+    - xal 42 / 4201 *Tech Cold*: Natural Silver, Fine Palladium, Radiant Silver, Galaxy Depth, Quarzo Fumo, Blued Metal, Jungle Street, Traffic Black
+    - xal 42 / 4201 *Brave Colours*: Warm Grey, Admiral Blue, Technical Ceramics, Rare Earth, Jungle Thicket, Rhodonite Stone, Silver Beige, Glory Curry
+    - xal 4201 *Style*: xal-Style 21, 22, 23, 25, 26, 30
+    - xal 4201 *Trend*: xal-Trend 3, 6
+    - xal 4601 *Design*: xal-Design 12, 17, 20, 21
+  - Darstellung nach Code-Typ: `A` = Uni, `E` = Effektfarbton mit feinem metallischem Schimmer, `U` = IGP-Effectives® mit Glitzerpartikeln
+  - eigene Farbe (Uni oder Metallic) per Farbwähler, z. B. für RAL-Töne
+  - Oberflächen: Tiefmatt (wie IGP-DURA® xal 4201), Seidenmatt, Hochglanz und Struktur zum Vergleich
 - **Holz**: Paddle, Drehknöpfe und Siebträgergriff, zusammen oder einzeln.
   - Olivenholz, Nussbaum, Eiche, Ahorn, Kirschbaum, Zebrano, Padouk, Wengé, Mooreiche, Makassar, Nuss-Wurzel sowie „Serie Schwarz“ (Kunststoff wie ab Werk)
   - Oberflächen: geölt oder hochglanzlackiert
@@ -56,6 +64,7 @@ vendor/three/       Three.js r170 (MIT-Lizenz)
 ## Anpassen
 
 - **Farben, Holzarten und Presets** stehen in `js/data.js`. Ein neuer Eintrag erscheint automatisch in der Oberfläche.
+- **IGP-Farben** sind in `BODY_COLLECTIONS` hinterlegt: `igp('Code', 'Name', '#hex')`. Die Hex-Werte wurden aus Fotos der Farbkarten gemessen und weißabgeglichen. Es sind also Näherungswerte für den Bildschirm, keine Farbmesswerte. Liegen offizielle RGB/Lab-Werte vor, einfach den Hex-Wert ersetzen.
 - **Holzmaserungen** werden über Parameter gesteuert (`style`, `light`/`mid`/`dark`, `freq`, `warp`, `contrast` …). Für `style` gibt es `straight`, `oak`, `zebra`, `olive`, `burl` und `solid`.
 - **Geometrie**: Alle Maße stehen in Millimetern in `js/model.js` (Konstante `M` und die einzelnen Bauteil-Abschnitte).
 

@@ -553,6 +553,132 @@ body.ready .loader {
   width: 100%;
 }
 
+/* Gehäuse: IGP-Farbkarten */
+.seg.tabs.scroll {
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.seg.tabs.scroll button {
+  flex: 1 1 auto;
+  padding: 7px 10px;
+}
+
+.series-line {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.paints {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 12px 8px;
+}
+
+.paints[hidden],
+.custom-panel[hidden] {
+  display: none;
+}
+
+.paint {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  min-width: 0;
+}
+
+.paint-tile {
+  display: block;
+  aspect-ratio: 4 / 5;
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12), inset 0 -10px 18px rgba(0, 0, 0, 0.06);
+  margin-bottom: 4px;
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+
+.paint:hover .paint-tile {
+  transform: translateY(-1px);
+}
+
+.paint.active .paint-tile {
+  box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--ink);
+}
+
+.paint-name {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--ink-soft);
+}
+
+.paint-code {
+  font-size: 9.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.custom-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.custom-pick {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 14px 6px 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.custom-pick input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.custom-fill {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, #e15353, #e1b653, #8fd162, #53c6e1, #6c66e3, #d662c6, #e15353);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.14);
+}
+
+.custom-fill svg {
+  width: 16px;
+  height: 16px;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4));
+}
+
+.hint-text.small {
+  margin-top: 2px;
+  font-size: 12px;
+}
+
 /* Holz */
 .woods {
   display: grid;

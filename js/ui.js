@@ -3,8 +3,9 @@
 // ---------------------------------------------------------------------------
 import {
   CATEGORIES,
-  BODY_COLORS,
+  BODY_COLLECTIONS,
   BODY_FINISHES,
+  collectionOf,
   METAL_COLORS,
   METAL_FINISHES,
   WOODS,
@@ -52,6 +53,26 @@ export function swatchBackground(color, kind) {
   return color;
 }
 
+// unregelmäßiges Glitzerkorn (SVG-Rauschen, helle + dunkle Partikel)
+const GRAIN = `url("data:image/svg+xml,${encodeURIComponent(
+  "<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'>" +
+    "<filter id='a'><feTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' seed='3'/>" +
+    "<feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 9 -6.4'/></filter>" +
+    "<filter id='b'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='8'/>" +
+    "<feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 7 -4.6'/></filter>" +
+    "<rect width='120' height='120' filter='url(#b)' opacity='.45'/>" +
+    "<rect width='120' height='120' filter='url(#a)' opacity='.8'/></svg>",
+)}")`;
+
+/** Kachel-Hintergrund für Pulverlacke: Uni flach, Effekt mit Schimmer, U mit Glitzerkorn. */
+export function paintBackground(c) {
+  const fx = c.effect || (c.kind === 'metallic' ? 'M' : 'A');
+  if (fx === 'A') return c.color;
+  const sheen = `linear-gradient(135deg, ${mix(c.color, '#ffffff', 0.22)} 0%, ${c.color} 45%, ${mix(c.color, '#000000', 0.18)} 100%)`;
+  if (fx === 'U' || c.sparkle) return `${GRAIN} center / 120px 120px, ${sheen}`;
+  return sheen;
+}
+
 const ICONS = {
   chevron: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   plus: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
@@ -66,7 +87,8 @@ export class ConfiguratorUI {
     this.root = root;
     this.opts = opts;
     this.target = { body: 'all', wood: 'all', metal: 'all' };
-    this.colorTab = { body: 'uni', metal: 'metal' };
+    const bodyId = opts.getConfig().slots['body.upper'].id;
+    this.colorTab = { body: collectionOf(bodyId) || (bodyId === 'custom' ? 'custom' : BODY_COLLECTIONS[0].id), metal: 'metal' };
     this.open = 'body';
     this.refs = { steps: {} };
     this.build();
@@ -97,7 +119,7 @@ export class ConfiguratorUI {
 
     // Schritte
     const steps = el('div', { class: 'steps' });
-    steps.append(this.#buildPaintStep('body', '01'));
+    steps.append(this.#buildBodyStep('01'));
     steps.append(this.#buildWoodStep('02'));
     steps.append(this.#buildPaintStep('metal', '03'));
     steps.append(this.#buildDetailsStep('04'));
@@ -167,18 +189,92 @@ export class ConfiguratorUI {
     return wrap;
   }
 
+  /** Gehäuse: IGP-DURA®-Kollektionen als Farbkarten + eigene Farbe. */
+  #buildBodyStep(num) {
+    const tabs = [...BODY_COLLECTIONS.map((c) => ({ id: c.id, name: c.name })), { id: 'custom', name: 'Eigene Farbe' }];
+    const tabBar = this.#segmented(
+      tabs,
+      (id) => {
+        this.colorTab.body = id;
+        this.refresh();
+      },
+      'tabs scroll',
+    );
+    const grids = {};
+    const gridWrap = el('div', { class: 'swatch-wrap' });
+    for (const col of BODY_COLLECTIONS) {
+      const grid = el('div', { class: 'paints', 'data-tab': col.id, role: 'group', 'aria-label': col.name });
+      for (const c of col.colors) {
+        grid.append(
+          el(
+            'button',
+            {
+              class: 'paint',
+              type: 'button',
+              title: `${c.label || c.name} · ${c.code}`,
+              'data-id': c.id,
+              onclick: () => this.opts.onSlots(this.#targetKeys('body'), { id: c.id }),
+            },
+            [
+              el('span', { class: 'paint-tile', style: `background:${paintBackground(c)}` }),
+              el('span', { class: 'paint-name', text: c.label || c.name }),
+              el('span', { class: 'paint-code', text: c.code }),
+            ],
+          ),
+        );
+      }
+      grids[col.id] = grid;
+      gridWrap.append(grid);
+    }
+    // eigene Farbe
+    const input = el('input', { type: 'color', value: '#9a8f80', 'aria-label': 'Eigene Farbe wählen' });
+    const kindSeg = this.#segmented(
+      [
+        { id: 'uni', name: 'Uni' },
+        { id: 'metallic', name: 'Metallic' },
+      ],
+      (id) => this.opts.onSlots(this.#targetKeys('body'), { id: 'custom', color: input.value, kind: id }),
+    );
+    input.addEventListener('input', () => {
+      const kind = kindSeg.querySelector('button.active')?.dataset.id || 'uni';
+      this.opts.onSlots(this.#targetKeys('body'), { id: 'custom', color: input.value, kind });
+    });
+    const customFill = el('span', { class: 'custom-fill', html: ICONS.plus });
+    const customPanel = el('div', { class: 'custom-panel', 'data-tab': 'custom' }, [
+      el('label', { class: 'custom-pick' }, [customFill, el('span', { text: 'Farbe wählen' }), input]),
+      kindSeg,
+      el('p', { class: 'hint-text', text: 'Für Farbtöne außerhalb der IGP-Karten, z. B. RAL-Farben.' }),
+    ]);
+    gridWrap.append(customPanel);
+
+    const series = el('p', { class: 'series-line' });
+    const nameLine = el('p', { class: 'pick-name' });
+    const finishSeg = this.#segmented(BODY_FINISHES, (id) => this.opts.onSlots(this.#targetKeys('body'), { finish: id }));
+    const step = this.#step('body', num, CATEGORIES.body.title, [
+      this.#chips('body'),
+      tabBar,
+      series,
+      gridWrap,
+      nameLine,
+      el('div', { class: 'field' }, [
+        el('span', { class: 'label', text: 'Oberfläche' }),
+        finishSeg,
+        el('p', {
+          class: 'hint-text small',
+          text: 'IGP-DURA® xal 4201 ist laut Hersteller glattverlaufend und tiefmatt. Die anderen Oberflächen dienen nur zum Vergleich.',
+        }),
+      ]),
+    ]);
+    Object.assign(this.refs.steps.body, { tabBar, grids, customPanel, input, kindSeg, customFill, finishSeg, nameLine, series });
+    return step;
+  }
+
   #buildPaintStep(cat, num) {
-    const isBody = cat === 'body';
-    const palette = isBody ? BODY_COLORS : METAL_COLORS;
-    const tabs = isBody
-      ? [
-          { id: 'uni', name: 'Uni-Lacke' },
-          { id: 'metallic', name: 'Metallic' },
-        ]
-      : [
-          { id: 'metal', name: 'Metall / PVD' },
-          { id: 'uni', name: 'Uni-Lacke' },
-        ];
+    const palette = METAL_COLORS;
+    const tabs = [
+      { id: 'metal', name: 'Metall / PVD' },
+      { id: 'uni', name: 'Uni-Lacke' },
+    ];
     const tabBar = this.#segmented(
       tabs,
       (id) => {
@@ -222,8 +318,7 @@ export class ConfiguratorUI {
       gridWrap.append(grid);
     }
     const nameLine = el('p', { class: 'pick-name' });
-    const finishes = isBody ? BODY_FINISHES : METAL_FINISHES;
-    const finishSeg = this.#segmented(finishes, (id) => this.opts.onSlots(this.#targetKeys(cat), { finish: id }));
+    const finishSeg = this.#segmented(METAL_FINISHES, (id) => this.opts.onSlots(this.#targetKeys(cat), { finish: id }));
 
     const body = [
       this.#chips(cat),
@@ -321,11 +416,9 @@ export class ConfiguratorUI {
     const cat = slotKey.split('.')[0];
     this.open = cat;
     this.target[cat] = slotKey;
-    if (cat === 'body' || cat === 'metal') {
-      const v = this.opts.getConfig().slots[slotKey];
-      const kind = (cat === 'body' ? resolveBody(v) : resolveMetal(v)).kind;
-      this.colorTab[cat] = kind;
-    }
+    const v = this.opts.getConfig().slots[slotKey];
+    if (cat === 'metal') this.colorTab.metal = resolveMetal(v).kind;
+    if (cat === 'body') this.colorTab.body = v.id === 'custom' ? 'custom' : collectionOf(v.id) || this.colorTab.body;
     this.refresh();
     const sec = this.refs.steps[cat].section;
     requestAnimationFrame(() => sec.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
@@ -344,11 +437,44 @@ export class ConfiguratorUI {
       });
     }
 
-    // Lack- und Metall-Schritte
-    for (const cat of ['body', 'metal']) {
+    // Gehäuse (IGP-Karten)
+    {
+      const s = this.refs.steps.body;
+      const { first, sameId, sameFinish } = this.#commonValue('body');
+      const resolved = resolveBody(first);
+      const tab = this.colorTab.body;
+      setActive(s.tabBar, tab);
+      for (const [id, grid] of Object.entries(s.grids)) {
+        grid.hidden = id !== tab;
+        grid.querySelectorAll('.paint').forEach((b) => {
+          const on = sameId && b.dataset.id === first.id;
+          b.classList.toggle('active', on);
+          b.setAttribute('aria-pressed', String(on));
+        });
+      }
+      s.customPanel.hidden = tab !== 'custom';
+      const isCustom = sameId && first.id === 'custom';
+      if (isCustom) {
+        s.input.value = first.color;
+        s.customFill.style.background = paintBackground(resolved);
+      }
+      setActive(s.kindSeg, isCustom ? resolved.kind : s.kindSeg.querySelector('button.active')?.dataset.id || 'uni');
+      const col = BODY_COLLECTIONS.find((c) => c.id === tab);
+      s.series.textContent = col ? `${col.series} – ${col.name}` : 'Eigener Farbton';
+      setActive(s.finishSeg, sameFinish ? first.finish : null);
+      const finish = sameFinish ? ' · ' + finishName(BODY_FINISHES, first.finish) : '';
+      const text = sameId ? `${resolved.name}${finish}` : 'Individuell kombiniert';
+      s.nameLine.textContent = sameId
+        ? `${resolved.name}${resolved.code ? ' · ' + resolved.code : ''}${finish}`
+        : 'Mehrere Farben – Auswahl gilt für alle markierten Bauteile';
+      s.current.textContent = text;
+    }
+
+    // Metallakzente
+    for (const cat of ['metal']) {
       const s = this.refs.steps[cat];
       const { first, sameId, sameFinish } = this.#commonValue(cat);
-      const resolved = cat === 'body' ? resolveBody(first) : resolveMetal(first);
+      const resolved = resolveMetal(first);
       setActive(s.tabBar, this.colorTab[cat]);
       for (const [tab, { grid, input }] of Object.entries(s.grids)) {
         grid.hidden = tab !== this.colorTab[cat];
@@ -363,9 +489,8 @@ export class ConfiguratorUI {
         }
       }
       setActive(s.finishSeg, sameFinish ? first.finish : null);
-      const finishes = cat === 'body' ? BODY_FINISHES : METAL_FINISHES;
       const text = sameId
-        ? `${resolved.name}${sameFinish ? ' · ' + finishName(finishes, first.finish) : ''}`
+        ? `${resolved.name}${sameFinish ? ' · ' + finishName(METAL_FINISHES, first.finish) : ''}`
         : 'Individuell kombiniert';
       s.nameLine.textContent = sameId ? text : 'Mehrere Farben – Auswahl gilt für alle markierten Bauteile';
       s.current.textContent = text;
@@ -417,7 +542,7 @@ export class ConfiguratorUI {
           name = `${w.name} · ${finishName(WOOD_FINISHES, v.finish)}`;
         } else {
           const r = cat === 'body' ? resolveBody(v) : resolveMetal(v);
-          swatch = swatchBackground(r.color, r.kind);
+          swatch = cat === 'body' ? paintBackground(r) : swatchBackground(r.color, r.kind);
           name = `${r.name} · ${finishName(cat === 'body' ? BODY_FINISHES : METAL_FINISHES, v.finish)}`;
         }
         dl.append(
@@ -451,7 +576,8 @@ export class ConfiguratorUI {
         if (cat === 'wood') name = `${resolveWood(v).name} (${finishName(WOOD_FINISHES, v.finish)})`;
         else {
           const r = cat === 'body' ? resolveBody(v) : resolveMetal(v);
-          name = `${r.name} (${finishName(cat === 'body' ? BODY_FINISHES : METAL_FINISHES, v.finish)})`;
+          const code = r.code ? `, ${r.series} ${r.code}` : '';
+          name = `${r.name} (${finishName(cat === 'body' ? BODY_FINISHES : METAL_FINISHES, v.finish)}${code})`;
         }
         lines.push(`  ${s.label}: ${name}`);
       }

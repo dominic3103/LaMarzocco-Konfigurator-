@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------------------
 // Einstiegspunkt: verbindet Modell, Materialien, Viewer und Oberfläche
 // ---------------------------------------------------------------------------
-import { DEFAULT_CONFIG, CATEGORIES, SLOT_LABELS, categoryOf, resolveWood } from './data.js';
+import { DEFAULT_CONFIG, CATEGORIES, SLOT_LABELS, categoryOf, resolveBody, resolveMetal, resolveWood } from './data.js';
 import { MaterialManager } from './materials.js';
 import { buildMachine } from './model.js';
 import { Viewer, VIEWS } from './viewer.js';
@@ -20,6 +20,9 @@ function sanitize(cfg) {
   if (cfg.dial === 'white' || cfg.dial === 'black') out.dial = cfg.dial;
   for (const k of ALL_SLOTS) {
     const v = cfg.slots?.[k];
+    const resolver = { body: resolveBody, wood: resolveWood, metal: resolveMetal }[categoryOf(k)];
+    // unbekannte Farb-IDs (z. B. aus älteren Links) -> Standard behalten
+    if (v && typeof v.id === 'string' && v.id !== 'custom' && resolver(v).id !== v.id) continue;
     if (v && typeof v.id === 'string') {
       out.slots[k] = { id: v.id, finish: typeof v.finish === 'string' ? v.finish : out.slots[k].finish };
       if (v.id === 'custom' && /^#[0-9a-f]{6}$/i.test(v.color || '')) {

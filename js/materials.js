@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 import * as THREE from 'three';
 import { categoryOf, resolveBody, resolveMetal, resolveWood } from './data.js';
-import { getFlakeNormalMap, getStructureBumpMap, getWoodTextures } from './textures.js';
+import { getFlakeNormalMap, getSparkleMaps, getStructureBumpMap, getWoodTextures } from './textures.js';
 
 export class MaterialManager {
   constructor() {
@@ -99,26 +99,46 @@ function setMaps(m, maps) {
 // ---------------------------------------------------------------------------
 // Lack (Gehäuse)
 // ---------------------------------------------------------------------------
+// Effekt-Typen: A = Uni, E = Effektfarbton (feiner metallischer Schimmer),
+// U = IGP-Effectives®/Perleffekt (grobe Glitzerpartikel), M = Metallic (eigene Farbe)
+const EFFECT = {
+  A: { metal: 0, rough: { matte: 0.82, satin: 0.5, gloss: 0.28, texture: 0.78 } },
+  E: { metal: 0.38, rough: { matte: 0.6, satin: 0.45, gloss: 0.32, texture: 0.6 } },
+  U: { metal: 0.3, rough: { matte: 0.56, satin: 0.42, gloss: 0.3, texture: 0.56 } },
+  M: { metal: 0.72, rough: { matte: 0.58, satin: 0.42, gloss: 0.32, texture: 0.55 } },
+};
+const CLEARCOAT = {
+  matte: { cc: 0, ccr: 0.5 },
+  satin: { cc: 0.35, ccr: 0.32 },
+  gloss: { cc: 1, ccr: 0.03 },
+  texture: { cc: 0, ccr: 0.6 },
+};
+
 function applyPaint(m, color, finish) {
-  const metallic = color.kind === 'metallic';
+  const fx = color.effect || (color.kind === 'metallic' ? 'M' : 'A');
+  const e = EFFECT[fx] || EFFECT.A;
+  const f = CLEARCOAT[finish] ? finish : 'matte';
   m.color.set(color.color);
   m.sheen = 0;
-  const presets = {
-    gloss: { rough: metallic ? 0.32 : 0.28, cc: 1, ccr: 0.03 },
-    satin: { rough: metallic ? 0.42 : 0.5, cc: 0.35, ccr: 0.32 },
-    matte: { rough: metallic ? 0.58 : 0.82, cc: 0, ccr: 0.5 },
-    texture: { rough: metallic ? 0.55 : 0.78, cc: 0.0, ccr: 0.6 },
-  };
-  const p = presets[finish] || presets.satin;
-  m.metalness = metallic ? 0.72 : 0.0;
-  m.roughness = p.rough;
-  m.clearcoat = p.cc;
-  m.clearcoatRoughness = p.ccr;
+  m.metalness = e.metal;
+  m.roughness = e.rough[f];
+  m.clearcoat = CLEARCOAT[f].cc;
+  m.clearcoatRoughness = CLEARCOAT[f].ccr;
   m.envMapIntensity = 1;
-  const flakes = metallic && finish !== 'texture' ? getFlakeNormalMap() : null;
-  const structure = finish === 'texture' ? getStructureBumpMap() : null;
-  setMaps(m, { normalMap: flakes, bumpMap: structure, map: m.userData.baseMap || null });
-  m.normalScale.set(0.22, 0.22);
+  const sparkle = fx === 'U' || color.sparkle;
+  const structure = f === 'texture' ? getStructureBumpMap() : null;
+  let normalMap = null;
+  let map = m.userData.baseMap || null;
+  if (sparkle) {
+    const sp = getSparkleMaps();
+    normalMap = structure ? null : sp.normalMap;
+    map = sp.map;
+    m.normalScale.set(0.55, 0.55);
+  } else if ((fx === 'E' || fx === 'M') && !structure) {
+    normalMap = getFlakeNormalMap();
+    m.normalScale.set(fx === 'E' ? 0.12 : 0.22, fx === 'E' ? 0.12 : 0.22);
+  }
+  setMaps(m, { normalMap, bumpMap: structure, map });
   m.bumpScale = 1.6;
 }
 

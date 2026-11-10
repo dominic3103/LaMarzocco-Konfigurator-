@@ -302,6 +302,59 @@ export function getFlakeNormalMap() {
   return flakeTex;
 }
 
+let sparkleTex = null;
+let speckleTex = null;
+/** Grobe Glitzer-Partikel (IGP-Effectives®/Perleffekt): Normal-Map + Farb-Körnung. */
+export function getSparkleMaps() {
+  if (sparkleTex) return { normalMap: sparkleTex, map: speckleTex };
+  const S = 256;
+  const nc = makeCanvas(S, S);
+  const cc = makeCanvas(S, S);
+  const nimg = nc.getContext('2d').createImageData(S, S);
+  const cimg = cc.getContext('2d').createImageData(S, S);
+  let seed = 424242;
+  const rnd = () => {
+    seed = (seed * 16807) % 2147483647;
+    return seed / 2147483647;
+  };
+  for (let i = 0; i < S * S; i++) {
+    const r = rnd();
+    let nx = 0;
+    let ny = 0;
+    let c = 0.9;
+    if (r < 0.12) {
+      // Glitzerpartikel: stark gekippte Facette, hell
+      nx = (rnd() - 0.5) * 1.5;
+      ny = (rnd() - 0.5) * 1.5;
+      c = 1;
+    } else if (r < 0.2) {
+      c = 0.68; // dunkles Korn
+    } else {
+      nx = (rnd() - 0.5) * 0.12;
+      ny = (rnd() - 0.5) * 0.12;
+      c = 0.86 + rnd() * 0.06;
+    }
+    const nz = Math.sqrt(Math.max(0.05, 1 - nx * nx - ny * ny));
+    const len = Math.hypot(nx, ny, nz);
+    nimg.data[i * 4] = ((nx / len) * 0.5 + 0.5) * 255;
+    nimg.data[i * 4 + 1] = ((ny / len) * 0.5 + 0.5) * 255;
+    nimg.data[i * 4 + 2] = ((nz / len) * 0.5 + 0.5) * 255;
+    nimg.data[i * 4 + 3] = 255;
+    cimg.data[i * 4] = cimg.data[i * 4 + 1] = cimg.data[i * 4 + 2] = c * 255;
+    cimg.data[i * 4 + 3] = 255;
+  }
+  nc.getContext('2d').putImageData(nimg, 0, 0);
+  cc.getContext('2d').putImageData(cimg, 0, 0);
+  sparkleTex = new THREE.CanvasTexture(nc);
+  sparkleTex.wrapS = sparkleTex.wrapT = THREE.RepeatWrapping;
+  sparkleTex.repeat.set(1.2, 1.2);
+  speckleTex = new THREE.CanvasTexture(cc);
+  speckleTex.colorSpace = THREE.SRGBColorSpace;
+  speckleTex.wrapS = speckleTex.wrapT = THREE.RepeatWrapping;
+  speckleTex.repeat.set(1.2, 1.2);
+  return { normalMap: sparkleTex, map: speckleTex };
+}
+
 let structureTex = null;
 /** Relief für Struktur-Pulverbeschichtung. */
 export function getStructureBumpMap() {
