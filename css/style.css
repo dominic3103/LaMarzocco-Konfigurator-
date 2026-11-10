@@ -1384,6 +1384,359 @@ body.ready .loader {
   align-self: flex-end;
 }
 
+/* ------------------------------------------------ Konfiguration abschließen */
+.btn.finish {
+  grid-column: 1 / -1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 13px 16px;
+  border: 0;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.btn.finish:hover {
+  background: #74491f;
+}
+
+.btn.finish svg {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.2s ease;
+}
+
+.btn.finish:hover svg {
+  transform: translateX(3px);
+}
+
+.app {
+  transition: grid-template-columns 0.42s ease;
+}
+
+.app.show-mode {
+  grid-template-columns: minmax(0, 1fr) 0px;
+}
+
+.app.show-mode .panel {
+  overflow: hidden;
+  border-left: 0;
+}
+
+.app.show-mode .viewer-actions,
+.app.show-mode .views,
+.app.show-mode .viewer-hint,
+.app.show-mode .tooltip {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.viewer-actions,
+.views,
+.viewer-hint {
+  transition: opacity 0.3s ease;
+}
+
+.show-ui {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.show-ui[hidden],
+.show-final[hidden] {
+  display: none;
+}
+
+.show-head {
+  position: absolute;
+  top: 92px;
+  left: 24px;
+}
+
+.show-eyebrow,
+.final-eyebrow {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.show-title {
+  margin: 4px 0 0;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.show-list {
+  position: absolute;
+  top: 150px;
+  left: 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  max-width: 280px;
+}
+
+.show-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  animation: show-item 0.45s ease both;
+}
+
+.show-list li::before {
+  content: '';
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  transform: translateY(-1px);
+}
+
+.show-part {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.show-mat {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes show-item {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+}
+
+.show-bottom {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  pointer-events: auto;
+}
+
+.show-progress {
+  width: min(260px, 50vw);
+  height: 3px;
+  border-radius: 3px;
+  background: rgba(127, 120, 110, 0.25);
+  overflow: hidden;
+}
+
+.show-progress span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transform-origin: left center;
+  transform: scaleX(0);
+}
+
+.show-final {
+  position: absolute;
+  z-index: 4;
+  top: 50%;
+  right: 28px;
+  transform: translateY(-50%);
+  width: min(370px, calc(100% - 32px));
+  max-height: calc(100% - 48px);
+  overflow-y: auto;
+  padding: 22px 22px 18px;
+  border-radius: 18px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow: 0 24px 60px rgba(29, 27, 25, 0.22);
+  animation: final-in 0.6s cubic-bezier(0.2, 0.9, 0.25, 1.1) both;
+}
+
+@keyframes final-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-50% + 24px)) scale(0.97);
+  }
+}
+
+.final-title {
+  margin: 6px 0 4px;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.final-code {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.final-code strong {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.final-list {
+  margin: 0 0 18px;
+  border-top: 1px solid var(--line);
+}
+
+.final-row {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.final-row dt {
+  color: var(--muted);
+}
+
+.final-row dd {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  font-weight: 500;
+  min-width: 0;
+}
+
+.final-dot {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+}
+
+.final-dot.empty {
+  background: repeating-linear-gradient(135deg, var(--seg) 0 3px, var(--surface) 3px 6px) !important;
+}
+
+.final-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.final-actions .btn.ghost {
+  grid-column: 1 / -1;
+  padding: 8px;
+}
+
+.viewer[data-tone='dark'] .show-title,
+.viewer[data-tone='dark'] .show-part {
+  color: #f3efe9;
+}
+
+.viewer[data-tone='dark'] .show-mat {
+  color: rgba(243, 239, 233, 0.62);
+}
+
+@media (max-width: 900px) {
+  .app.show-mode .viewer {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  .show-head {
+    top: 78px;
+    left: 16px;
+  }
+
+  .show-list {
+    top: 126px;
+    left: 16px;
+    max-width: calc(100% - 32px);
+  }
+
+  /* auf dem Handy nur die letzten drei Schritte zeigen */
+  .show-list li:not(:nth-last-child(-n + 3)) {
+    display: none;
+  }
+
+  .show-final {
+    top: auto;
+    right: 12px;
+    left: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    width: auto;
+    max-height: 58%;
+    padding: 16px 16px 12px;
+    transform: none;
+    animation-name: final-in-mobile;
+  }
+
+  .final-title {
+    font-size: 21px;
+    margin-top: 4px;
+  }
+
+  .final-code {
+    margin-bottom: 10px;
+  }
+
+  .final-row {
+    grid-template-columns: 84px minmax(0, 1fr);
+    padding: 6px 0;
+  }
+
+  .final-list {
+    margin-bottom: 12px;
+  }
+
+  /* "Konfiguration abschließen" bleibt auf dem Handy immer erreichbar */
+  .btn.finish {
+    position: fixed;
+    left: max(16px, env(safe-area-inset-left, 0px));
+    right: max(16px, env(safe-area-inset-right, 0px));
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    z-index: 5;
+    box-shadow: 0 10px 28px rgba(29, 27, 25, 0.3);
+  }
+
+  .panel {
+    padding-bottom: 76px;
+  }
+
+  @keyframes final-in-mobile {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+  }
+}
+
+.shot-overlay {
+  z-index: 60;
+}
+
 .toast {
   position: fixed;
   left: 50%;

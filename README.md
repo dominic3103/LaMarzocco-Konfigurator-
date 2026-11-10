@@ -34,6 +34,7 @@ Interaktiver 3D-Konfigurator ausschließlich für die Espressomaschine **Linea M
   - Gehäuseteile: alle IGP-/RAL-Farben und Oberflächen, „Auf das ganze Gehäuse übertragen“, dazu „Holz-Seitenplatten anbringen“ bzw. „Cup Rail montieren“
   - Holzteile: Holzart, Oberfläche und Form; bei Seitenplatten zusätzlich „Gleiches Holz auch oben/unten“ und „Seitenplatten entfernen“
   - Reling und Metallteile: Metall/PVD, Lack, „Wie Gehäuse“, IGP/RAL, Oberfläche; Reling montiert/ohne; „Auf alle Metallakzente übertragen“
+- **Konfiguration abschließen**: Montage-Animation – zuerst steht der Rohbau (Rahmen, Kessel, Pumpe, Kupferleitungen, Elektronik, vereinfacht nach den Explosionszeichnungen des Ersatzteilkatalogs). Dann fliegen alle Bauteile in den gewählten Farben und Hölzern von außerhalb des Bildes heran und rasten ein, die Kamera fährt mit und zum Schluss einmal um die fertige Maschine. Links läuft die Montageliste mit den gewählten Materialien mit. Danach erscheint eine Abschlusskarte mit Konfigurationsnummer und den Eckdaten (Bild speichern, Liste kopieren, nochmal ansehen, weiter konfigurieren). Überspringen per Knopf oder Escape; bei „Bewegung reduzieren“ im System wird direkt das Ergebnis gezeigt.
 - **Seitenplatten & Cup Rail** als eigener Schritt: Seitenplatten oben, unten oder beides in jeder Holzart (geölt oder lackiert), Cup Rail montiert oder ohne – in Metall/PVD, Lack, „Wie Gehäuse“ oder jedem IGP-/RAL-Ton
 - **10 Inspirations-Presets** mit IGP-Farben, darunter die rb.crafts-Editionen (Chiffon Silk · Gold · Nuss, Chiffon Silk · Eiche · DLC, Traffic Black · Gold · Olive, Traffic Black · Nuss-Platten, Style 23 · Olive), **Link teilen** (die komplette Konfiguration steckt in der URL), **Bild speichern** (PNG), **Liste kopieren** (Textzusammenfassung).
 
@@ -63,6 +64,7 @@ css/style.css       Layout und Gestaltung (Desktop und Mobil)
 js/main.js          Einstieg: verbindet Modell, Materialien, Viewer und Oberfläche
 js/model.js         Prozedurales 3D-Modell der Maschine (Maße in mm, nach Werkszeichnung + Fotos)
 js/lighting.js      Lichtstimmungen (Umgebung, Lichter, Hintergrund, Überblendung)
+js/assembly.js      Montage-Animation "Konfiguration abschließen" (Ablaufplan, Flugbahnen, Kamerafahrt)
 js/materials.js     Materialien je Bauteil-Gruppe (Lack, Holz, Metall)
 js/textures.js      Prozedurale Texturen: Holzmaserung, Struktur-/Metallic-Lack, Gitter, Manometer
 js/viewer.js        Renderer, Licht, 360°-Kamera, Auswahl per Klick, Screenshot

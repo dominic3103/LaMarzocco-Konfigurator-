@@ -158,6 +158,13 @@ export function buildMachine(mm) {
   const root = new THREE.Group();
   root.name = 'LineaMiniR';
   const pickables = [];
+  // Montagegruppe je Bauteil (für die Abschluss-Animation "Konfiguration abschließen")
+  let stage = 'base';
+  const rootAdd = root.add.bind(root);
+  root.add = (...objs) => {
+    for (const o of objs) if (!o.userData.stage) o.userData.stage = stage;
+    return rootAdd(...objs);
+  };
 
   const add = (geom, material, slot, parent = root) => {
     const mesh = new THREE.Mesh(geom, material);
@@ -190,6 +197,7 @@ export function buildMachine(mm) {
   // Rückseite des Oberkorpus: schräge Ebene von (rearTop, top) nach (rearBot, slabBotRear)
   const rearZAt = (y) => M.rearTop + ((M.top - y) / (M.top - M.slabBotRear)) * (M.rearBot - M.rearTop);
 
+  stage = 'upper';
   // =========================================================================
   // Oberteil: Seitenwangen, Korpus, Reling, Tassenablage
   // =========================================================================
@@ -230,6 +238,7 @@ export function buildMachine(mm) {
     );
     add(back, body.upper, 'body.upper').position.x = -M.inner;
   }
+  stage = 'tray';
   {
     const w = 287;
     const d = 316;
@@ -242,6 +251,7 @@ export function buildMachine(mm) {
     g.rotateX(-Math.PI / 2);
     add(g, mat, 'metal.grates').position.set(0, M.tray + 1, zc);
   }
+  stage = 'logo';
   // Schriftzug auf der schrägen Rückwand (laut Rückansicht oben, zur +X-Seite versetzt)
   {
     const yc = 319.5;
@@ -253,6 +263,7 @@ export function buildMachine(mm) {
     logo.position.set(78, yc, rearZAt(yc) - 0.35);
   }
 
+  stage = 'head';
   // =========================================================================
   // Kopfteil (Frontbox mit Paddle, Drehknöpfen und Shot-Timer-Display)
   // =========================================================================
@@ -317,7 +328,9 @@ export function buildMachine(mm) {
   for (const x of [-115, 115]) {
     const collarG = new THREE.CylinderGeometry(14.5, 15.5, 12, 40);
     collarG.rotateX(Math.PI / 2);
+    stage = 'head';
     plain(collarG, F.blackPlastic).position.set(x, knobY, M.headFront + 6);
+    stage = 'knobs';
     for (const [id, g] of Object.entries(knobGeos)) {
       const k = add(g, knobMat, 'wood.knobs');
       k.position.set(x, knobY, knobZ0);
@@ -332,6 +345,7 @@ export function buildMachine(mm) {
     root.add(mark);
   }
 
+  stage = 'paddle';
   // Paddle: Holzabdeckung mit Schlitz + Hebel (rechts = Ruhestellung)
   const paddleMat = mm.get('wood.paddle');
   {
@@ -361,6 +375,7 @@ export function buildMachine(mm) {
     lv.rotation.x = -0.08;
   }
 
+  stage = 'head';
   // Barista-Licht: LED-Leiste an der Unterseite des Kopfteils + Spot auf die Tropfschale
   const ledMat = new THREE.MeshBasicMaterial({ color: 0x1c1c1c, toneMapped: false });
   {
@@ -373,6 +388,7 @@ export function buildMachine(mm) {
   baristaSpot.target.position.set(0, M.baseTop, 110);
   root.add(baristaSpot, baristaSpot.target);
 
+  stage = 'lower';
   // =========================================================================
   // Unterteil (trapezförmig, verjüngt nach unten und hinten)
   // =========================================================================
@@ -407,6 +423,7 @@ export function buildMachine(mm) {
     add(g, body.lower, 'body.lower');
   }
 
+  stage = 'gauges';
   // Manometer (zwei gleich große, laut Frontansicht)
   const gaugeMat = mm.get('metal.gauges');
   const gauges = [];
@@ -437,6 +454,7 @@ export function buildMachine(mm) {
   makeGauge(-117.6, 175.6, 22, { max: 16, step: 1, label: 2, value: 9, unit: 'bar', zone: [8, 10] });
   makeGauge(117.6, 175.6, 22, { max: 3, step: 0.25, label: 1, value: 1.3, unit: 'bar', zone: [1, 1.5] });
 
+  stage = 'groupcap';
   // =========================================================================
   // Brühgruppen-Kappe, Siebträger (zweiteilig), Heißwasser, Dampflanze
   // =========================================================================
@@ -449,6 +467,7 @@ export function buildMachine(mm) {
     gasket.position.set(0, 230.4, gZ);
     root.add(gasket);
   }
+  stage = 'portafilter';
   const pfMat = mm.get('metal.portafilter');
   const handleVariants = {};
   {
@@ -519,6 +538,7 @@ export function buildMachine(mm) {
     handleVariants.facet.visible = false;
   }
 
+  stage = 'wand';
   const wandMat = mm.get('metal.wand');
   {
     add(new THREE.CylinderGeometry(11, 11, 17, 40), wandMat, 'metal.wand').position.set(-98, M.headBot - 8.5, 95);
@@ -551,6 +571,7 @@ export function buildMachine(mm) {
     root.add(tip);
   }
 
+  stage = 'base';
   // =========================================================================
   // Basis, Tropfschale, Bodenwanne, Füße, Schalter
   // =========================================================================
@@ -559,6 +580,7 @@ export function buildMachine(mm) {
     const g = boxProjectUV(rbox(M.baseHalfW * 2, h, M.baseFront - M.baseRear, 3, 3));
     add(g, body.base, 'body.base').position.set(0, M.footH + h / 2, (M.baseFront + M.baseRear) / 2);
 
+    stage = 'drip';
     // Tropfschale: Kasten in Gehäusefarbe, oben Edelstahlrahmen mit Gitter
     const dz0 = M.baseFront + 1.5;
     const boxH = M.dripLipBot - M.footH - 0.5;
@@ -603,6 +625,7 @@ export function buildMachine(mm) {
     const logoMat = mm.get('metal.logo', { map: logoTex, transparent: true, alphaTest: 0.35 });
     add(new THREE.PlaneGeometry(126, 15.75), logoMat, 'metal.logo').position.set(81, 57, M.dripFront - 1.15);
 
+    stage = 'chassis';
     // Edelstahl-Bodenwanne unter der Basis (in Seiten- und Frontansicht sichtbar)
     const pan = boxProjectUV(rbox(240, M.footH - 5, 191, 2, 2));
     plain(pan, F.steel).position.set(0, 5 + (M.footH - 5) / 2, 2 - 191 / 2);
@@ -639,6 +662,7 @@ export function buildMachine(mm) {
       plain(pad, F.rubber).position.set(x, 1, z);
     }
   }
+  stage = 'base';
   {
     // Netzschalter rechts an der Basis, hinten
     const sx = M.baseHalfW;
@@ -665,6 +689,7 @@ export function buildMachine(mm) {
     root.add(plate);
   }
 
+  stage = 'rail';
   // =========================================================================
   // Cup Rail (Stangenreling auf Pfosten über den Seitenwangen und hinten)
   // =========================================================================
@@ -696,6 +721,7 @@ export function buildMachine(mm) {
     add(backRod, railMat, 'metal.rail', railGroup).position.set(0, yR, zR);
   }
 
+  stage = 'panels';
   // =========================================================================
   // Holzverkleidungen (optional): Seitenwangen oben, Seitenteile des Unterteils
   // =========================================================================
@@ -746,6 +772,7 @@ export function buildMachine(mm) {
     }
   }
 
+  stage = 'screws';
   // =========================================================================
   // Schrauben (Positionen laut Frontansicht; Rückwand ist laut Zeichnung glatt)
   // =========================================================================
@@ -785,12 +812,158 @@ export function buildMachine(mm) {
     addScrew(sx * 117.5, 130.5, -0.4);
   }
 
+  // =========================================================================
+  // Rohbau (nur in der Montage-Animation sichtbar): Rahmen, Kessel, Pumpe,
+  // Leitungen – vereinfacht nach den Explosionszeichnungen des Ersatzteilkatalogs
+  // =========================================================================
+  stage = 'skeleton';
+  const skeleton = new THREE.Group();
+  skeleton.visible = false;
+  root.add(skeleton);
+  {
+    const S = skeleton;
+    const Y = new THREE.Vector3(0, 1, 0);
+    const box = (w, h, d, mat, x, y, z, r = 1) => {
+      const m = plain(rbox(w, h, d, r, 1), mat, S);
+      m.position.set(x, y, z);
+      return m;
+    };
+    const cylZ = (r, len, mat, x, y, z, seg = 40) => {
+      const g = new THREE.CylinderGeometry(r, r, len, seg);
+      g.rotateX(Math.PI / 2);
+      const m = plain(g, mat, S);
+      m.position.set(x, y, z);
+      return m;
+    };
+    const cylX = (r, len, mat, x, y, z, seg = 32) => {
+      const g = new THREE.CylinderGeometry(r, r, len, seg);
+      g.rotateZ(Math.PI / 2);
+      const m = plain(g, mat, S);
+      m.position.set(x, y, z);
+      return m;
+    };
+    // Leitung mit Messing-Überwurfmuttern an beiden Enden
+    const pipe = (pts, r, mat, nuts = true) => {
+      const curve = new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(...p)), false, 'centripetal');
+      plain(new THREE.TubeGeometry(curve, 64, r, 12, false), mat, S);
+      if (!nuts) return;
+      for (const t of [0, 1]) {
+        const nut = plain(new THREE.CylinderGeometry(r + 2.6, r + 2.6, 9, 6), F.brass, S);
+        nut.position.copy(curve.getPointAt(t));
+        nut.quaternion.setFromUnitVectors(Y, curve.getTangentAt(t));
+      }
+    };
+
+    // Bodenrahmen mit Längsträgern (reicht vorne bis unter die Tropfschale)
+    box(262, 4, 372, F.frame, 0, M.footH + 2, -98);
+    for (const sx of [-1, 1]) box(10, 6, 372, F.frame, sx * 132, M.footH + 1, -98);
+    for (const sx of [-1, 1]) box(6, 40, 272, F.frame, sx * 124, M.footH + 24, -142);
+    // Frontblech mit Aussparungen (Pos. 8 im Katalog)
+    {
+      const fs = new THREE.Shape();
+      fs.moveTo(-126, 96);
+      fs.lineTo(126, 96);
+      fs.lineTo(126, 246);
+      fs.lineTo(-126, 246);
+      fs.closePath();
+      const hole = (cx, cy, r) => {
+        const h = new THREE.Path();
+        h.absarc(cx, cy, r, 0, Math.PI * 2, true);
+        fs.holes.push(h);
+      };
+      const slotHole = (cx, y0, y1, w) => {
+        const h = new THREE.Path();
+        h.moveTo(cx - w / 2, y0);
+        h.lineTo(cx - w / 2, y1);
+        h.lineTo(cx + w / 2, y1);
+        h.lineTo(cx + w / 2, y0);
+        h.closePath();
+        fs.holes.push(h);
+      };
+      hole(0, 212, 20);
+      hole(-84, 176, 13);
+      hole(84, 176, 13);
+      slotHole(-42, 112, 152, 18);
+      slotHole(42, 112, 152, 18);
+      const fg = new THREE.ExtrudeGeometry(fs, { depth: 2.5, bevelEnabled: false, curveSegments: 24 });
+      plain(fg, F.frame, S).position.z = -12.5;
+    }
+    // Rückstütze, Pfosten und obere Streben
+    box(240, 204, 3, F.frame, 0, 196, -273);
+    for (const sx of [-1, 1]) {
+      box(8, 60, 8, F.frame, sx * 116, 272, -16);
+      box(8, 8, 258, F.frame, sx * 116, 298, -144);
+    }
+    box(240, 8, 8, F.frame, 0, 298, -16);
+    // Wassertank (transparent) im Unterbau
+    box(220, 50, 190, F.tank, 0, 60, -172, 6);
+    // Dampfkessel, liegend (3 l), mit Kesselböden und Spannbändern
+    cylZ(52, 210, F.steel, -34, 212, -150, 48);
+    for (const z of [-45, -255]) cylZ(53.5, 4, F.brass, -34, 212, z, 48);
+    for (const z of [-110, -190]) {
+      const band = plain(new THREE.TorusGeometry(53.5, 2.4, 8, 48), F.frame, S);
+      band.position.set(-34, 212, z);
+    }
+    cylZ(16, 14, F.brass, -34, 212, -262, 24); // Heizelement-Flansch
+    // Brühkessel hinter der Gruppe + Gruppenhals + Brühgruppe
+    cylZ(32, 116, F.steel, 56, 300, -64);
+    for (const z of [-6, -122]) cylZ(33, 3, F.brass, 56, 300, z);
+    pipe(
+      [
+        [56, 300, -4],
+        [40, 292, 24],
+        [12, 278, 52],
+        [0, 266, 66.5],
+      ],
+      13,
+      F.chrome,
+      false,
+    );
+    {
+      const g = plain(new THREE.CylinderGeometry(38, 41, 28, 48), F.chrome, S);
+      g.position.set(0, 250, M.groupZ);
+    }
+    // Rotationspumpe mit Motor
+    cylX(40, 110, F.motor, 30, 136, -205);
+    for (const x of [-10, 12, 34, 56, 78]) {
+      const rib = plain(new THREE.TorusGeometry(40.5, 1.8, 6, 36), F.motorRib, S);
+      rib.rotation.y = Math.PI / 2;
+      rib.position.set(x, 136, -205);
+    }
+    cylX(23, 42, F.brass, 106, 136, -205, 24);
+    // Elektronik an der Rückstütze
+    box(118, 86, 3, F.pcb, -56, 172, -270);
+    box(30, 18, 8, F.motor, -84, 190, -266, 1);
+    box(22, 22, 6, F.motor, -40, 160, -266, 1);
+    box(16, 10, 6, F.brass, -30, 196, -266, 1);
+    // Magnetventile
+    box(26, 32, 22, F.motor, -96, 140, -64, 3);
+    box(26, 32, 22, F.motor, 70, 236, -150, 3);
+    // Halteblech im Kopfteil für die Ventile
+    box(250, 3, 142, F.frame, 0, 324, 55);
+    for (const sx of [-1, 1]) box(4, 30, 120, F.frame, sx * 123, 310, 62);
+    // Ventilschäfte für Dampf/Heißwasser und Paddle-Ventil im Kopfteil
+    for (const sx of [-1, 1]) cylZ(7, 32, F.brass, sx * 115, 308, 114, 20);
+    box(46, 22, 24, F.brass, 0, 304, 112, 3);
+    // Kupferleitungen
+    pipe([[128, 136, -205], [134, 162, -214], [108, 204, -224], [60, 226, -220], [16, 228, -212]], 4, F.copper);
+    pipe([[-20, 262, -60], [30, 276, -12], [97, 282, 40], [97, 270, 80], [97, 254, 89]], 4, F.copper);
+    pipe([[-62, 256, -60], [-90, 268, 0], [-98, 264, 60], [-98, 254, 95]], 4, F.copper);
+    pipe([[128, 150, -196], [126, 230, -150], [92, 288, -112], [56, 300, -124]], 4, F.copper);
+    pipe([[56, 322, -4], [32, 316, 58], [12, 306, 100]], 4, F.copper);
+    pipe([[-96, 156, -64], [-70, 190, -90], [-50, 214, -120]], 3.5, F.copper);
+    // Kabelbaum
+    pipe([[-56, 215, -268], [-10, 246, -220], [20, 180, -212], [30, 176, -205]], 2.4, F.motor, false);
+    pipe([[-20, 130, -268], [-80, 120, -150], [-96, 124, -64]], 2.4, F.motor, false);
+  }
+
   // Gesamt-Skalierung: mm -> m
   root.scale.setScalar(0.001);
 
   return {
     root,
     pickables,
+    skeleton,
     setDial(dial) {
       for (const g of gauges) {
         const old = g.faceMat.map;

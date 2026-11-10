@@ -100,6 +100,9 @@ export class Viewer {
     });
     this.controls = controls;
     this.interactionListeners = [];
+    this.tickers = new Set();
+    this.interactive = true;
+    this.shift = { x: 0, y: 0, tx: 0, ty: 0 };
 
     this.setView('threeQuarter', false);
 
@@ -151,6 +154,47 @@ export class Viewer {
   }
 
   requestRender() {
+    this.dirty = true;
+  }
+
+  /** Zusätzliche Animation pro Frame (gibt false zurück, wenn sie fertig ist) */
+  addTicker(fn) {
+    this.tickers.add(fn);
+    this.dirty = true;
+  }
+
+  removeTicker(fn) {
+    this.tickers.delete(fn);
+  }
+
+  /** Bildausschnitt verschieben (Pixel), z. B. damit eine Karte die Maschine nicht verdeckt */
+  setFrameShift(x, y = 0) {
+    this.shift.tx = x;
+    this.shift.ty = y;
+    this.dirty = true;
+  }
+
+  #applyShift() {
+    const w = this.container.clientWidth;
+    const h = this.container.clientHeight;
+    if (Math.abs(this.shift.x) < 0.5 && Math.abs(this.shift.y) < 0.5) this.camera.clearViewOffset();
+    else this.camera.setViewOffset(w, h, this.shift.x, this.shift.y, w, h);
+  }
+
+  /** Maus-/Touch-Bedienung sperren (z. B. während der Montage-Animation) */
+  setInteractive(on) {
+    this.interactive = !!on;
+    this.controls.enabled = !!on;
+    if (!on) {
+      this.tween = null;
+      this.setHover(this.hoverMM, null);
+      this.listeners.hover.forEach((fn) => fn(null, null));
+    }
+  }
+
+  /** Steuerung nach einer extern gesetzten Kamera übernehmen, ohne Nachschwingen */
+  syncControls() {
+    this.#stopDamping();
     this.dirty = true;
   }
 
@@ -218,6 +262,7 @@ export class Viewer {
     this.camera.aspect = w / h;
     // Auf schmalen Displays etwas mehr Abstand, damit die Maschine ganz sichtbar bleibt
     this.camera.fov = w / h < 0.8 ? 38 : h < 520 ? 34 : 30;
+    this.#applyShift();
     this.camera.updateProjectionMatrix();
     this.dirty = true;
   }
@@ -248,7 +293,7 @@ export class Viewer {
       down = { x: e.clientX, y: e.clientY };
     });
     el.addEventListener('pointerup', (e) => {
-      if (!down) return;
+      if (!down || !this.interactive) return;
       const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y);
       down = null;
       if (moved > 6) return;
@@ -256,7 +301,7 @@ export class Viewer {
       this.listeners.pick.forEach((fn) => fn(hit ? hit.object.userData.slot : null, e));
     });
     el.addEventListener('pointermove', (e) => {
-      if (e.pointerType !== 'mouse' || e.buttons) return;
+      if (e.pointerType !== 'mouse' || e.buttons || !this.interactive) return;
       this.lastPointer = e;
       this.pendingHover = true;
     });
@@ -320,6 +365,28 @@ export class Viewer {
     }
 
     if (this.rig.update(Math.min(rawDt, 0.25))) this.dirty = true;
+
+    // Bildausschnitt weich verschieben
+    const sh = this.shift;
+    if (Math.abs(sh.tx - sh.x) > 0.3 || Math.abs(sh.ty - sh.y) > 0.3) {
+      const k = 1 - Math.pow(0.002, Math.min(rawDt, 0.1));
+      sh.x += (sh.tx - sh.x) * k;
+      sh.y += (sh.ty - sh.y) * k;
+      if (Math.abs(sh.tx - sh.x) <= 0.3 && Math.abs(sh.ty - sh.y) <= 0.3) {
+        sh.x = sh.tx;
+        sh.y = sh.ty;
+      }
+      this.#applyShift();
+      this.camera.updateProjectionMatrix();
+      this.dirty = true;
+    }
+
+    // externe Animationen (Montage-Animation): echte Zeit, max. 1/20 s pro Frame
+    if (this.tickers.size) {
+      const tdt = Math.min(rawDt, 0.05);
+      for (const fn of [...this.tickers]) if (fn(tdt) === false) this.tickers.delete(fn);
+      this.dirty = true;
+    }
 
     const changed = this.controls.update(dt);
     if (changed || this.dirty || this.controls.autoRotate) {

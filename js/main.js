@@ -20,6 +20,7 @@ import { Viewer, VIEWS } from './viewer.js';
 import { ConfiguratorUI } from './ui.js';
 import { getWoodTextures } from './textures.js';
 import { LIGHTINGS, lightingById } from './lighting.js';
+import { AssemblyShow } from './assembly.js';
 
 const STORAGE_KEY = 'lm-mini-r-konfigurator';
 const ALL_SLOTS = Object.values(CATEGORIES).flatMap((c) => c.slots.map((s) => s.key));
@@ -429,13 +430,11 @@ document.getElementById('btn-copy').addEventListener('click', async () => {
 });
 const shotBtn = document.getElementById('btn-shot');
 const shotOverlay = document.getElementById('shot-overlay');
-if (ARTIFACT) {
-  shotBtn.textContent = 'Bild ansehen';
-  shotBtn.classList.add('primary');
-}
+let shotOpener = shotBtn;
+if (ARTIFACT) shotBtn.textContent = 'Bild ansehen';
 function closeShot() {
   shotOverlay.hidden = true;
-  shotBtn.focus();
+  shotOpener.focus();
 }
 document.getElementById('shot-close').addEventListener('click', closeShot);
 shotOverlay.addEventListener('click', (e) => {
@@ -444,7 +443,8 @@ shotOverlay.addEventListener('click', (e) => {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && !shotOverlay.hidden) closeShot();
 });
-shotBtn.addEventListener('click', () => {
+function takeShot(opener) {
+  shotOpener = opener;
   const url = viewer.snapshot();
   if (!ARTIFACT) {
     const a = document.createElement('a');
@@ -458,7 +458,8 @@ shotBtn.addEventListener('click', () => {
   document.getElementById('shot-img').src = url;
   shotOverlay.hidden = false;
   document.getElementById('shot-close').focus();
-});
+}
+shotBtn.addEventListener('click', () => takeShot(shotBtn));
 document.getElementById('btn-reset').addEventListener('click', () => {
   config = clone(DEFAULT_CONFIG);
   applyAll();
@@ -480,8 +481,123 @@ window.addEventListener('hashchange', () => {
   });
 });
 
+// ---------- Konfiguration abschließen: Montage-Animation ----------
+const appEl = document.querySelector('.app');
+const showUi = document.getElementById('show-ui');
+const showList = document.getElementById('show-list');
+const showBar = document.getElementById('show-bar');
+const finalCard = document.getElementById('show-final');
+const finishBtn = document.getElementById('btn-finish');
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
+const show = new AssemblyShow(viewer, model, {
+  onStage: (id) => {
+    const { part, material } = ui.stageLabel(id);
+    const li = document.createElement('li');
+    const name = document.createElement('span');
+    name.className = 'show-part';
+    name.textContent = part;
+    li.append(name);
+    if (material) {
+      const mat = document.createElement('span');
+      mat.className = 'show-mat';
+      mat.textContent = material;
+      li.append(mat);
+    }
+    showList.append(li);
+  },
+  onProgress: (p) => {
+    showBar.style.transform = `scaleX(${p})`;
+  },
+  onDone: () => openFinalCard(),
+});
+
+function openFinalCard() {
+  showUi.hidden = true;
+  document.getElementById('final-code').textContent = ui.configCode();
+  const dl = document.getElementById('final-list');
+  dl.replaceChildren();
+  for (const [label, value, bg] of ui.finalSummary()) {
+    const row = document.createElement('div');
+    row.className = 'final-row';
+    const dt = document.createElement('dt');
+    dt.textContent = label;
+    const dd = document.createElement('dd');
+    const dot = document.createElement('span');
+    dot.className = 'final-dot';
+    dot.style.background = bg;
+    if (bg === 'transparent') dot.classList.add('empty');
+    const txt = document.createElement('span');
+    txt.textContent = value;
+    dd.append(dot, txt);
+    row.append(dt, dd);
+    dl.append(row);
+  }
+  finalCard.hidden = false;
+  document.getElementById('final-shot').focus({ preventScroll: true });
+  // Maschine neben (Desktop) bzw. über (Handy) die Karte rücken
+  requestAnimationFrame(() => {
+    const v = viewerEl.getBoundingClientRect();
+    const c = finalCard.getBoundingClientRect();
+    if (c.left > v.left + v.width * 0.45) viewer.setFrameShift((v.right - c.left) / 2 + 8, 0);
+    else viewer.setFrameShift(0, (v.bottom - c.top) / 2 - 20);
+  });
+}
+
+function startShow() {
+  closeLightMenu();
+  setAutoRotate(false);
+  ui.clearSelection();
+  appEl.classList.add('show-mode');
+  finalCard.hidden = true;
+  showList.replaceChildren();
+  showBar.style.transform = 'scaleX(0)';
+  showUi.hidden = false;
+  window.scrollTo({ top: 0 });
+  if (reduceMotion.matches) {
+    show.skip();
+    return;
+  }
+  // kurz warten, bis das Panel eingefahren ist
+  setTimeout(() => show.play(), 420);
+}
+
+function endShow() {
+  viewer.setFrameShift(0, 0);
+  show.exit();
+  showUi.hidden = true;
+  finalCard.hidden = true;
+  appEl.classList.remove('show-mode');
+  finishBtn.focus({ preventScroll: true });
+}
+
+finishBtn.addEventListener('click', startShow);
+document.getElementById('show-skip').addEventListener('click', () => show.skip());
+document.getElementById('final-replay').addEventListener('click', () => {
+  viewer.setFrameShift(0, 0);
+  finalCard.hidden = true;
+  showList.replaceChildren();
+  showUi.hidden = false;
+  show.play();
+});
+document.getElementById('final-edit').addEventListener('click', endShow);
+document.getElementById('final-shot').addEventListener('click', (e) => takeShot(e.currentTarget));
+document.getElementById('final-copy').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(ui.summaryText());
+    toast('Zusammenfassung kopiert');
+  } catch {
+    toast('Kopieren nicht möglich');
+  }
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape' || !shotOverlay.hidden) return;
+  if (show.active) show.skip();
+  else if (!finalCard.hidden) endShow();
+});
+
 // Ladeanzeige ausblenden
 requestAnimationFrame(() => document.body.classList.add('ready'));
 
 // für Tests / Debugging
-window.__konfigurator = { viewer, mm, model, getConfig: () => config, ui };
+window.__konfigurator = { viewer, mm, model, getConfig: () => config, ui, show };

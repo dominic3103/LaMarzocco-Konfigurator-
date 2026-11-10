@@ -59,6 +59,31 @@
         <nav class="views" id="views" aria-label="Ansichten"></nav>
         <div class="tooltip" id="tooltip" hidden></div>
 
+        <div class="show-ui" id="show-ui" hidden>
+          <div class="show-head">
+            <p class="show-eyebrow">Montage</p>
+            <p class="show-title">Deine Linea Mini R entsteht</p>
+          </div>
+          <ol class="show-list" id="show-list" aria-live="polite"></ol>
+          <div class="show-bottom">
+            <div class="show-progress" aria-hidden="true"><span id="show-bar"></span></div>
+            <button class="pill" id="show-skip" type="button">Überspringen</button>
+          </div>
+        </div>
+
+        <section class="show-final" id="show-final" aria-labelledby="final-title" hidden>
+          <p class="final-eyebrow">Konfiguration abgeschlossen</p>
+          <h2 class="final-title" id="final-title">Deine Linea Mini R</h2>
+          <p class="final-code">Konfigurationsnummer <strong id="final-code"></strong></p>
+          <dl class="final-list" id="final-list"></dl>
+          <div class="final-actions">
+            <button class="btn primary" id="final-shot" type="button">Bild speichern</button>
+            <button class="btn" id="final-copy" type="button">Liste kopieren</button>
+            <button class="btn" id="final-replay" type="button">Nochmal ansehen</button>
+            <button class="btn ghost" id="final-edit" type="button">Weiter konfigurieren</button>
+          </div>
+        </section>
+
         <div class="loader" aria-hidden="true"><span></span>Maschine wird aufgebaut …</div>
         <noscript><p class="noscript">Für den 3D-Konfigurator wird JavaScript benötigt.</p></noscript>
       </main>
@@ -71,7 +96,11 @@
         </header>
         <div id="config"></div>
         <footer class="actions">
-          <button class="btn primary" id="btn-share" type="button">Link teilen</button>
+          <button class="btn finish" id="btn-finish" type="button">
+            <span>Konfiguration abschließen</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="btn" id="btn-share" type="button">Link teilen</button>
           <button class="btn" id="btn-shot" type="button">Bild speichern</button>
           <button class="btn" id="btn-copy" type="button">Liste kopieren</button>
           <button class="btn ghost" id="btn-reset" type="button">Zurücksetzen</button>

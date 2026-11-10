@@ -51,6 +51,15 @@ export class MaterialManager {
       white: new THREE.MeshStandardMaterial({ color: 0xf2f2f2, roughness: 0.5 }),
       trayInner: new THREE.MeshStandardMaterial({ color: 0x0c0c0c, roughness: 0.7 }),
       steel: new THREE.MeshStandardMaterial({ color: 0xcfd1d3, metalness: 1, roughness: 0.34 }),
+      // Rohbau (Montage-Animation)
+      frame: new THREE.MeshStandardMaterial({ color: 0x8c9094, metalness: 0.75, roughness: 0.45 }),
+      chrome: new THREE.MeshStandardMaterial({ color: 0xe4e6e9, metalness: 1, roughness: 0.12 }),
+      copper: new THREE.MeshStandardMaterial({ color: 0xd08a63, metalness: 1, roughness: 0.28 }),
+      brass: new THREE.MeshStandardMaterial({ color: 0xd3b066, metalness: 1, roughness: 0.3 }),
+      motor: new THREE.MeshStandardMaterial({ color: 0x2b2c2e, metalness: 0.3, roughness: 0.55 }),
+      motorRib: new THREE.MeshStandardMaterial({ color: 0x55575a, metalness: 0.6, roughness: 0.4 }),
+      pcb: new THREE.MeshStandardMaterial({ color: 0x1f6b3a, metalness: 0.1, roughness: 0.6 }),
+      tank: new THREE.MeshPhysicalMaterial({ color: 0xcfe6f2, roughness: 0.08, transparent: true, opacity: 0.35, depthWrite: false }),
     };
   }
 

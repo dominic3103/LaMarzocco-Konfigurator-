@@ -908,10 +908,110 @@ export class ConfiguratorUI {
     );
   }
 
+  // -------------------------------------------------------------------------
+  // Texte für die Montage-Animation und die Abschlusskarte
+  // -------------------------------------------------------------------------
+  #paintName(cfg, key) {
+    const v = cfg.slots[key];
+    if (categoryOf(key) === 'body') return resolveBody(v).name;
+    const r = resolveMetal(v);
+    return r.kind === 'body' ? 'Wie Gehäuse' : r.name;
+  }
+
+  /** Beschriftung eines Montageschritts mit dem gewählten Material */
+  stageLabel(id) {
+    const cfg = this.opts.getConfig();
+    const p = (k) => this.#paintName(cfg, k);
+    const w = (k) => resolveWood(cfg.slots[k]).name;
+    const panels = ['wood.panelUpper', 'wood.panelLower'].filter((k) => cfg.slots[k].id !== 'none');
+    const labels = {
+      base: ['Basis', p('body.base')],
+      drip: ['Tropfschale', p('body.base')],
+      lower: ['Unterteil', p('body.lower')],
+      gauges: ['Manometer', p('metal.gauges')],
+      upper: ['Oberteil', p('body.upper')],
+      head: ['Kopfteil', p('body.head')],
+      groupcap: ['Brühgruppe', p('metal.group')],
+      wand: ['Dampflanze', p('metal.wand')],
+      portafilter: ['Siebträger', `${p('metal.portafilter')}, Griff ${w('wood.handle')}`],
+      paddle: ['Paddle', w('wood.paddle')],
+      knobs: ['Drehknöpfe', `${w('wood.knobs')}, ${finishName(KNOB_SHAPES, cfg.shape.knobs).toLowerCase()}`],
+      panels: ['Seitenplatten', panels.length ? w(panels[0]) : ''],
+      tray: ['Tassenablage', p('metal.grates')],
+      rail: ['Cup Rail', p('metal.rail')],
+      screws: ['Schrauben', p('metal.screws')],
+      logo: ['Schriftzug', p('metal.logo')],
+    };
+    const [part, material] = labels[id] || [id, ''];
+    return { part, material };
+  }
+
+  /** Kurze Konfigurationsnummer (Prüfsumme der Auswahl), z. B. für eine Anfrage */
+  configCode() {
+    const str = JSON.stringify(this.opts.getConfig());
+    let h = 0x811c9dc5;
+    for (let i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 0x01000193) >>> 0;
+    }
+    return `LMR-${h.toString(36).toUpperCase().padStart(7, '0').slice(-7)}`;
+  }
+
+  /** Eckdaten der Konfiguration für die Abschlusskarte: [Bereich, Wert, Farbfeld] */
+  finalSummary() {
+    const cfg = this.opts.getConfig();
+    const rows = [];
+    const common = (keys, fn) => {
+      const vals = keys.map((k) => fn(k));
+      return vals.every((v) => v === vals[0]) ? vals[0] : null;
+    };
+    // Gehäuse
+    const bodyKeys = CATEGORIES.body.slots.map((s) => s.key);
+    const b = resolveBody(cfg.slots['body.upper']);
+    const bodySame = common(bodyKeys, (k) => JSON.stringify(cfg.slots[k]));
+    rows.push([
+      'Gehäuse',
+      bodySame ? `${b.name}${b.code ? ' · ' + b.code : ''} · ${finishName(BODY_FINISHES, cfg.slots['body.upper'].finish)}` : 'Individuell (mehrere Farben)',
+      paintBackground(b),
+    ]);
+    // Holzteile
+    const wood = resolveWood(cfg.slots['wood.handle']);
+    const woodSame = common(MAIN_WOOD, (k) => cfg.slots[k].id);
+    rows.push([
+      'Holzteile',
+      `${woodSame ? wood.name : 'Gemischt'} · Knöpfe ${finishName(KNOB_SHAPES, cfg.shape.knobs).toLowerCase()}, Griff ${finishName(HANDLE_SHAPES, cfg.shape.handle).toLowerCase()}`,
+      woodGradient(wood),
+    ]);
+    // Seitenplatten
+    const up = cfg.slots['wood.panelUpper'];
+    const lo = cfg.slots['wood.panelLower'];
+    const pw = resolveWood(lo.id !== 'none' ? lo : up);
+    const where = up.id !== 'none' && lo.id !== 'none' ? 'oben & unten' : up.id !== 'none' ? 'oben' : lo.id !== 'none' ? 'unten' : '';
+    rows.push(['Seitenplatten', where ? `${pw.name} ${where}` : 'Ohne', where ? woodGradient(pw) : 'transparent']);
+    // Cup Rail
+    const rail = resolveMetal(cfg.slots['metal.rail']);
+    const accentBg = (r) =>
+      r.kind === 'paint' ? paintBackground(r) : r.kind === 'body' ? paintBackground(resolveBody(cfg.slots['body.base'])) : swatchBackground(r.color, r.kind);
+    rows.push(['Cup Rail', cfg.rail ? this.#paintName(cfg, 'metal.rail') : 'Ohne', cfg.rail ? accentBg(rail) : 'transparent']);
+    // Metallakzente (häufigster Ton)
+    const metalKeys = CATEGORIES.metal.slots.map((s) => s.key).filter((k) => k !== 'metal.rail');
+    const counts = {};
+    for (const k of metalKeys) counts[cfg.slots[k].id] = (counts[cfg.slots[k].id] || 0) + 1;
+    const topId = Object.entries(counts).sort((a, b2) => b2[1] - a[1])[0][0];
+    const topKey = metalKeys.find((k) => cfg.slots[k].id === topId);
+    const n = counts[topId];
+    rows.push([
+      'Akzente',
+      n === metalKeys.length ? this.#paintName(cfg, topKey) : `${this.#paintName(cfg, topKey)} (${n} von ${metalKeys.length} Teilen)`,
+      accentBg(resolveMetal(cfg.slots[topKey])),
+    ]);
+    return rows;
+  }
+
   /** Text-Zusammenfassung (z. B. für die Zwischenablage). */
   summaryText() {
     const cfg = this.opts.getConfig();
-    const lines = ['Linea Mini R – Konfiguration', ''];
+    const lines = [`Linea Mini R – Konfiguration ${this.configCode()}`, ''];
     for (const [cat, c] of Object.entries(CATEGORIES)) {
       lines.push(c.title);
       for (const s of c.slots) {
