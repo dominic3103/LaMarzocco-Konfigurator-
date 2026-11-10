@@ -244,11 +244,40 @@ function toCanvas(data, size) {
 
 const cache = new Map();
 
+/**
+ * Die Tonwertkurve des Renderers (Khronos Neutral) zieht vom dunkelsten Farbkanal bis zu 0.04 ab –
+ * als Ausgleich für den Glanzschleier, den echte Oberflächen haben. Mattes, dunkles Holz hat im
+ * Modell kaum Schleier und würde dadurch übersättigt (Walnuss wird orange). Deshalb wird der Abzug
+ * hier vorab auf die Farbe gelegt: Bei mittlerer Beleuchtung erscheint das Holz im Bild so wie in
+ * der Palette festgelegt. Gilt nur für die 3D-Textur, nicht für die Vorschau-Kacheln.
+ */
+const TONE_LIGHT = 0.8; // typische Beleuchtungsstärke × Belichtung auf einer Holzfläche
+function compensateToneCurve(color) {
+  const toLin = new Float32Array(256);
+  for (let i = 0; i < 256; i++) {
+    const c = i / 255;
+    toLin[i] = c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  }
+  const toSrgb = (l) => 255 * (l <= 0.0031308 ? l * 12.92 : 1.055 * l ** (1 / 2.4) - 0.055);
+  for (let o = 0; o < color.length; o += 4) {
+    const r = toLin[color[o]];
+    const g = toLin[color[o + 1]];
+    const b = toLin[color[o + 2]];
+    // gewünschter Ausgabewert des dunkelsten Kanals -> nötiger Wert vor der Tonwertkurve
+    const m = Math.min(r, g, b) * TONE_LIGHT;
+    const add = (m < 0.04 ? Math.sqrt(m / 6.25) - m : 0.04) / TONE_LIGHT;
+    color[o] = toSrgb(r + add);
+    color[o + 1] = toSrgb(g + add);
+    color[o + 2] = toSrgb(b + add);
+  }
+}
+
 /** Holztexturen (Farbe, Relief, Glanz) für eine Holzart, gecacht. */
 export function getWoodTextures(def) {
   if (cache.has(def.id)) return cache.get(def.id);
   const size = 1024;
   const w = generateWood(def, size);
+  compensateToneCurve(w.color);
   const map = new THREE.CanvasTexture(toCanvas(w.color, size));
   map.colorSpace = THREE.SRGBColorSpace;
   const normalMap = new THREE.CanvasTexture(toCanvas(heightToNormal(w.height, size, 1.6), size));

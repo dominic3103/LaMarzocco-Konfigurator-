@@ -18,15 +18,17 @@ Interaktiver 3D-Konfigurator ausschließlich für die Espressomaschine **Linea M
   - eigene Farbe (Uni oder Metallic) per Farbwähler, z. B. für RAL-Töne
   - Oberflächen: Tiefmatt (wie IGP-DURA® xal 4201), Seidenmatt, Hochglanz und Struktur zum Vergleich
 - **Holz**: Paddle, Drehknöpfe und Siebträgergriff, zusammen oder einzeln.
-  - **Holzverkleidung** (optional) für die oberen Seitenwangen und die Seitenteile des Unterteils
-  - **Formen**: Drehknöpfe facettiert, gerillt oder gewellt, Siebträgergriff facettiert oder rund
-  - Olivenholz, Nussbaum, Eiche, Ahorn, Kirschbaum, Zebrano, Padouk, Wengé, Mooreiche, Makassar, Nuss-Wurzel sowie „Serie Schwarz“ (Kunststoff wie ab Werk)
+  - **rb.crafts-Hölzer** stehen vorne: **Walnuss, Eiche, Olivenholz** (die drei Hölzer des Linea-Mini-R-Holz-Sets). Darunter „Weitere Hölzer (auf Anfrage)“: Ahorn, Kirschbaum, Zebrano, Padouk, Wengé, Mooreiche, Makassar, Nuss-Wurzel sowie „Serie Schwarz“ (Kunststoff wie ab Werk)
+  - **Holzumrandung oben**: U-förmige Verkleidung des Oberteils (beide Seiten und Rückwand) wie bei den rb.crafts-Editionen; dazu optional **Seitenplatten unten**
+  - **Formen**: Drehknöpfe „rb.crafts“ (hinten gerillt, vorne glatt), facettiert oder gewellt; Siebträgergriff „rb.crafts“ (kantig, gerade zulaufend) oder „La Marzocco“ (rund); Paddle als Winkel, Brühgruppen-Abdeckung als langgezogenes Sechseck
+  - **Holz-Schriftzug** an der Tropfschale in Walnuss, Eiche oder Olive (alternativ Metall oder Lack)
   - Oberflächen: geölt oder hochglanzlackiert
-  - Jede Maserung wird prozedural erzeugt und sieht deshalb je Holzart unterschiedlich aus.
+  - Jede Maserung wird prozedural erzeugt und sieht deshalb je Holzart unterschiedlich aus. Die Farbtöne von Walnuss und Olive sind an den Produktfotos von rb.crafts ausgerichtet.
 - **Metallakzente**: Schrauben, Dampflanze & Heißwasser, Siebträger, Brühgruppe, Knopfkappen, Manometer-Ringe, Gitter & Tassenablage, Schriftzug, Cup Rail und Füße – alle zusammen oder jedes Teil einzeln.
   - Gold, Edelstahl, Schwarz DLC, Chrom, Schwarzchrom, Gunmetal, Titan, Roségold, Kupfer, Messing, Bronze, Champagner, Blau PVD
   - Uni-Lacke, **„Wie Gehäuse“** (z. B. Gitter in Gehäusefarbe) und eine eigene Farbe
-  - **Cup Rail** (Stangenreling auf Pfosten über der Tassenablage) an- und abbaubar
+  - **Cup Rail** an- und abbaubar, in zwei Bauformen: „rb.crafts“ (Rahmen aus hochkant stehendem Flachstahl, gebürstet oder schwarz) oder Rundstab auf Pfosten
+  - **Lochbild** für Tropfgitter und Tassenablage getrennt wählbar: Original (Schlitze) oder „rb.crafts“ (Rauten)
   - Oberflächen: Hochglanz, Satiniert, Matt
 - **Manometer & Schrauben**: Für jedes der beiden Manometer einzeln (oder für beide) wählbar: Zifferblatt Weiß, Schwarz, Creme oder **Naked** (offenes Messwerk mit Rohrfeder und Messingwerk, nur der Skalenbogen bleibt stehen) und die Zeigerfarbe (Rot, Schwarz, Weiß, Gold). Die Ringe gehören zu den Metallakzenten. Schraubenköpfe als Linsenkopf mit Schlitz (wie ab Werk) oder mit Innensechskant.
 - **Fotorealistische Darstellung**: Im Stillstand wird das Bild in wenigen Sekunden verfeinert – weiche Schatten wie von einer Softbox, echte Verschattung in Ecken, unter dem Kopfteil und am Boden, saubere Kantenglättung, leichte Tiefenunschärfe. In Bewegung bleibt die Ansicht flüssig. Langsame Geräte schalten automatisch auf die schnelle Darstellung; im Licht-Menü lässt sich das umschalten. Holz mit Jahresringen, Fladerung, Poren und Relief in echter Größe, Pulverlack mit Feinstruktur, gestanzte Gitter mit echten Öffnungen.
@@ -36,8 +38,9 @@ Interaktiver 3D-Konfigurator ausschließlich für die Espressomaschine **Linea M
   - Holzteile: Holzart, Oberfläche und Form; bei Seitenplatten zusätzlich „Gleiches Holz auch oben/unten“ und „Seitenplatten entfernen“
   - Reling und Metallteile: Metall/PVD, Lack, „Wie Gehäuse“, IGP/RAL, Oberfläche; Reling montiert/ohne; „Auf alle Metallakzente übertragen“
 - **Konfiguration abschließen**: Montage-Animation – die Maschine baut sich von null an selbst zusammen. Zuerst das Innenleben (vereinfacht nach den Explosionszeichnungen des Ersatzteilkatalogs): Füße und Bodenwanne, Bodenrahmen, Frontblech, Rückwand-Stütze, Streben, Wassertank, Pumpe mit Motor, Dampfkessel, Brühkessel mit Brühgruppe, Ventile, Elektronik; Kupferleitungen und Kabel wachsen von Anschluss zu Anschluss. Dann fliegen alle Bauteile in den gewählten Farben und Hölzern von außerhalb des Bildes heran und rasten ein, die Kamera fährt mit und zum Schluss einmal um die fertige Maschine. Links läuft die Montageliste mit den gewählten Materialien mit. Danach erscheint eine Abschlusskarte mit Konfigurationsnummer und den Eckdaten (Bild speichern, Liste kopieren, nochmal ansehen, weiter konfigurieren). Überspringen per Knopf oder Escape; bei „Bewegung reduzieren“ im System wird direkt das Ergebnis gezeigt.
-- **Seitenplatten & Cup Rail** als eigener Schritt: Seitenplatten oben, unten oder beides in jeder Holzart (geölt oder lackiert), Cup Rail montiert oder ohne – in Metall/PVD, Lack, „Wie Gehäuse“ oder jedem IGP-/RAL-Ton
-- **10 Inspirations-Presets** mit IGP-Farben, darunter die rb.crafts-Editionen (Chiffon Silk · Gold · Nuss, Chiffon Silk · Eiche · DLC, Traffic Black · Gold · Olive, Traffic Black · Nuss-Platten, Style 23 · Olive), **Link teilen** (die komplette Konfiguration steckt in der URL), **Bild speichern** (PNG), **Liste kopieren** (Textzusammenfassung).
+- **Holzumrandung, Cup Rail & Bleche** als eigener Schritt: Holzumrandung oben, Seitenplatten unten, beides oder ohne – in jeder Holzart (geölt oder lackiert); Cup Rail montiert oder ohne, Bauform und Material (Metall/PVD, Lack, „Wie Gehäuse“ oder jeder IGP-/RAL-Ton); Lochbild der Bleche
+- **10 Presets** im Stil von rb.crafts: Grau · Walnuss · Schwarz (Start), Special Brown · Olive, All Black · Walnuss, Elfenbein · Gold · Walnuss, Elfenbein · Eiche · DLC, Weiß · Walnuss, Special Bronze · Walnuss, Signalgelb · Walnuss, Style 23 · Olive, Jungle Street · Messing
+- **Link teilen** (die komplette Konfiguration steckt in der URL), **Bild speichern** (PNG), **Liste kopieren** (Textzusammenfassung).
 
 ## Starten
 
@@ -85,17 +88,41 @@ vendor/three/       Three.js r170 (MIT-Lizenz)
 - **Darstellung testen**: `?q=high` bzw. `?q=low` in der Adresse erzwingt die fotorealistische bzw. schnelle Darstellung, `&samples=32` setzt die Zahl der gemittelten Bilder.
 - **Geometrie**: Alle Maße stehen in Millimetern in `js/model.js` (Konstante `M` und die einzelnen Bauteil-Abschnitte).
 
+## Vorlage rb.crafts
+
+Die Optionen folgen dem, was rb.crafts auf der eigenen Website zeigt und anbietet (Stand November 2026). Instagram lässt sich ohne Anmeldung nicht durchsehen, deshalb dienten die Produktseiten als Quelle:
+
+| Quelle | Übernommen |
+|---|---|
+| [Custom Linea Mini R & Bentwood](https://www.rb-crafts.de/product-page/custom-linea-mini-r-bentwood) | graue Maschine mit Walnuss-Umrandung, schwarzen Anbauteilen und Naked-Manometern (Start-Preset) |
+| [Custom Linea Mini R · Special Brown mit Olive](https://www.rb-crafts.de/product-page/custom-linea-mini-r-braun-mit-olive) | brauner Strukturlack, Olivenholz, Holz-Schriftzug |
+| [Custom Linea Mini R · All Black](https://www.rb-crafts.de/product-page/all-black-linea-mini) | komplett schwarze Maschine mit Walnuss, Rauten-Lochbild |
+| [Linea Mini R Holz-Set](https://www.rb-crafts.de/product-page/linea-mini-r-holzset) | Hölzer Eiche, Walnuss, Olive; Griff „La Marzocco“ oder „rb.crafts“; gerillte Knöpfe, Paddle, Abdeckung |
+| [Cup Rail](https://www.rb-crafts.de/product-page/cup-rail-linea-mini) | Rahmen aus Flachstahl, gebürstet oder schwarz |
+| [Drip Tray](https://www.rb-crafts.de/product-page/drip-tray-linea-mini-r) und [Tassenablage](https://www.rb-crafts.de/product-page/tassenablage-linea-mini-r) | Rauten-Lochbild, Edelstahl poliert oder schwarz |
+| [Holz-Schriftzug](https://www.rb-crafts.de/product-page/la-marzocco-schriftzug-magnetisch) | Schriftzug in Eiche, Walnuss oder Olive |
+| [Füße](https://www.rb-crafts.de/product-page/la-marzocco-fuesse) | Füße als eigenes Metallteil |
+| [Veredelung](https://www.rb-crafts.de/veredelung) | Grundsatz: Maschine in Wunschfarbe und mit Holz nach Wahl, individuell abgestimmt |
+| [Custom Linea Micra · Eiche Elfenbein](https://www.rb-crafts.de/product-page/custom-linea-micra-eiche-elfenbein) und [Special Bronze mit Walnuss](https://www.rb-crafts.de/product-page/custom-linea-micra-special-bronze-mit-walnuss) | Farbwelten Elfenbein mit Eiche und Special Bronze mit Walnuss, auf die Linea Mini R übertragen |
+
 ## Farbzuordnung rb.crafts → IGP
 
-Die Gehäusefarben der rb.crafts-Maschinen auf den Fotos wurden gemessen (Farbabstand ΔE2000, mit Weißabgleich über das Manometer-Zifferblatt) und dem nächstliegenden IGP-Ton zugeordnet:
+rb.crafts nennt auf den Produktseiten nur eigene Farbnamen, keine IGP-Codes. Die Gehäusefarben wurden deshalb auf den Fotos gemessen (Farbabstand ΔE2000 bzw. Farbtonvergleich unabhängig von der Belichtung) und dem nächstliegenden Ton der Farbkarten zugeordnet. Das sind Schätzungen:
 
-| Maschine | IGP-Ton | Sicherheit |
+| rb.crafts | Ton im Konfigurator | Sicherheit |
 |---|---|---|
-| „Elfenbein“-Editionen (Gold/Nuss, Eiche) | Chiffon Silk 4201E94136L30 | mittel – das Cremige entsteht vor allem durch warmes Studiolicht |
-| Greige-Maschine mit Olivenholz | xal-Style 23 4201E76256L3F | gut |
-| Schwarze Editionen | Traffic Black 4201U90171L10 | plausibel |
+| Grau (Bentwood-Edition) | Titan Power 4201E77903L30 | gut |
+| Special Brown | Amaranth Glow 4201E83829L30, Struktur | mittel |
+| Special Bronze | xal-Style 22 4201E13212L3F, Struktur | mittel |
+| Greige mit Olivenholz | xal-Style 23 4201E76256L3F | gut |
+| Elfenbein | RAL 1015 Hellelfenbein | plausibel |
+| All Black | RAL 9005 Tiefschwarz, matt | plausibel |
 
-Die Zuordnung ist ein Fotoabgleich. Verbindlich ist der Code, den rb.crafts für die jeweilige Maschine verwendet hat.
+Die Presets „Weiß · Walnuss“, „Signalgelb · Walnuss“ und „Jungle Street · Messing“ sind eigene Kombinationsvorschläge im gleichen Stil, keine nachgebauten Editionen.
+
+Die Holzfarben wurden an den Fotos des Holz-Sets ausgerichtet (Walnuss dunkelbraun mit rötlich-grauem Ton, Olive honigfarben mit braunen Adern, Eiche goldgelb).
+
+Verbindlich ist der Code, den rb.crafts für die jeweilige Maschine verwendet. Liegt er vor, genügt es, in `js/data.js` im Preset die Farb-ID zu tauschen.
 
 ## Maße
 

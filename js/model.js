@@ -318,6 +318,23 @@ function slottedScrewHead(R = 4.9, H = 3.3, w = 1.5, depth = 1.6, skirt = 0.5) {
   return g;
 }
 
+/** Fügt nicht-indizierte Geometrien (position, normal, uv) zu einer zusammen. */
+function mergeGeos(...geos) {
+  const out = new THREE.BufferGeometry();
+  for (const name of ['position', 'normal', 'uv']) {
+    const size = name === 'uv' ? 2 : 3;
+    const total = geos.reduce((n, g) => n + g.attributes[name].count, 0);
+    const arr = new Float32Array(total * size);
+    let o = 0;
+    for (const g of geos) {
+      arr.set(g.attributes[name].array, o);
+      o += g.attributes[name].array.length;
+    }
+    out.setAttribute(name, new THREE.BufferAttribute(arr, size));
+  }
+  return out;
+}
+
 // Holz-UVs in echter Größe: eine Texturkachel = 160 mm quer × 400 mm längs zur Faser
 const WOOD_U = 160;
 const WOOD_V = 400;
@@ -431,13 +448,18 @@ export function buildMachine(mm) {
     base: mm.get('body.base'),
   };
   const F = mm.fixed;
+  const trays = {};
+  let rearLogo = null;
   const logoTex = makeLogoTexture('LA MARZOCCO');
   // erhabener Schriftzug: mehrere Lagen übereinander ergeben 1,2 mm Materialstärke
-  const logoMat = mm.get('metal.logo', { map: logoTex, alphaTest: 0.4, alphaToCoverage: true });
-  const logoGeo = new THREE.PlaneGeometry(132, 16.5);
+  // die Buchstabenform kommt aus einer Maske (alphaMap); so kann der Schriftzug auch aus Holz sein
+  const logoMat = mm.get('metal.logo', { alphaMap: logoTex, alphaTest: 0.4, alphaToCoverage: true });
+  logoMat.userData.logo = { w: 150, h: 18.75 };
+  const logoGeo = new THREE.PlaneGeometry(150, 18.75);
   const makeLogo = () => {
     const grp = new THREE.Group();
-    for (let i = 0; i < 5; i++) add(logoGeo, logoMat, 'metal.logo', grp).position.z = 0.25 + i * 0.3;
+    // sechs Lagen = ca. 2,5 mm starke Buchstaben
+    for (let i = 0; i < 6; i++) add(logoGeo, logoMat, 'metal.logo', grp).position.z = 0.25 + i * 0.45;
     root.add(grp);
     return grp;
   };
@@ -499,6 +521,7 @@ export function buildMachine(mm) {
     plate.receiveShadow = true;
     root.add(plate);
     const mat = mm.get('metal.grates', { map: makeCupTrayTexture(w, d), ...GRATE });
+    trays.cup = { mat, tex: { slots: mat.userData.baseMap }, make: (st) => makeCupTrayTexture(w, d, st) };
     const g = new THREE.PlaneGeometry(w, d);
     g.rotateX(-Math.PI / 2);
     add(g, mat, 'metal.grates').position.set(0, M.tray + 0.6, zc);
@@ -509,9 +532,9 @@ export function buildMachine(mm) {
     const yc = 319.5;
     // Normale der Rückwand zeigt nach hinten und leicht nach unten
     const tilt = -Math.atan2(M.rearBot - M.rearTop, M.top - M.slabBotRear);
-    const logo = makeLogo();
-    logo.rotation.set(tilt, Math.PI, 0, 'XYZ');
-    logo.position.set(78, yc, rearZAt(yc) - 0.2);
+    rearLogo = makeLogo();
+    rearLogo.rotation.set(tilt, Math.PI, 0, 'XYZ');
+    rearLogo.position.set(78, yc, rearZAt(yc) - 0.2);
   }
 
   stage = 'head';
@@ -549,12 +572,13 @@ export function buildMachine(mm) {
   const knobShapes = {
     // gewellt: 16 weiche Wellen
     wave: ringShape(22.5, (a, R) => R - 1.2 * (0.5 - 0.5 * Math.cos(a * 16))),
-    // gerillt: Zylinder mit 6 schmalen Längsnuten (wie die rb.crafts Eichen-Knöpfe)
+    // gerillt (rb.crafts): zehn runde Längsnuten – nur im hinteren Teil, vorn glatter Zylinder
     groove: ringShape(22.5, (a, R) => {
-      const k = (((a / (Math.PI * 2)) * 6) % 1 + 1) % 1;
-      return k > 0.44 && k < 0.56 ? R - 2.2 : R;
-    }, 360),
-    // facettiert: Achteck (rb.crafts Nussbaum)
+      const k = (((a / (Math.PI * 2)) * 10) % 1 + 1) % 1;
+      const d = Math.abs(k - 0.5) / 0.16;
+      return d < 1 ? R - 2.6 * Math.sqrt(1 - d * d) : R;
+    }, 480),
+    // facettiert: Achteck
     facet: (() => {
       const sh = new THREE.Shape();
       for (let i = 0; i <= 8; i++) {
@@ -569,6 +593,16 @@ export function buildMachine(mm) {
   const knobGeos = Object.fromEntries(
     Object.entries(knobShapes).map(([id, sh]) => [id, woodCylUV(extrudeZ(sh, 42, 2.6, 3, 4), [0.13, 0.31])]),
   );
+  {
+    // rb.crafts-Knopf: genuteter Abschnitt hinten (ca. 28 mm) + glatter Zylinder vorn
+    const rear = woodCylUV(extrudeZ(knobShapes.groove, 25, 1.3, 2, 4), [0.13, 0.31]);
+    const front = woodCylUV(extrudeZ(ringShape(22.5, (a, R) => R, 96), 15, 2.6, 3, 4), [0.13, 0.31]);
+    front.translate(0, 0, 27);
+    // V der vorderen Hälfte passend zur Position verschieben (durchgehende Maserung)
+    const fuv = front.attributes.uv;
+    for (let i = 0; i < fuv.count; i++) fuv.setY(i, fuv.getY(i) + 27 / WOOD_V);
+    knobGeos.groove = mergeGeos(rear, front);
+  }
   knobGeos.wave.computeBoundingBox();
   const knobLen = knobGeos.wave.boundingBox.max.z;
   const knobMat = mm.get('wood.knobs');
@@ -614,30 +648,45 @@ export function buildMachine(mm) {
   // Paddle: Holzabdeckung mit Schlitz + Hebel (rechts = Ruhestellung)
   const paddleMat = mm.get('wood.paddle');
   {
+    // Brühgruppenabdeckung: langgestrecktes Sechseck mit gekappten Spitzen und breiter Fase
     const s = new THREE.Shape();
-    s.moveTo(-66, 314);
-    s.lineTo(66, 314);
-    s.quadraticCurveTo(84, 314, 84, 300);
-    s.quadraticCurveTo(84, 286, 66, 286);
-    s.quadraticCurveTo(0, 273, -66, 286);
-    s.quadraticCurveTo(-84, 286, -84, 300);
-    s.quadraticCurveTo(-84, 314, -66, 314);
-    const g = woodBoxUV(extrudeZ(s, 13, 3, 3, 16), 0, [0.42, 0.52]);
+    s.moveTo(-60, 317);
+    s.lineTo(60, 317);
+    s.lineTo(85, 308);
+    s.lineTo(85, 292);
+    s.lineTo(60, 283);
+    s.lineTo(-60, 283);
+    s.lineTo(-85, 292);
+    s.lineTo(-85, 308);
+    s.closePath();
+    const g = woodBoxUV(extrudeZ(s, 10, 4.5, 1, 4), 0, [0.42, 0.52]);
     g.computeBoundingBox();
     const front = g.boundingBox.max.z;
     add(g, paddleMat, 'wood.paddle').position.z = M.headFront;
-    const slot = new THREE.Mesh(rbox(106, 5, 2, 1.2, 2), F.darkGap);
-    slot.position.set(-6, 300, M.headFront + front - 0.4);
+    const slot = new THREE.Mesh(rbox(104, 5, 2, 1.2, 2), F.darkGap);
+    slot.position.set(-4, 300, M.headFront + front - 0.4);
     root.add(slot);
     for (const x of [-76, 76]) {
       const stud = new THREE.Mesh(rbox(9, 11, 3, 1.5, 2), F.blackPlastic);
-      stud.position.set(x, 301, M.headFront + front - 0.6);
+      stud.position.set(x, 300, M.headFront + front - 0.6);
       root.add(stud);
     }
-    const lever = woodBoxUV(rbox(41, 56, 34, 6, 4), 1, [0.71, 0.12]);
-    const lv = add(lever, paddleMat, 'wood.paddle');
-    lv.position.set(47.5, 312, M.headFront + front + 13);
-    lv.rotation.x = -0.08;
+    // Paddle: Winkel aus Holz – oben vom Drehpunkt nach vorn, vorn als Platte nach unten
+    const zc = M.headFront + front;
+    const hook = profileExtrudeX(
+      [
+        [zc - 2, 324],
+        [zc + 27, 328],
+        [zc + 35, 321],
+        [zc + 33, 281],
+        [zc + 23, 279],
+        [zc + 23, 311],
+        [zc - 2, 310],
+      ],
+      40,
+      1.6,
+    );
+    add(woodBoxUV(hook, 1, [0.71, 0.12]), paddleMat, 'wood.paddle').position.x = 28;
   }
 
   stage = 'head';
@@ -894,8 +943,18 @@ export function buildMachine(mm) {
       [0, 96.4],
     ].map(([r, y]) => new THREE.Vector2(r, y));
     const handleMat = mm.get('wood.handle');
+    // rb.crafts-Griff: achtkantig, gerade nach hinten dicker werdend, Ende gefast
+    const rbprof = [
+      [0, 0],
+      [9.8, 0],
+      [10.4, 3],
+      [16.4, 86],
+      [16.4, 90],
+      [13, 96],
+      [0, 96.4],
+    ].map(([r, y]) => new THREE.Vector2(r, y));
     const makeHandle = (segments, flat) => {
-      let g = new THREE.LatheGeometry(hprof, segments, Math.PI / segments);
+      let g = new THREE.LatheGeometry(flat ? rbprof : hprof, segments, Math.PI / segments);
       const uv = g.attributes.uv;
       // U einmal um den Umfang (nahtlos), V entlang des Griffs in echter Länge
       const hp = g.attributes.position;
@@ -990,6 +1049,7 @@ export function buildMachine(mm) {
     const gw = M.dripHalfW * 2 - 18;
     const gd = M.dripFront - 9 - (dz0 + 8);
     const gMat = mm.get('metal.grates', { map: makeDripGrateTexture(gw, gd), ...GRATE });
+    trays.drip = { mat: gMat, tex: { slots: gMat.userData.baseMap }, make: (st) => makeDripGrateTexture(gw, gd, st) };
     const gg = new THREE.PlaneGeometry(gw, gd);
     gg.rotateX(-Math.PI / 2);
     const grate = add(gg, gMat, 'metal.grates');
@@ -999,7 +1059,7 @@ export function buildMachine(mm) {
     inner.receiveShadow = true;
     root.add(inner);
 
-    makeLogo().position.set(81, 57, M.dripFront - 1.3);
+    makeLogo().position.set(74, 57, M.dripFront - 1.3);
 
     stage = 'chassis';
     // Edelstahl-Bodenwanne unter der Basis (in Seiten- und Frontansicht sichtbar)
@@ -1073,9 +1133,40 @@ export function buildMachine(mm) {
   // =========================================================================
   // Cup Rail (Stangenreling auf Pfosten über den Seitenwangen und hinten)
   // =========================================================================
+  // Bauform 1: Rundstab auf Pfosten
   const railGroup = new THREE.Group();
   railGroup.visible = false;
   root.add(railGroup);
+  // Bauform 2 (rb.crafts): Rahmen aus hochkant stehendem Flachstahl mit schrägen Füßen vorn
+  const railFlat = new THREE.Group();
+  railFlat.visible = false;
+  root.add(railFlat);
+  {
+    const railMat = mm.get('metal.rail');
+    const rx = M.halfW - M.slabT / 2;
+    const zA = -27; // vorderes Ende der Seitenstäbe
+    const zR = -332;
+    const hBar = 9;
+    const tBar = 2.6;
+    const yBar = M.top + 21;
+    const bar = (w, h, d, x, y, z, rotX = 0) => {
+      const m = add(rbox(w, h, d, 0.5, 1), railMat, 'metal.rail', railFlat);
+      m.position.set(x, y, z);
+      m.rotation.x = rotX;
+      return m;
+    };
+    for (const sx of [-1, 1]) {
+      bar(tBar, hBar, zA - zR, sx * rx, yBar, (zA + zR) / 2);
+      // schräger Fuß vorn + Auflage
+      const run = 20;
+      const drop = yBar - (M.top + 4);
+      bar(tBar, hBar, Math.hypot(run, drop) + 2, sx * rx, yBar - drop / 2, zA + run / 2, Math.atan2(drop, run));
+      bar(tBar, 2.6, 9, sx * rx, M.top + 1.3, zA + run + 2);
+      // Stütze hinten
+      bar(tBar, yBar - M.top, hBar, sx * rx, (yBar + M.top) / 2, zR + 14);
+    }
+    bar(rx * 2 + tBar, hBar, tBar, 0, yBar, zR);
+  }
   {
     const railMat = mm.get('metal.rail');
     const rx = M.halfW - M.slabT / 2;
@@ -1124,6 +1215,35 @@ export function buildMachine(mm) {
     const mat = mm.get('wood.panelUpper');
     for (const sx of [-1, 1]) {
       add(g, mat, 'wood.panelUpper', panelUpper).position.x = sx < 0 ? -M.halfW - t + 0.01 : M.halfW - 0.01;
+    }
+    // Rückseite der Holzumrandung: Platte auf der schrägen Rückwand, verbindet beide Seiten
+    {
+      const dz = M.rearBot - M.rearTop;
+      const dy = M.slabBotRear - M.top;
+      const len = Math.hypot(dz, dy);
+      const nz = dy / len; // Normale nach hinten/unten
+      const ny = -dz / len;
+      const yb = M.slabBotRear + inset;
+      const yt = M.top - inset;
+      const hw = M.halfW + t;
+      const P = (x, y, k) => [x, y + ny * k, rearZAt(y) + nz * k];
+      const a0 = P(-hw, yb, 0.05);
+      const b0 = P(hw, yb, 0.05);
+      const c0 = P(hw, yt, 0.05);
+      const d0 = P(-hw, yt, 0.05);
+      const a1 = P(-hw, yb, t);
+      const b1 = P(hw, yb, t);
+      const c1 = P(hw, yt, t);
+      const d1 = P(-hw, yt, t);
+      const back = polyhedron([
+        [b1, a1, d1, c1],
+        [a0, b0, c0, d0],
+        [a0, a1, b1, b0],
+        [d0, c0, c1, d1],
+        [a0, d0, d1, a1],
+        [b0, b1, c1, c0],
+      ]);
+      add(woodBoxUV(back, 0, [0.3, 0.55]), mat, 'wood.panelUpper', panelUpper);
     }
     // Unterteil: dünne Platte auf jeder schrägen Seitenfläche
     const matL = mm.get('wood.panelLower');
@@ -1405,13 +1525,29 @@ export function buildMachine(mm) {
       screwVariants.hex.forEach((m) => (m.visible = hex));
     },
     /** Cup Rail ein-/ausblenden */
-    setRail(on) {
-      railGroup.visible = !!on;
+    /** @param {'flat'|'rod'} style  Flachstahl-Rahmen (rb.crafts) oder Rundstab auf Pfosten */
+    setRail(on, style = 'flat') {
+      railGroup.visible = !!on && style === 'rod';
+      railFlat.visible = !!on && style !== 'rod';
+    },
+    /** Lochbild von Tropfblech und Tassenablage: 'slots' (Original) oder 'diamond' (rb.crafts) */
+    setTrays({ drip, cup }) {
+      for (const [tray, style] of [[trays.drip, drip], [trays.cup, cup]]) {
+        const st = style === 'diamond' ? 'diamond' : 'slots';
+        if (!tray.tex[st]) tray.tex[st] = tray.make(st);
+        if (tray.mat.userData.baseMap !== tray.tex[st]) {
+          tray.mat.userData.baseMap = tray.tex[st];
+          tray.mat.map = tray.tex[st];
+          tray.mat.needsUpdate = true;
+        }
+      }
     },
     /** Holzverkleidungen ein-/ausblenden */
     setPanels({ upper, lower }) {
       panelUpper.visible = !!upper;
       panelLower.visible = !!lower;
+      // die Holzumrandung verdeckt die Rückwand – dort sitzt dann kein Schriftzug
+      rearLogo.visible = !upper;
     },
     /** Formen der Holzteile */
     setShapes({ knobs, handle }) {

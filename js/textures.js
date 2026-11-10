@@ -197,8 +197,29 @@ function punch(ctx, draw) {
   ctx.restore();
 }
 
-/** Tassenablage: zwei geschlitzte Felder links/rechts, glatter Mittelsteg. */
-export function makeCupTrayTexture(widthMM, depthMM) {
+/** Rautenfeld (rb.crafts): versetzte Reihen kleiner Rauten in einem Rechteck (Pixel) */
+function diamondField(ctx, x0, y0, w, h, size, pitch) {
+  const rows = Math.floor(h / (pitch / 2));
+  for (let r = 0; r < rows; r++) {
+    const y = y0 + pitch / 4 + r * (pitch / 2);
+    const off = r % 2 ? pitch / 2 : 0;
+    for (let x = x0 + pitch / 2 + off; x < x0 + w - size / 2; x += pitch) {
+      ctx.beginPath();
+      ctx.moveTo(x, y - size / 2);
+      ctx.lineTo(x + size / 2, y);
+      ctx.lineTo(x, y + size / 2);
+      ctx.lineTo(x - size / 2, y);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+}
+
+/**
+ * Tassenablage. 'slots': zwei geschlitzte Felder links/rechts, glatter Mittelsteg (Original).
+ * 'diamond': zwei Lochbänder mit Rauten quer über die Breite (rb.crafts).
+ */
+export function makeCupTrayTexture(widthMM, depthMM, style = 'slots') {
   const pxPerMM = 5;
   const W = Math.round(widthMM * pxPerMM);
   const H = Math.round(depthMM * pxPerMM);
@@ -211,6 +232,15 @@ export function makeCupTrayTexture(widthMM, depthMM) {
   const fieldW = widthMM * 0.33 * pxPerMM;
   const slotW = 2.2 * pxPerMM;
   const pitch = 5.5 * pxPerMM;
+  if (style === 'diamond') {
+    punch(ctx, () => {
+      const m = 16 * pxPerMM;
+      const band = H * 0.3;
+      diamondField(ctx, m, H * 0.12, W - 2 * m, band, 3.4 * pxPerMM, 7 * pxPerMM);
+      diamondField(ctx, m, H * 0.58, W - 2 * m, band, 3.4 * pxPerMM, 7 * pxPerMM);
+    });
+    return finishTexture(c);
+  }
   punch(ctx, () => {
     const drawField = (x0) => {
       for (let x = x0 + pitch * 0.5; x < x0 + fieldW - pitch * 0.4; x += pitch) {
@@ -228,8 +258,8 @@ export function makeCupTrayTexture(widthMM, depthMM) {
   return finishTexture(c);
 }
 
-/** Tropfschalen-Gitter: quer laufende Schlitze. */
-export function makeDripGrateTexture(widthMM, depthMM) {
+/** Tropfblech. 'slots': quer laufende Schlitze (Original), 'diamond': Rautenlochung (rb.crafts). */
+export function makeDripGrateTexture(widthMM, depthMM, style = 'slots') {
   const pxPerMM = 5;
   const W = Math.round(widthMM * pxPerMM);
   const H = Math.round(depthMM * pxPerMM);
@@ -241,6 +271,10 @@ export function makeDripGrateTexture(widthMM, depthMM) {
   const margin = 9 * pxPerMM;
   const slotH = 3.2 * pxPerMM;
   const pitch = 6.5 * pxPerMM;
+  if (style === 'diamond') {
+    punch(ctx, () => diamondField(ctx, margin, margin, W - 2 * margin, H - 2 * margin, 4.6 * pxPerMM, 9 * pxPerMM));
+    return finishTexture(c);
+  }
   punch(ctx, () => {
     for (let y = margin * 0.9; y < H - margin * 0.9 - slotH; y += pitch) {
       roundRect(ctx, margin, y, W * 0.62 - margin, slotH, slotH / 2);
@@ -416,16 +450,18 @@ export function gaugePreviewURL(dial, needleColor = '#c2231d') {
 // ---------------------------------------------------------------------------
 // Schriftzug, Display, Typenschild, Kontaktschatten
 // ---------------------------------------------------------------------------
+/** Schriftzug als Maske: weiß auf schwarz (wird als alphaMap verwendet) */
 export function makeLogoTexture(text) {
   const W = 1024;
   const H = 128;
   const c = makeCanvas(W, H);
   const ctx = c.getContext('2d');
-  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = '#ffffff';
-  ctx.font = '700 86px "Inter", "Helvetica Neue", Arial, sans-serif';
+  ctx.font = '900 90px "Inter", "Arial Black", "Helvetica Neue", Arial, sans-serif';
   ctx.textBaseline = 'middle';
-  const spacing = 20;
+  const spacing = 14;
   const chars = [...text];
   const widths = chars.map((ch) => ctx.measureText(ch).width);
   const total = widths.reduce((a, b) => a + b, 0) + spacing * (chars.length - 1);
@@ -439,8 +475,7 @@ export function makeLogoTexture(text) {
     x += widths[i] + spacing;
   });
   ctx.restore();
-  const t = finishTexture(c);
-  return t;
+  return finishTexture(c, false);
 }
 
 export function makeDisplayTexture() {

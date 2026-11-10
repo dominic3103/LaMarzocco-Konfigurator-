@@ -83,7 +83,9 @@ export class MaterialManager {
       else if (cat === 'wood') applyWood(m, resolveWood(value), value.finish);
       else {
         const metal = resolveMetal(value);
-        if (metal.kind === 'paint') {
+        if (metal.kind === 'wood') {
+          applyLogoWood(m, metal.wood, value.finish);
+        } else if (metal.kind === 'paint') {
           applyPaint(m, metal, value.finish);
         } else if (metal.kind === 'body' && config) {
           // Akzent in Gehäusefarbe (wie Basis & Tropfschale)
@@ -170,7 +172,7 @@ function applyPaint(m, color, finish) {
     ns = 0.22;
   }
   m.normalScale.set(ns, ns);
-  setMaps(m, { normalMap, bumpMap: null, map });
+  setMaps(m, { normalMap, bumpMap: null, roughnessMap: null, map });
 }
 
 // ---------------------------------------------------------------------------
@@ -199,12 +201,32 @@ function applyWood(m, wood, finish) {
   m.normalScale.set(ns, ns);
 }
 
+/** Holz-Schriftzug: Holzfarbe mit Maserung längs der Buchstaben (eigene Textur-Ausrichtung) */
+const logoWoodMaps = new Map();
+function applyLogoWood(m, wood, finish) {
+  const size = m.userData.logo || { w: 132, h: 16.5 };
+  if (!logoWoodMaps.has(wood.id)) {
+    const t = getWoodTextures(wood).map.clone();
+    // Faser (Textur-V) entlang der Schrift: UV um 90° drehen, in echter Größe (160 x 400 mm je Kachel)
+    t.rotation = Math.PI / 2;
+    t.repeat.set(size.h / 160, size.w / 400);
+    t.offset.set(0.31, 0.47);
+    t.needsUpdate = true;
+    logoWoodMaps.set(wood.id, t);
+  }
+  setMaps(m, { map: logoWoodMaps.get(wood.id), normalMap: null, bumpMap: null, roughnessMap: null });
+  m.color.set(0xffffff);
+  m.metalness = 0;
+  m.roughness = finish === 'lacquer' ? 0.3 : 0.6;
+  m.clearcoat = finish === 'lacquer' ? 1 : 0;
+}
+
 // ---------------------------------------------------------------------------
 // Metall / Akzentlack
 // ---------------------------------------------------------------------------
 function applyMetal(m, color, finish) {
   m.color.set(color.color);
-  setMaps(m, { normalMap: null, bumpMap: null, map: m.userData.baseMap || null });
+  setMaps(m, { normalMap: null, bumpMap: null, roughnessMap: null, map: m.userData.baseMap || null });
   if (color.kind === 'metal') {
     m.metalness = 1;
     m.roughness = { gloss: 0.1, satin: 0.3, matte: 0.48 }[finish] ?? 0.1;

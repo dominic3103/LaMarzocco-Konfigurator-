@@ -1250,6 +1250,28 @@ body.ready .loader {
   margin-top: 8px;
 }
 
+.wood-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wood-groups .swatch-group-title {
+  margin: 4px 0 0;
+}
+
+/* Holzkacheln im Reiter "Holz" der Akzent-Auswahl */
+.woods > .wood.swatch {
+  aspect-ratio: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+.woods[hidden] {
+  display: none;
+}
+
 /* Holz */
 .woods {
   display: grid;

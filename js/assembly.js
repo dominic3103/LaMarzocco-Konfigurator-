@@ -154,7 +154,8 @@ export class AssemblyShow {
           if (st.perSide) {
             obj.geometry.computeBoundingBox();
             const cx = (obj.geometry.boundingBox.min.x + obj.geometry.boundingBox.max.x) / 2 + obj.position.x;
-            dir = new THREE.Vector3(Math.sign(cx) || 1, 0.12, 0.18);
+            // Seitenplatten von links/rechts, die Rückplatte der Holzumrandung von hinten
+            dir = Math.abs(cx) < 5 ? new THREE.Vector3(0, 0.15, -1) : new THREE.Vector3(Math.sign(cx), 0.12, 0.18);
           } else dir = new THREE.Vector3(...(st.from || [0, 0, 1]));
           const extra = st.perSide ? i * 0.08 : 0;
           this.items.push(this.#item(obj, st, { start: start + (st.stagger || 0) * i + extra, dir: dir.normalize(), index: i }));

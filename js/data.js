@@ -21,7 +21,7 @@ export const CATEGORIES = {
       { key: 'wood.paddle', label: 'Paddle' },
       { key: 'wood.knobs', label: 'Drehknöpfe' },
       { key: 'wood.handle', label: 'Siebträgergriff' },
-      { key: 'wood.panelUpper', label: 'Seitenplatten oben', panel: true, chip: false },
+      { key: 'wood.panelUpper', label: 'Holzumrandung oben', panel: true, chip: false },
       { key: 'wood.panelLower', label: 'Seitenplatten unten', panel: true, chip: false },
     ],
   },
@@ -144,6 +144,7 @@ export const BODY_COLLECTIONS = [
     series: 'RAL Classic – Wunschfarbe als Pulverlack (Näherungswerte)',
     colors: [
       ral('1015', 'Hellelfenbein', '#e5d8bd'),
+      ral('1003', 'Signalgelb', '#e9a41c'),
       ral('1013', 'Perlweiß', '#e8e1cc'),
       ral('9001', 'Cremeweiß', '#ece4d3'),
       ral('9010', 'Reinweiß', '#f1ece1'),
@@ -235,9 +236,11 @@ export const METAL_FINISHES = [
 //   streak:  Kernholzstreifen / Adern {color, amt}
 // ---------------------------------------------------------------------------
 export const WOODS = [
-  { id: 'olive', name: 'Olivenholz', style: 'olive', light: '#e9d3a0', mid: '#cfa868', dark: '#9c7340', rings: 46, contrast: 0.3, late: 0.3, warp: 0.05, figure: 3, fiber: 0.5, tone: 0.14, pore: { nx: 250, ny: 110, density: 0.18, dark: 0.18 }, streak: { color: '#41281a' }, seed: 11 },
-  { id: 'walnut', name: 'Nussbaum', style: 'ring', light: '#9c7455', mid: '#7b5641', dark: '#4d3425', rings: 22, contrast: 0.5, late: 0.26, warp: 0.035, figure: 7, fiber: 0.7, tone: 0.16, pore: { nx: 240, ny: 70, density: 0.26, dark: 0.2, w: 0.24 }, streak: { color: '#3a271d', amt: 0.45, fx: 3 }, seed: 3 },
-  { id: 'oak', name: 'Eiche', style: 'ring', light: '#dcbf90', mid: '#c7a26d', dark: '#a07a4a', rings: 26, contrast: 0.5, late: 0.28, warp: 0.03, figure: 8, fiber: 0.6, tone: 0.1, pore: { nx: 200, ny: 80, density: 0.9, dark: 0.3, w: 0.34, ring: 0.3 }, seed: 5 },
+  // rb.crafts-Sortiment (rb: true): Walnuss, Eiche, Olive – Farben nach den Produktfotos
+  { id: 'walnut', rb: true, name: 'Walnuss', style: 'ring', light: '#9b7359', mid: '#6e4b3a', dark: '#38231a', rings: 30, contrast: 0.6, late: 0.26, warp: 0.035, figure: 4, fiber: 0.7, tone: 0.16, pore: { nx: 240, ny: 70, density: 0.26, dark: 0.2, w: 0.24 }, streak: { color: '#2b1c16', amt: 0.45, fx: 3 }, seed: 3 },
+  { id: 'oak', rb: true, name: 'Eiche', style: 'ring', light: '#e6b068', mid: '#d99c52', dark: '#b67b3a', rings: 26, contrast: 0.5, late: 0.28, warp: 0.03, figure: 8, fiber: 0.6, tone: 0.1, pore: { nx: 200, ny: 80, density: 0.9, dark: 0.3, w: 0.34, ring: 0.3 }, seed: 5 },
+  { id: 'olive', rb: true, name: 'Olivenholz', style: 'olive', light: '#f4b257', mid: '#dd9540', dark: '#b56f28', rings: 46, contrast: 0.3, late: 0.3, warp: 0.05, figure: 3, fiber: 0.5, tone: 0.14, pore: { nx: 250, ny: 110, density: 0.18, dark: 0.18 }, streak: { color: '#5a3d24' }, seed: 11 },
+  // weitere Hölzer (auf Anfrage)
   { id: 'maple', name: 'Ahorn', style: 'ring', light: '#f0e2c6', mid: '#e6d2ae', dark: '#cfb68c', rings: 30, contrast: 0.36, late: 0.25, warp: 0.03, figure: 6, fiber: 0.45, tone: 0.1, pore: { nx: 256, ny: 120, density: 0.12, dark: 0.12 }, seed: 8 },
   { id: 'cherry', name: 'Kirschbaum', style: 'ring', light: '#cd9468', mid: '#b6744d', dark: '#8d5134', rings: 24, contrast: 0.45, late: 0.22, warp: 0.035, figure: 7, fiber: 0.55, tone: 0.14, pore: { nx: 256, ny: 110, density: 0.22, dark: 0.3 }, streak: { color: '#7a4630', amt: 0.3, fx: 2 }, seed: 13 },
   { id: 'zebrano', name: 'Zebrano', style: 'zebra', light: '#e2c995', mid: '#cfb07a', dark: '#b8975f', rings: 30, stripe: 0.36, warp: 0.02, fiber: 0.6, tone: 0.08, pore: { nx: 200, ny: 80, density: 0.5, dark: 0.3 }, streak: { color: '#4a3220' }, seed: 21 },
@@ -254,16 +257,31 @@ export const WOOD_FINISHES = [
   { id: 'lacquer', name: 'Hochglanz lackiert' },
 ];
 
-/** Formen der Holzteile (wie bei rb.crafts: facettiert, gerillt oder gewellt) */
+/** Formen der Holzteile – 'groove' und 'facet' (Griff) sind die rb.crafts-Formen */
 export const KNOB_SHAPES = [
+  { id: 'groove', name: 'rb.crafts (gerillt)' },
   { id: 'facet', name: 'Facettiert' },
-  { id: 'groove', name: 'Gerillt' },
   { id: 'wave', name: 'Gewellt' },
 ];
 export const HANDLE_SHAPES = [
-  { id: 'facet', name: 'Facettiert' },
-  { id: 'round', name: 'Rund' },
+  { id: 'facet', name: 'rb.crafts' },
+  { id: 'round', name: 'La Marzocco' },
 ];
+
+/** Cup Rail: Flachstahl-Rahmen (rb.crafts) oder Rundstab auf Pfosten */
+export const RAIL_STYLES = [
+  { id: 'flat', name: 'rb.crafts (Flachstahl)' },
+  { id: 'rod', name: 'Rundstab' },
+];
+
+/** Lochbild von Tropfblech und Tassenablage */
+export const TRAY_STYLES = [
+  { id: 'slots', name: 'Original (Schlitze)' },
+  { id: 'diamond', name: 'rb.crafts (Rauten)' },
+];
+
+/** Holz-Schriftzug (magnetisch): Slot-Wert 'wood:<Holz>' */
+export const LOGO_WOODS = ['walnut', 'oak', 'olive'];
 
 /** Platzhalter für Holzverkleidungen ohne Holz */
 export const NO_WOOD = { id: 'none', name: 'Ohne Holz', none: true, light: '#d9d4cc', mid: '#c9c3ba', dark: '#b9b2a8' };
@@ -312,6 +330,7 @@ export const NEUTRAL_SLOTS = {
   'metal.feet': { id: 'black', finish: 'matte' },
 };
 export const NEUTRAL_SHAPE = { knobs: 'wave', handle: 'round' };
+export const NEUTRAL_OPTIONS = { railStyle: 'rod', tray: { drip: 'slots', cup: 'slots' } };
 
 function preset(name, swatches, slots, extra = {}) {
   return {
@@ -326,88 +345,106 @@ function preset(name, swatches, slots, extra = {}) {
       },
       screwHead: extra.screws || 'slot',
       rail: !!extra.rail,
-      shape: { knobs: extra.knobs || NEUTRAL_SHAPE.knobs, handle: extra.handle || NEUTRAL_SHAPE.handle },
+      railStyle: extra.railStyle || 'flat',
+      tray: { drip: extra.drip || 'slots', cup: extra.cup || 'slots' },
+      shape: { knobs: extra.knobs || 'groove', handle: extra.handle || 'facet' },
     },
   };
 }
 
+// Editionen von rb.crafts (laut rb-crafts.de). Die IGP-/RAL-Zuordnung der Lackfarben ist ein
+// Fotoabgleich und damit eine Schätzung – verbindlich ist der Farbcode von rb.crafts.
+const WOODSET = (id) => ({ ...allWood(id), 'metal.logo': { id: `wood:${id}`, finish: 'oiled' } });
+const BLACK_DETAILS = {
+  ...allMetal('black', 'matte'),
+  'metal.wand': { id: 'dlc', finish: 'matte' },
+  'metal.group': { id: 'dlc', finish: 'matte' },
+  'metal.portafilter': { id: 'dlc', finish: 'matte' },
+  'metal.gauges': { id: 'dlc', finish: 'matte' },
+};
+
 export const PRESETS = [
-  // --- rb.crafts-Editionen, Gehäusefarbe den IGP-Tönen zugeordnet (Fotoabgleich, ΔE2000) ---
-  preset('Chiffon Silk · Gold · Nuss', ['#e2dfd8', '#644433', '#e1b866'], {
-    ...allBody('4201E94136L30', 'matte'),
-    ...allWood('walnut'),
-    'wood.panelLower': { id: 'walnut', finish: 'oiled' },
-    ...allMetal('gold', 'gloss'),
-    'metal.grates': { id: 'body', finish: 'matte' },
-  }, { rail: true, knobs: 'groove', handle: 'round' }),
-  preset('Style 30 · Schwarz · Nuss · Naked', ['#7d6b58', '#644433', '#161616'], {
-    ...allBody('4201E81872L3F', 'texture'),
-    ...allWood('walnut'),
-    'wood.panelLower': { id: 'walnut', finish: 'oiled' },
-    ...allMetal('black', 'matte'),
-    'metal.wand': { id: 'dlc', finish: 'satin' },
-    'metal.group': { id: 'dlc', finish: 'satin' },
-    'metal.portafilter': { id: 'dlc', finish: 'satin' },
-    'metal.grates': { id: 'dlc', finish: 'satin' },
-  }, { dial: 'naked', needle: 'red', knobs: 'facet', handle: 'facet' }),
-  preset('Chiffon Silk · Eiche · DLC', ['#e2dfd8', '#c49a64', '#232427'], {
-    ...allBody('4201E94136L30', 'matte'),
-    ...allWood('oak'),
-    ...allMetal('dlc', 'satin'),
-    'metal.grates': { id: 'steel', finish: 'satin' },
-    'metal.caps': { id: 'black', finish: 'matte' },
-  }, { rail: true, knobs: 'groove', handle: 'round' }),
-  preset('Traffic Black · Gold · Olive', ['#2c2b2d', '#bf9259', '#e1b866'], {
-    ...allBody('4201U90171L10', 'matte'),
-    ...allWood('olive'),
-    'wood.panelUpper': { id: 'olive', finish: 'oiled' },
-    ...allMetal('gold', 'gloss'),
-    'metal.grates': { id: 'black', finish: 'matte' },
-  }, { rail: true, knobs: 'facet', handle: 'facet' }),
-  preset('Traffic Black · Nuss-Platten', ['#2c2b2d', '#644433', '#cf8460'], {
-    ...allBody('4201U90171L10', 'matte'),
-    ...allWood('walnut'),
+  // "Custom Linea Mini R & Bentwood": ruhiges Grau, Walnuss, schwarze Details, Holzumrandung, schwarze Reling
+  preset('Grau · Walnuss · Schwarz', ['#aea097', '#6e4b3a', '#161616'], {
+    ...allBody('4201E77903L30', 'matte'),
+    ...WOODSET('walnut'),
     'wood.panelUpper': { id: 'walnut', finish: 'oiled' },
-    ...allMetal('dlc', 'satin'),
-    'metal.logo': { id: 'copper', finish: 'satin' },
-    'metal.grates': { id: 'black', finish: 'matte' },
-  }, { knobs: 'facet', handle: 'facet' }),
-  preset('Style 23 · Olive', ['#b4a998', '#c9a066', '#161616'], {
+    ...BLACK_DETAILS,
+    'metal.grates': { id: 'body', finish: 'matte' },
+    'metal.logo': { id: 'wood:walnut', finish: 'oiled' },
+  }, { dial: 'naked', rail: true }),
+  // "Special Brown mit Olive": warmer Braunton mit leichtem Goldschimmer, schwarze Akzente
+  preset('Special Brown · Olive', ['#8c755d', '#dd9540', '#161616'], {
+    ...allBody('4201E83829L30', 'texture'),
+    ...WOODSET('olive'),
+    ...BLACK_DETAILS,
+    'metal.grates': { id: 'body', finish: 'texture' },
+    'metal.logo': { id: 'wood:olive', finish: 'oiled' },
+  }, { dial: 'naked' }),
+  // "All Black": ultramatt schwarz, DLC, Walnuss mit Holzumrandung
+  preset('All Black · Walnuss', ['#111113', '#6e4b3a', '#232427'], {
+    ...allBody('RAL9005', 'matte'),
+    ...WOODSET('walnut'),
+    'wood.panelUpper': { id: 'walnut', finish: 'oiled' },
+    ...BLACK_DETAILS,
+    'metal.logo': { id: 'wood:walnut', finish: 'oiled' },
+  }, { dial: 'naked', drip: 'diamond', cup: 'diamond' }),
+  // Elfenbein mit Gold und Walnuss (Edition mit goldener Cup Rail)
+  preset('Elfenbein · Gold · Walnuss', ['#e5d8bd', '#6e4b3a', '#e1b866'], {
+    ...allBody('RAL1015', 'satin'),
+    ...allWood('walnut'),
+    'wood.panelLower': { id: 'walnut', finish: 'oiled' },
+    ...allMetal('gold', 'gloss'),
+    'metal.grates': { id: 'body', finish: 'satin' },
+  }, { rail: true, railStyle: 'rod' }),
+  // Elfenbein & Eiche mit schwarzen DLC-Teilen
+  preset('Elfenbein · Eiche · DLC', ['#e5d8bd', '#d99c52', '#232427'], {
+    ...allBody('RAL1015', 'satin'),
+    ...WOODSET('oak'),
+    ...BLACK_DETAILS,
+    'metal.grates': { id: 'body', finish: 'satin' },
+    'metal.logo': { id: 'wood:oak', finish: 'oiled' },
+  }, { dial: 'naked', rail: true }),
+  // Weiß mit Walnuss, Edelstahl bleibt sichtbar
+  preset('Weiß · Walnuss', ['#f1f0ea', '#6e4b3a', '#cfd1d3'], {
+    ...allBody('RAL9016', 'gloss'),
+    ...allWood('walnut'),
+    ...allMetal('steel', 'gloss'),
+    'metal.feet': { id: 'black', finish: 'matte' },
+  }, {}),
+  // "Special Bronze mit Walnuss" (bei rb.crafts als Micra gezeigt)
+  preset('Special Bronze · Walnuss', ['#8c7d64', '#6e4b3a', '#161616'], {
+    ...allBody('4201E13212L3F', 'texture'),
+    ...WOODSET('walnut'),
+    'wood.panelUpper': { id: 'walnut', finish: 'oiled' },
+    ...BLACK_DETAILS,
+    'metal.grates': { id: 'body', finish: 'texture' },
+    'metal.logo': { id: 'wood:walnut', finish: 'oiled' },
+  }, { dial: 'naked', rail: true }),
+  // Gelb mit Walnuss und gebürsteter Edelstahl-Reling (Foto zur Cup Rail)
+  preset('Signalgelb · Walnuss', ['#e9a41c', '#6e4b3a', '#cfd1d3'], {
+    ...allBody('RAL1003', 'satin'),
+    ...allWood('walnut'),
+    ...BLACK_DETAILS,
+    'metal.rail': { id: 'steel', finish: 'satin' },
+    'metal.grates': { id: 'body', finish: 'satin' },
+  }, { rail: true }),
+  // weitere Kombinationen mit IGP-Farben
+  preset('Style 23 · Olive', ['#b4a998', '#dd9540', '#161616'], {
     ...allBody('4201E76256L3F', 'matte'),
-    ...allWood('olive'),
-    ...allMetal('black', 'matte'),
+    ...WOODSET('olive'),
+    ...BLACK_DETAILS,
     'metal.portafilter': { id: 'steel', finish: 'satin' },
     'metal.grates': { id: 'steel', finish: 'satin' },
-    'metal.group': { id: 'dlc', finish: 'satin' },
+    'metal.logo': { id: 'wood:olive', finish: 'oiled' },
   }, { dial: 'black', needle: 'gold' }),
-  preset('Style 23 · Olive · Gold-Rail', ['#b4a998', '#c9a066', '#e1b866'], {
-    ...allBody('4201E76256L3F', 'matte'),
-    ...allWood('olive'),
-    'wood.panelLower': { id: 'olive', finish: 'oiled' },
-    ...allMetal('dlc', 'satin'),
-    'metal.rail': { id: 'gold', finish: 'gloss' },
-    'metal.caps': { id: 'gold', finish: 'gloss' },
-    'metal.grates': { id: 'body', finish: 'matte' },
-  }, { rail: true, knobs: 'groove' }),
-  preset('Titan Power · Gold · Nuss', ['#aea097', '#644433', '#e1b866'], {
-    ...allBody('4201E77903L30', 'matte'),
-    ...allWood('walnut'),
-    'wood.panelLower': { id: 'walnut', finish: 'oiled' },
-    ...allMetal('gold', 'satin'),
-    'metal.grates': { id: 'steel', finish: 'satin' },
-  }, { rail: true, knobs: 'facet', handle: 'facet' }),
-  preset('Jungle Street · Messing', ['#3b4136', '#644433', '#c9a85c'], {
+  preset('Jungle Street · Messing', ['#3b4136', '#6e4b3a', '#c9a85c'], {
     ...allBody('4201E63923L3F', 'matte'),
     ...allWood('walnut'),
-    'wood.panelLower': { id: 'walnut', finish: 'oiled' },
+    'wood.panelUpper': { id: 'walnut', finish: 'oiled' },
     ...allMetal('brass', 'satin'),
     'metal.grates': { id: 'steel', finish: 'satin' },
   }, { rail: true }),
-  preset('Admiral Blue · Eiche · Silber', ['#385878', '#c49a64', '#cfd1d3'], {
-    ...allBody('4201E54218L30', 'matte'),
-    ...allWood('oak'),
-    ...allMetal('steel', 'gloss'),
-  }, { rail: true, knobs: 'facet', handle: 'facet' }),
 ];
 
 export const DEFAULT_CONFIG = PRESETS[0].config;
@@ -441,6 +478,11 @@ export function resolveMetal(value) {
     return { id: 'custom', name: `Eigene Farbe ${value.color}`, color: value.color, kind: value.kind || 'metal' };
   }
   if (METAL_INDEX.has(value.id)) return METAL_INDEX.get(value.id);
+  // Holz-Schriftzug: 'wood:<Holz>'
+  if (typeof value.id === 'string' && value.id.startsWith('wood:') && WOOD_INDEX.has(value.id.slice(5))) {
+    const w = WOOD_INDEX.get(value.id.slice(5));
+    return { id: value.id, name: `Holz ${w.name}`, color: w.mid, kind: 'wood', wood: w };
+  }
   // Akzent in einem IGP- oder RAL-Pulverlack (z. B. Cup Rail in Gehäusefarbe-Variante)
   if (BODY_INDEX.has(value.id)) return { ...BODY_INDEX.get(value.id), kind: 'paint' };
   return METAL_INDEX.get('steel');

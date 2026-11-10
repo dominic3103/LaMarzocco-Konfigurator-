@@ -7,6 +7,9 @@ import {
   SLOT_LABELS,
   NEUTRAL_SLOTS,
   NEUTRAL_SHAPE,
+  NEUTRAL_OPTIONS,
+  RAIL_STYLES,
+  TRAY_STYLES,
   KNOB_SHAPES,
   HANDLE_SHAPES,
   GAUGE_DIALS,
@@ -41,6 +44,15 @@ function sanitize(cfg) {
     else if (cfg.dial === 'white' || cfg.dial === 'black') out.gauges[side] = { dial: cfg.dial, needle: cfg.dial === 'black' ? 'gold' : 'red' };
   }
   if (SCREW_HEADS.some((h) => h.id === cfg.screwHead)) out.screwHead = cfg.screwHead;
+  // Bauform der Reling und Lochbild der Bleche; ältere Konfigurationen behalten ihr bisheriges Aussehen
+  const okStyle = (list, v) => list.some((x) => x.id === v);
+  if (okStyle(RAIL_STYLES, cfg.railStyle)) out.railStyle = cfg.railStyle;
+  else if (cfg.slots) out.railStyle = NEUTRAL_OPTIONS.railStyle;
+  if (cfg.slots) out.tray = { ...NEUTRAL_OPTIONS.tray };
+  if (cfg.tray) {
+    if (okStyle(TRAY_STYLES, cfg.tray.drip)) out.tray.drip = cfg.tray.drip;
+    if (okStyle(TRAY_STYLES, cfg.tray.cup)) out.tray.cup = cfg.tray.cup;
+  }
   // ältere Konfigurationen ohne die neuen optionalen Teile: neutral ergänzen
   if (cfg.slots) {
     for (const [k, v] of Object.entries(NEUTRAL_SLOTS)) if (!cfg.slots[k]) out.slots[k] = clone(v);
@@ -118,7 +130,8 @@ function applyAll() {
 }
 /** Sichtbarkeit optionaler Teile und Formen */
 function syncParts() {
-  model.setRail(config.rail);
+  model.setRail(config.rail, config.railStyle);
+  model.setTrays(config.tray);
   model.setPanels({
     upper: config.slots['wood.panelUpper'].id !== 'none',
     lower: config.slots['wood.panelLower'].id !== 'none',
@@ -216,6 +229,19 @@ const ui = new ConfiguratorUI(document.getElementById('config'), {
     // noch keine Platten: Holz antippen bringt Platten am Unterteil an (wie bei rb.crafts üblich)
     if (!up && !lo) setPanelSlots('none', id);
     else setPanelSlots(up ? id : 'none', lo ? id : 'none');
+  },
+  onRailStyle: (id) => {
+    config.railStyle = id;
+    if (!config.rail) config.rail = true;
+    syncParts();
+    viewer.flash(mm, ['metal.rail']);
+    commit();
+  },
+  onTray: (part, id) => {
+    config.tray = { ...config.tray, [part]: id };
+    syncParts();
+    viewer.flash(mm, ['metal.grates']);
+    commit();
   },
   onShape: (part, id) => {
     config.shape = { ...config.shape, [part]: id };
