@@ -2326,3 +2326,262 @@ body.ready .loader {
     background: var(--accent-soft);
   }
 }
+
+/* ------------------------------------------------ Variationen */
+.variant-bar {
+  margin: 14px 0 0;
+}
+
+.variant-bar:empty {
+  display: none;
+}
+
+.variant-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.v-delete {
+  border: 0;
+  background: none;
+  padding: 2px 0;
+  color: var(--muted);
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.v-delete:hover {
+  color: var(--ink);
+}
+
+.variant-list {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.variant {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  padding: 7px 4px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink-soft);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.variant:hover {
+  border-color: var(--ink-soft);
+}
+
+.variant.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  color: var(--ink);
+}
+
+.variant.empty {
+  border-style: dashed;
+  background: transparent;
+  color: var(--muted);
+}
+
+.v-num {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.v-dots {
+  display: flex;
+}
+
+.v-dots span {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--surface);
+  box-shadow: 0 0 0 1px var(--line-strong);
+}
+
+.v-dots span + span {
+  margin-left: -4px;
+}
+
+.v-plus {
+  font-size: 15px;
+  line-height: 14px;
+}
+
+.variant-bar .hint-text {
+  margin: 8px 0 0;
+}
+
+/* Zeile zum Durchschalten (Set-Panel, Abschlusskarte) */
+.variant-row {
+  display: grid;
+  grid-template-columns: 64px 30px minmax(0, 1fr) 30px;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.variant-row {
+  grid-template-columns: 64px 30px max-content 30px;
+  justify-content: start;
+}
+
+.variant-row .variant-list {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.variant-row .variant {
+  width: 46px;
+}
+
+.v-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.v-step {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.v-step:hover {
+  border-color: var(--ink-soft);
+}
+
+/* Schnellumschalter im 3D-Bereich */
+.variant-skip {
+  position: absolute;
+  left: 50%;
+  bottom: 70px;
+  z-index: 2;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  max-width: calc(100% - 24px);
+}
+
+.variant-skip[hidden] {
+  display: none;
+}
+
+.variant-row.compact {
+  display: flex;
+  gap: 4px;
+  margin: 0;
+  padding: 0 4px 0 10px;
+}
+
+.variant-row.compact + .variant-row.compact {
+  border-left: 1px solid var(--line);
+}
+
+.variant-row.compact .v-label {
+  margin-right: 2px;
+  font-size: 12.5px;
+}
+
+.variant-row.compact .v-step {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  background: transparent;
+}
+
+.variant-row.compact .v-step:hover {
+  background: var(--bg);
+}
+
+.v-count {
+  min-width: 34px;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--ink-soft);
+}
+
+.viewer[data-variants='1'] .viewer-hint {
+  display: none;
+}
+
+.app.show-mode .variant-skip {
+  display: none;
+}
+
+.viewer[data-tone='dark'] .variant-skip {
+  background: rgba(30, 28, 26, 0.72);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.viewer[data-tone='dark'] .variant-row.compact .v-label,
+.viewer[data-tone='dark'] .variant-row.compact .v-step,
+.viewer[data-tone='dark'] .v-count {
+  color: #f3efe9;
+}
+
+/* Abschlusskarte */
+.final-variants {
+  margin: 10px 0 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.final-variants[hidden] {
+  display: none;
+}
+
+.final-variants-title {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.final-variants .variant-row:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 900px) {
+  .variant-skip {
+    bottom: 66px;
+  }
+
+  .variant-row {
+    grid-template-columns: 56px 30px max-content 30px;
+  }
+
+  .variant-row .variant {
+    width: 42px;
+  }
+}

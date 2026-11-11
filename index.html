@@ -67,6 +67,7 @@
 
         <p class="viewer-hint">Ziehen zum Drehen · Zoomen per Scrollen/Pinch · Bauteil anklicken zum Auswählen</p>
         <nav class="views" id="views" aria-label="Ansichten"></nav>
+        <div class="variant-skip" id="variant-skip" aria-label="Varianten durchschalten" hidden></div>
         <div class="tooltip" id="tooltip" hidden></div>
 
         <div class="show-ui" id="show-ui" hidden>
@@ -85,6 +86,7 @@
           <p class="final-eyebrow">Konfiguration abgeschlossen</p>
           <h2 class="final-title" id="final-title">Deine Linea Mini R</h2>
           <p class="final-code">Konfigurationsnummer <strong id="final-code"></strong></p>
+          <div class="final-variants" id="final-variants" hidden></div>
           <dl class="final-list" id="final-list"></dl>
           <div class="final-actions">
             <button class="btn primary next" id="final-next" type="button">Weiter zur Mühle</button>
@@ -110,6 +112,7 @@
             <button type="button" data-product="grinder"><span class="ps-num">2</span><span class="ps-text"><span class="ps-name">Mühle</span><span class="ps-sub">EG-1</span></span></button>
             <button type="button" data-product="set"><span class="ps-num">3</span><span class="ps-text"><span class="ps-name">Zusammen</span><span class="ps-sub">Nebeneinander</span></span></button>
           </nav>
+          <section class="variant-bar" id="variant-bar" aria-label="Variationen"></section>
         </header>
         <div id="config"></div>
         <div id="config-grinder" hidden></div>

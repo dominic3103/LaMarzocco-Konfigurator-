@@ -38,6 +38,7 @@ import { AssemblyShow, isInnerStage } from './assembly.js';
 import { ARExperience } from './ar.js';
 import { buildGrinder, EG1 } from './grinder.js';
 import { GrinderUI } from './grinder-ui.js';
+import { MAX_VARIANTS, VARIANT_PRODUCTS, extractVariant, applyVariant, sanitizeVariants, filledVariants, stepVariant } from './variants.js';
 
 const STORAGE_KEY = 'lm-mini-r-konfigurator';
 const ALL_SLOTS = [...MACHINE_SLOTS, ...GRINDER_SLOTS];
@@ -46,7 +47,15 @@ const SLOTS_OF = { machine: MACHINE_SLOTS, grinder: GRINDER_SLOTS, set: ALL_SLOT
 // ---------- Konfiguration laden (Link > zuletzt gespeichert > Standard) ----------
 const clone = (o) => JSON.parse(JSON.stringify(o));
 
+/** Konfiguration samt Variationen prüfen */
 function sanitize(cfg) {
+  const out = sanitizeCore(cfg);
+  out.variants = sanitizeVariants(cfg && typeof cfg === 'object' ? cfg.variants : null, out, sanitizeCore);
+  return out;
+}
+
+/** Eine einzelne Konfiguration prüfen (ohne Variationen) */
+function sanitizeCore(cfg) {
   const out = clone(DEFAULT_CONFIG);
   if (!cfg || typeof cfg !== 'object') return out;
   // Manometer: neue Form je Anzeige; ältere Konfigurationen kannten nur ein Zifferblatt für beide
@@ -150,7 +159,7 @@ function loadInitial() {
   } catch {
     /* Speicher nicht verfügbar */
   }
-  return clone(DEFAULT_CONFIG);
+  return sanitize(clone(DEFAULT_CONFIG));
 }
 function persist(cfg) {
   try {
@@ -474,32 +483,54 @@ function updateSlots(keys, patch) {
 const ARTIFACT = document.querySelector('.app')?.dataset.mode === 'artifact';
 
 let hashTimer = null;
+/** Aktive Variante je Gerät mit der bearbeiteten Konfiguration abgleichen */
+function syncVariants() {
+  for (const p of VARIANT_PRODUCTS) {
+    const V = config.variants[p];
+    V.list[V.active] = extractVariant(p, config);
+  }
+}
+
 function commit() {
+  syncVariants();
   ui.refresh();
   gui.refresh();
   renderSetPanel();
+  renderVariants();
   viewer.requestRender();
   persist(config);
   if (ARTIFACT) return;
   clearTimeout(hashTimer);
   hashTimer = setTimeout(() => {
-    history.replaceState(null, '', `#cfg=${encodeConfig(config)}${productParam()}`);
-    refreshPacked();
+    refreshPacked().then(() => history.replaceState(null, '', `#${linkCode()}${productParam()}`));
   }, 250);
 }
 
-// Kurzlink zur aktuellen Konfiguration vorhalten (wird beim Teilen ohne Wartezeit gebraucht)
+// Kurzlink zur aktuellen Konfiguration vorhalten (wird beim Teilen ohne Wartezeit gebraucht).
+// compact: ohne Variationen (nur die gezeigte Kombination), z. B. für den QR-Code
 let packed = null;
+const withoutVariants = (cfg) => {
+  const c = clone(cfg);
+  delete c.variants;
+  return c;
+};
+/** Für den Link: Variationen nur mitnehmen, wenn es mehr als eine gibt */
+const forLink = (cfg) => (VARIANT_PRODUCTS.some((p) => filledVariants(cfg.variants[p]).length > 1) ? cfg : withoutVariants(cfg));
 function refreshPacked() {
   const json = JSON.stringify(config);
-  packConfig(config).then((z) => {
-    packed = z ? { z, json } : null;
+  const compact = withoutVariants(config);
+  return Promise.all([packConfig(forLink(config)), packConfig(compact)]).then(([z, zc]) => {
+    packed = z ? { z, zc, json } : null;
   });
 }
-function shareUrl() {
+function linkCode(compact = false) {
+  const fresh = packed && packed.json === JSON.stringify(config);
+  if (fresh) return `z=${compact ? packed.zc : packed.z}`;
+  return `cfg=${encodeConfig(compact ? withoutVariants(config) : forLink(config))}`;
+}
+function shareUrl({ compact = false } = {}) {
   if (ARTIFACT) return null;
-  const code = packed && packed.json === JSON.stringify(config) ? `z=${packed.z}` : `cfg=${encodeConfig(config)}`;
-  return `${location.origin}${location.pathname}#${code}${productParam()}`;
+  return `${location.origin}${location.pathname}#${linkCode(compact)}${productParam()}`;
 }
 
 // ---------- Auswahl im 3D-Modell ----------
@@ -672,9 +703,16 @@ shareBtn.addEventListener('click', async () => {
 });
 /** Text-Zusammenfassung für das aktuelle Produkt (beide im Set) */
 function summaryText() {
-  if (product === 'grinder') return gui.summaryText();
-  if (product === 'set') return `${ui.summaryText()}\n\n${gui.summaryText()}`;
-  return ui.summaryText();
+  const tag = (p, text) => {
+    const V = config.variants[p];
+    if (filledVariants(V).length < 2) return text;
+    return text.replace(/^(.*?) – Konfiguration/, `$1 – Variante ${V.active + 1} – Konfiguration`);
+  };
+  const m = tag('machine', ui.summaryText());
+  const g = tag('grinder', gui.summaryText());
+  if (product === 'grinder') return g;
+  if (product === 'set') return `${m}\n\n${g}`;
+  return m;
 }
 document.getElementById('btn-copy').addEventListener('click', async () => {
   try {
@@ -757,7 +795,8 @@ window.addEventListener('hashchange', applyFromHash);
 const ar = new ARExperience({
   getRoots: () => (product === 'grinder' ? [gmodel.root] : product === 'set' ? [model.root, gmodel.root] : [model.root]),
   getName: () => ({ machine: 'Linea-Mini-R', grinder: 'EG-1', set: 'Linea-Mini-R-und-EG-1' })[product],
-  getShareUrl: shareUrl,
+  // QR-Code: nur die gezeigte Kombination (kürzer, besser lesbar)
+  getShareUrl: () => shareUrl({ compact: true }),
 });
 const arBtn = document.getElementById('btn-ar');
 arBtn.addEventListener('click', () => ar.open(arBtn));
@@ -882,10 +921,11 @@ function setProduct(p, { animate = true, force = false } = {}) {
   applyLayout(p, animate);
   viewer.setFocus(FRAMES[p], animate && (changed || force));
   renderSetPanel();
+  renderVariants();
   if (!ARTIFACT) {
     clearTimeout(hashTimer);
     hashTimer = setTimeout(() => {
-      history.replaceState(null, '', `#cfg=${encodeConfig(config)}${productParam()}`);
+      history.replaceState(null, '', `#${linkCode()}${productParam()}`);
     }, 250);
   }
   if (changed) document.querySelector('.panel')?.scrollTo?.({ top: 0, behavior: animate ? 'smooth' : 'auto' });
@@ -964,11 +1004,189 @@ function renderSetPanel() {
   };
   fill(setRefs.cm, ui.finalSummary(), ['Gehäuse', 'Holzteile', 'Akzente']);
   fill(setRefs.cg, gui.finalSummary(), ['Gehäuse', 'Holz', 'Akzente']);
+  for (const [ref, p, name] of [
+    [setRefs.cm, 'machine', 'La Marzocco Linea Mini R'],
+    [setRefs.cg, 'grinder', 'Weber Workshops EG-1'],
+  ]) {
+    const V = config.variants[p];
+    const n = filledVariants(V).length;
+    ref.dots.parentElement.querySelector('.set-name').textContent = n > 1 ? `${name} · Variante ${V.active + 1}` : name;
+  }
   setRefs.seg.querySelectorAll('button').forEach((b) => {
     const on = b.dataset.id === config.grinder.side;
     b.classList.toggle('active', on);
     b.setAttribute('aria-pressed', String(on));
   });
+}
+
+// ---------- Variationen: bis zu 5 je Gerät, frei kombinierbar ----------
+const PRODUCT_NAME = { machine: 'Maschine', grinder: 'Mühle' };
+const variantBar = document.getElementById('variant-bar');
+const variantSkip = document.getElementById('variant-skip');
+const finalVariants = document.getElementById('final-variants');
+
+/** Farbpunkte und Kurztext einer Variante */
+function describeVariant(p, i) {
+  const V = config.variants[p];
+  const cfg = i === V.active ? config : applyVariant(p, config, V.list[i]);
+  const rows = p === 'grinder' ? gui.finalSummary(cfg) : ui.finalSummary(cfg);
+  const labels = p === 'grinder' ? ['Gehäuse', 'Holz', 'Akzente'] : ['Gehäuse', 'Holzteile', 'Akzente'];
+  const pick = labels.map((l) => rows.find(([x]) => x === l)).filter(Boolean);
+  return { dots: pick.map(([, , bg]) => bg), text: pick.map(([, v]) => v.split(' · ')[0].replace(/ \(.*\)$/, '')).join(' · ') };
+}
+
+/** Variante zeigen; ein leerer Platz wird als Kopie der aktuellen Variante angelegt */
+function switchVariant(p, idx) {
+  const V = config.variants[p];
+  if (idx === V.active || idx < 0 || idx >= MAX_VARIANTS) return;
+  syncVariants();
+  const from = V.active;
+  const created = !V.list[idx];
+  if (created) V.list[idx] = clone(V.list[from]);
+  V.active = idx;
+  const next = sanitize(applyVariant(p, config, V.list[idx]));
+  prepareWoods(next, () => {
+    config = next;
+    applyAll();
+    if (!created) viewer.flash(mm, SLOTS_OF[p]);
+    commit();
+    if (!finalCard.hidden) updateFinalCard();
+    toast(created ? `Variante ${idx + 1} angelegt (Kopie von ${from + 1}) – jetzt anpassen` : `${PRODUCT_NAME[p]}: Variante ${idx + 1}`);
+  });
+}
+
+/** Variante entfernen (mindestens eine bleibt) */
+function deleteVariant(p, idx) {
+  const V = config.variants[p];
+  if (filledVariants(V).length < 2 || !V.list[idx]) return;
+  syncVariants();
+  if (idx !== V.active) {
+    V.list[idx] = null;
+    commit();
+    toast(`Variante ${idx + 1} gelöscht`);
+    return;
+  }
+  const target = stepVariant(V, -1);
+  V.list[idx] = null;
+  V.active = target;
+  const next = sanitize(applyVariant(p, config, V.list[target]));
+  prepareWoods(next, () => {
+    config = next;
+    applyAll();
+    viewer.flash(mm, SLOTS_OF[p]);
+    commit();
+    toast(`Variante ${idx + 1} gelöscht – Variante ${target + 1} wird gezeigt`);
+  });
+}
+
+const vmk = (tag, cls, text) => {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined) n.textContent = text;
+  return n;
+};
+
+/** Knöpfe 1–5 eines Geräts; showEmpty: freie Plätze als "+" zum Anlegen */
+function variantButtons(p, showEmpty) {
+  const V = config.variants[p];
+  const wrap = vmk('div', 'variant-list');
+  wrap.setAttribute('role', 'group');
+  wrap.setAttribute('aria-label', `Variationen ${PRODUCT_NAME[p]}`);
+  for (let i = 0; i < MAX_VARIANTS; i++) {
+    const v = V.list[i];
+    if (!v && !showEmpty) continue;
+    const b = vmk('button', `variant${v ? '' : ' empty'}${i === V.active ? ' active' : ''}`);
+    b.type = 'button';
+    b.dataset.product = p;
+    b.dataset.index = String(i);
+    b.append(vmk('span', 'v-num', String(i + 1)));
+    if (v) {
+      const d = describeVariant(p, i);
+      const dots = vmk('span', 'v-dots');
+      for (const bg of d.dots) {
+        const dot = vmk('span');
+        dot.style.background = bg;
+        dots.append(dot);
+      }
+      b.append(dots);
+      b.title = `Variante ${i + 1}: ${d.text}`;
+      b.setAttribute('aria-pressed', String(i === V.active));
+    } else {
+      b.append(vmk('span', 'v-plus', '+'));
+      b.title = `Variante ${i + 1} anlegen (Kopie der aktuellen Variante)`;
+    }
+    b.setAttribute('aria-label', b.title);
+    b.addEventListener('click', () => switchVariant(p, i));
+    wrap.append(b);
+  }
+  return wrap;
+}
+
+/** Zeile zum Durchschalten: ‹  1 2 3  › */
+function variantStepper(p, { compact = false } = {}) {
+  const V = config.variants[p];
+  const row = vmk('div', `variant-row${compact ? ' compact' : ''}`);
+  row.dataset.product = p;
+  const prev = vmk('button', 'v-step', '‹');
+  prev.type = 'button';
+  prev.setAttribute('aria-label', `Vorherige Variante ${PRODUCT_NAME[p]}`);
+  prev.addEventListener('click', () => switchVariant(p, stepVariant(config.variants[p], -1)));
+  const next = vmk('button', 'v-step', '›');
+  next.type = 'button';
+  next.setAttribute('aria-label', `Nächste Variante ${PRODUCT_NAME[p]}`);
+  next.addEventListener('click', () => switchVariant(p, stepVariant(config.variants[p], 1)));
+  const filled = filledVariants(V);
+  row.append(vmk('span', 'v-label', PRODUCT_NAME[p]));
+  if (compact) {
+    row.append(prev, vmk('span', 'v-count', `${filled.indexOf(V.active) + 1} / ${filled.length}`), next);
+    row.title = `${PRODUCT_NAME[p]}: Variante ${V.active + 1} – ${describeVariant(p, V.active).text}`;
+  } else row.append(prev, variantButtons(p, false), next);
+  return row;
+}
+
+/** Alle Ansichten der Variationen aktualisieren (Panel, Schnellumschalter, Abschlusskarte) */
+function renderVariants() {
+  if (!variantBar) return;
+  const many = (p) => filledVariants(config.variants[p]).length > 1;
+  // Panel
+  variantBar.replaceChildren();
+  if (product === 'set') {
+    const head = vmk('div', 'variant-head');
+    head.append(vmk('span', 'label', 'Varianten vergleichen'));
+    variantBar.append(head);
+    if (many('machine') || many('grinder')) {
+      for (const p of VARIANT_PRODUCTS) if (many(p)) variantBar.append(variantStepper(p));
+      variantBar.append(vmk('p', 'hint-text small', 'Maschine und Mühle unabhängig wählen – z. B. Maschine Variante 2 mit Mühle Variante 1.'));
+    } else {
+      variantBar.append(vmk('p', 'hint-text small', 'In Schritt 1 und 2 lassen sich je Gerät bis zu fünf Varianten anlegen, die du hier kombinierst.'));
+    }
+  } else {
+    const p = product;
+    const V = config.variants[p];
+    const head = vmk('div', 'variant-head');
+    head.append(vmk('span', 'label', `Variationen der ${p === 'machine' ? 'Maschine' : 'Mühle'}`));
+    if (many(p)) {
+      const del = vmk('button', 'v-delete', `Variante ${V.active + 1} löschen`);
+      del.type = 'button';
+      del.addEventListener('click', () => deleteVariant(p, V.active));
+      head.append(del);
+    }
+    variantBar.append(head, variantButtons(p, true));
+    if (!many(p)) variantBar.append(vmk('p', 'hint-text small', 'Unentschlossen? Mit „+“ eine weitere Variante anlegen – beim Abschluss schaltest du zwischen allen hin und her.'));
+  }
+  // Schnellumschalter im 3D-Bereich
+  const skipProducts = (product === 'set' ? VARIANT_PRODUCTS : [product]).filter(many);
+  variantSkip.replaceChildren(...skipProducts.map((p) => variantStepper(p, { compact: true })));
+  variantSkip.hidden = !skipProducts.length;
+  viewerEl.dataset.variants = skipProducts.length ? '1' : '';
+  // Abschlusskarte
+  const finalProducts = (product === 'set' ? VARIANT_PRODUCTS : [product]).filter(many);
+  finalVariants.replaceChildren();
+  if (finalProducts.length) {
+    finalVariants.append(vmk('p', 'final-variants-title', 'Varianten durchschalten'));
+    for (const p of finalProducts) finalVariants.append(variantStepper(p));
+  }
+  finalVariants.hidden = !finalProducts.length;
 }
 
 // ---------- Konfiguration abschließen: Montage-Animation ----------
@@ -1027,15 +1245,36 @@ const nextBtn = document.getElementById('final-next');
 function finalRows() {
   if (product === 'grinder') return gui.finalSummary();
   if (product === 'set') {
-    const m = ui.finalSummary().slice(0, 3).map(([l, v, bg]) => [`Maschine · ${l}`, v, bg]);
-    const g = gui.finalSummary().slice(0, 3).map(([l, v, bg]) => [`Mühle · ${l}`, v, bg]);
+    const vt = (p) => (filledVariants(config.variants[p]).length > 1 ? ` V${config.variants[p].active + 1}` : '');
+    const m = ui.finalSummary().slice(0, 3).map(([l, v, bg]) => [`Maschine${vt('machine')} · ${l}`, v, bg]);
+    const g = gui.finalSummary().slice(0, 3).map(([l, v, bg]) => [`Mühle${vt('grinder')} · ${l}`, v, bg]);
     return [...m, ...g];
   }
   return ui.finalSummary();
 }
 function openFinalCard() {
   showUi.hidden = true;
-  document.getElementById('final-title').textContent = { machine: 'Deine Linea Mini R', grinder: 'Deine EG-1', set: 'Dein Set' }[product];
+  updateFinalCard();
+  finalCard.hidden = false;
+  renderVariants();
+  (nextBtn.hidden ? document.getElementById('final-shot') : nextBtn).focus({ preventScroll: true });
+  // Maschine neben (Desktop) bzw. über (Handy) die Karte rücken
+  requestAnimationFrame(() => {
+    const v = viewerEl.getBoundingClientRect();
+    const c = finalCard.getBoundingClientRect();
+    if (c.left > v.left + v.width * 0.45) viewer.setFrameShift((v.right - c.left) / 2 + 8, 0);
+    else viewer.setFrameShift(0, (v.bottom - c.top) / 2 - 20);
+  });
+}
+
+/** Titel, Nummer und Eckdaten der Abschlusskarte (auch nach dem Umschalten einer Variante) */
+function updateFinalCard() {
+  const vtag = (p) => (filledVariants(config.variants[p]).length > 1 ? ` · V${config.variants[p].active + 1}` : '');
+  document.getElementById('final-title').textContent = {
+    machine: `Deine Linea Mini R${vtag('machine')}`,
+    grinder: `Deine EG-1${vtag('grinder')}`,
+    set: 'Dein Set',
+  }[product];
   document.getElementById('final-code').textContent =
     product === 'grinder' ? gui.configCode() : product === 'set' ? `${ui.configCode()} + ${gui.configCode()}` : ui.configCode();
   nextBtn.hidden = product === 'set';
@@ -1058,15 +1297,6 @@ function openFinalCard() {
     row.append(dt, dd);
     dl.append(row);
   }
-  finalCard.hidden = false;
-  (nextBtn.hidden ? document.getElementById('final-shot') : nextBtn).focus({ preventScroll: true });
-  // Maschine neben (Desktop) bzw. über (Handy) die Karte rücken
-  requestAnimationFrame(() => {
-    const v = viewerEl.getBoundingClientRect();
-    const c = finalCard.getBoundingClientRect();
-    if (c.left > v.left + v.width * 0.45) viewer.setFrameShift((v.right - c.left) / 2 + 8, 0);
-    else viewer.setFrameShift(0, (v.bottom - c.top) / 2 - 20);
-  });
 }
 
 function resetShowText() {

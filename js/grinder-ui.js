@@ -331,8 +331,7 @@ export class GrinderUI extends ConfiguratorUI {
     return `EG1-${h.toString(36).toUpperCase().padStart(7, '0').slice(-7)}`;
   }
 
-  finalSummary() {
-    const cfg = this.opts.getConfig();
+  finalSummary(cfg = this.opts.getConfig()) {
     const rows = [];
     const h = resolveBody(cfg.slots['gbody.housing']);
     const same = (keys) => keys.every((k) => JSON.stringify(cfg.slots[k]) === JSON.stringify(cfg.slots[keys[0]]));

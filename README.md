@@ -6,7 +6,17 @@ Ablauf in drei Schritten (Umschalter oben im Panel):
 
 1. **Maschine** – Linea Mini R gestalten, „Maschine abschließen“ zeigt die Montage, danach geht es mit „Weiter zur Mühle“ zum nächsten Schritt
 2. **Mühle** – EG-1 im gleichen Funktionsumfang gestalten, auf Wunsch mit „Wie meine Maschine“ an die Maschine angleichen
-3. **Zusammen** – beide Geräte nebeneinander (Mühle links oder rechts), Präsentation und „Beide in AR ansehen"
+3. **Zusammen** – beide Geräte nebeneinander (Mühle links oder rechts), Präsentation und „Beide in AR ansehen“
+
+## Variationen
+
+Wer sich nicht festlegen will, legt je Gerät bis zu **fünf Varianten** an – für Maschine und Mühle getrennt (z. B. Maschine 1 All Black, 2 Elfenbein · Gold mit Olive, 3 Grau · Walnuss; Mühle 1 Onyx, 2 Kieferngrün · Gold).
+
+- **Anlegen**: In der Leiste „Variationen“ oben im Panel einen freien Platz („+“) antippen – die neue Variante startet als Kopie der aktuellen und wird dann angepasst. Alles, was man ändert (Presets, Farben, Holz, Teile), gilt für die gerade aktive Variante.
+- **Wechseln**: Nummer antippen; die anderen Varianten bleiben unverändert gespeichert. „Variante n löschen“ entfernt die aktive Variante (eine bleibt immer).
+- **Durchschalten und kombinieren**: In der gemeinsamen Ansicht erscheint im 3D-Bereich ein Schnellumschalter („Maschine ‹ 2 / 3 ›  Mühle ‹ 1 / 2 ›“); im Panel und auf der Abschlusskarte lassen sich Maschine und Mühle unabhängig voneinander wählen, z. B. Maschine Variante 2 mit Mühle Variante 1. Liste, Konfigurationsnummer und Bild folgen der gezeigten Kombination.
+- **AR** zeigt immer die gerade gewählte Kombination.
+- Varianten werden im Browser gespeichert und stecken im Teilen-Link; der QR-Code für den Wechsel aufs Handy enthält nur die gezeigte Kombination (kürzer, besser lesbar).
 
 ## Funktionen
 
@@ -122,6 +132,7 @@ js/lighting.js      Lichtstimmungen (Umgebung, Lichter, Hintergrund, Überblendu
 js/assembly.js      Montage-Animation "Konfiguration abschließen" (Ablaufplan, Flugbahnen, Kamerafahrt)
 js/grinder.js       Prozedurales 3D-Modell der Mühle EG-1 inkl. Innenleben und Montageplan
 js/grinder-ui.js    Konfigurations-Panel der Mühle (nutzt die Bausteine aus ui.js)
+js/variants.js      Variationen: Speichern, Prüfen und Umschalten der Fassungen je Gerät
 js/ar.js            AR-Ansicht: Export der Konfiguration als USDZ/GLB, Dialog, QR-Code
 js/materials.js     Materialien je Bauteil-Gruppe (Lack, Holz, Metall)
 js/textures.js      Prozedurale Texturen: Pulverlack-Struktur, Metallic-Lack, Gitter, Zifferblätter

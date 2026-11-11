@@ -1141,8 +1141,7 @@ export class ConfiguratorUI {
   }
 
   /** Eckdaten der Konfiguration für die Abschlusskarte: [Bereich, Wert, Farbfeld] */
-  finalSummary() {
-    const cfg = this.opts.getConfig();
+  finalSummary(cfg = this.opts.getConfig()) {
     const rows = [];
     const common = (keys, fn) => {
       const vals = keys.map((k) => fn(k));
