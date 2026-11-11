@@ -152,11 +152,14 @@ Alternativ `npx serve .` oder die „Live Server“-Erweiterung in VS Code.
 
 ### Online stellen
 
-Der Konfigurator besteht nur aus statischen Dateien und läuft auf jedem Webspace mit https. Erst online funktionieren der teilbare Link mit Konfiguration, der QR-Code und die AR-Ansicht auf dem Handy.
+Der Konfigurator besteht nur aus statischen Dateien (rund 3 MB) und läuft auf jedem Webspace mit https. Erst online funktionieren der teilbare Link mit Konfiguration, der QR-Code und die AR-Ansicht auf dem Handy. Schritt-für-Schritt-Anleitung und eine Nachrichtenvorlage zum Verschicken: **[TEILEN.md](TEILEN.md)**.
 
-- **GitHub Pages**: Im Repository unter **Settings → Pages** als Quelle „Deploy from a branch“ wählen, den gewünschten Branch und den Ordner `/ (root)` angeben. Danach ist der Konfigurator unter `https://<benutzer>.github.io/<repository>/` erreichbar. Bei einem privaten Repository setzt das einen bezahlten GitHub-Tarif voraus; im kostenlosen Tarif muss das Repository öffentlich sein.
-- **Netlify, Vercel oder Cloudflare Pages**: Repository verbinden, kein Build-Befehl, Ausgabeordner ist das Hauptverzeichnis. Das geht auch mit einem privaten Repository kostenlos.
-- **Eigener Webspace**: alle Dateien unverändert hochladen.
+- **Netlify (empfohlen)**: Repository verbinden, Branch wählen, kein Build-Befehl – die Einstellungen stehen in `netlify.toml`. Kostenlos, auch mit privatem Repository, und jede Änderung ist automatisch online. Ohne GitHub geht es per Drag-and-drop des Website-Pakets auf [app.netlify.com/drop](https://app.netlify.com/drop).
+- **Cloudflare Pages oder Vercel**: genauso, Ausgabeordner ist das Hauptverzeichnis.
+- **GitHub Pages**: unter **Settings → Pages** „Deploy from a branch“, Branch und `/ (root)` wählen (`.nojekyll` liegt bereit). Bei einem privaten Repository setzt das einen bezahlten GitHub-Tarif voraus.
+- **Eigener Webspace**: `index.html`, `css/`, `js/`, `img/` und `vendor/` unverändert hochladen.
+
+Die Seite ist für Suchmaschinen gesperrt (`noindex`, `robots.txt`); für Link-Vorschauen in Messengern gibt es Titel, Beschreibung und ein Vorschaubild (`img/preview.jpg`).
 
 ## Projektstruktur
 
@@ -172,6 +175,8 @@ js/grinder-ui.js    Konfigurations-Panel der Mühle (nutzt die Bausteine aus ui.
 js/devices.js       Geräteliste (registerDevice), Standardvarianten, Bauteil-Bezeichnungen
 js/device-ui.js     Konfigurations-Panel für die weiteren Geräte (Slots, Presets, Optionen)
 js/parts.js         Gemeinsame Bauteile: Baukasten, Profile, Blechschalen, Manometer, Schrauben, Logo
+netlify.toml        Einstellungen für Netlify (kein Build, Hauptverzeichnis veröffentlichen)
+TEILEN.md           Anleitung: Konfigurator online stellen und verschicken
 js/devices/*.js     Je ein Gerät: Linea Micra, Linea Mini, GS3, Linea PB/PB X, Rocket Appartamento, Pico, E64 WS, Niche Zero/Duo, Bentwood H75
 js/variants.js      Variationen: Speichern, Prüfen und Umschalten der Fassungen je Gerät
 js/ar.js            AR-Ansicht: Export der Konfiguration als USDZ/GLB, Dialog, QR-Code
