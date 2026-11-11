@@ -2,7 +2,7 @@
 // Material-Verwaltung: ein Satz Materialien pro konfigurierbarem Slot.
 // ---------------------------------------------------------------------------
 import * as THREE from 'three';
-import { categoryOf, resolveBody, resolveMetal, resolveWood } from './data.js';
+import { kindOf, baseSlotOf, resolveBody, resolveMetal, resolveWood } from './data.js';
 import { getFlakeNormalMap, getSparkleMaps, getPowderNormalMap } from './textures.js';
 import { getWoodTextures } from './wood.js';
 
@@ -77,7 +77,7 @@ export class MaterialManager {
   applySlot(slot, value, config) {
     const mats = this.slots.get(slot);
     if (!mats) return;
-    const cat = categoryOf(slot);
+    const cat = kindOf(slot);
     for (const m of mats) {
       if (cat === 'body') applyPaint(m, resolveBody(value), value.finish);
       else if (cat === 'wood') applyWood(m, resolveWood(value), value.finish);
@@ -89,7 +89,7 @@ export class MaterialManager {
           applyPaint(m, metal, value.finish);
         } else if (metal.kind === 'body' && config) {
           // Akzent in Gehäusefarbe (wie Basis & Tropfschale)
-          const base = config.slots['body.base'];
+          const base = config.slots[baseSlotOf(slot)];
           applyPaint(m, resolveBody(base), base.finish);
         } else applyMetal(m, metal.kind === 'body' ? { ...metal, kind: 'uni' } : metal, value.finish);
       }

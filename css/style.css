@@ -489,9 +489,193 @@ body.ready .loader {
   font-size: 14px;
 }
 
-#config {
+#config,
+#config-grinder,
+#config-set {
   padding: 0 20px;
   flex: 1;
+}
+
+#config[hidden],
+#config-grinder[hidden],
+#config-set[hidden] {
+  display: none;
+}
+
+/* Produkt-Umschalter: Maschine · Mühle · Zusammen */
+.product-switch {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin: 16px 0 0;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+}
+
+.product-switch button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink-soft);
+  text-align: left;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.product-switch button:hover {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.product-switch button.active {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+
+.ps-num {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.product-switch button.active .ps-num {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.ps-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.ps-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ps-sub {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Mühle: an die Maschine angleichen */
+.match-machine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+}
+
+.match-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.match-text strong {
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.match-machine .btn {
+  flex: none;
+  background: var(--surface);
+}
+
+/* Zusammen: beide Geräte im Überblick */
+.set-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 18px !important;
+}
+
+.set-intro {
+  margin: 0 8px;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.set-cards {
+  display: grid;
+  gap: 10px;
+  margin: 0 8px;
+}
+
+.set-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.set-dots {
+  display: flex;
+}
+
+.set-dots span {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--surface);
+  box-shadow: 0 0 0 1px var(--line-strong);
+}
+
+.set-dots span + span {
+  margin-left: -6px;
+}
+
+.set-name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.set-desc {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.set-panel .field {
+  margin: 0 8px;
+}
+
+.set-actions {
+  display: grid;
+  gap: 8px;
+  margin: 0 8px;
+}
+
+.set-panel .hint-text {
+  margin: 0 8px;
 }
 
 .block {
@@ -1751,6 +1935,14 @@ body.ready .loader {
   gap: 8px;
 }
 
+.final-actions .btn.next {
+  grid-column: 1 / -1;
+}
+
+.final-actions .btn[hidden] {
+  display: none;
+}
+
 .final-actions .btn.ghost {
   grid-column: 1 / -1;
   padding: 8px;
@@ -1955,8 +2147,19 @@ body.ready .loader {
     font-size: 22px;
   }
 
-  #config {
+  #config,
+  #config-grinder,
+  #config-set {
     padding: 0 8px;
+  }
+
+  .product-switch button {
+    padding: 7px 6px;
+    gap: 6px;
+  }
+
+  .ps-sub {
+    display: none;
   }
 
   .actions {

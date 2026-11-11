@@ -30,6 +30,9 @@ export class Viewer {
     this.dirty = true;
     this.tween = null;
     this.highlight = null;
+    // Drehpunkt und Abstandsfaktor der Kamera (Maschine, Mühle oder beide)
+    this.focus = { target: TARGET.clone(), scale: 1 };
+    this.models = [];
 
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -81,13 +84,14 @@ export class Viewer {
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
     scene.add(ground);
-    const contact = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.62, 0.72),
-      new THREE.MeshBasicMaterial({ map: makeContactShadowTexture(), transparent: true, depthWrite: false, toneMapped: false }),
-    );
-    contact.rotation.x = -Math.PI / 2;
-    contact.position.set(0, 0.0006, -0.005);
+    // Kontaktschatten je Gerät; alle teilen ein Material (Deckkraft je Lichtstimmung)
+    const contactMat = new THREE.MeshBasicMaterial({ map: makeContactShadowTexture(), transparent: true, depthWrite: false, toneMapped: false });
+    const contact = new THREE.Group();
+    contact.material = contactMat;
     scene.add(contact);
+    this.contactMat = contactMat;
+    this.contacts = new Map();
+    this.shadowCams = { key: key.shadow.camera, sky: sky.shadow.camera };
 
     // Lichtstimmungen (Umgebung, Lichter, Belichtung, Schatten, Barista-Licht)
     this.rig = new LightingRig({ renderer, scene, key, rim, hemi, ground, contact });
@@ -157,11 +161,80 @@ export class Viewer {
     this.model = model;
     // Modell so verschieben, dass es um seine Mitte rotiert
     model.root.position.z = 0.064;
-    this.scene.add(model.root);
     this.rig.model = model;
     model.setBarista(this.rig.baristaLevel ?? 0);
-    this.pickables = model.pickables;
+    this.addModel(model, { w: 0.62, d: 0.72, z: -0.069 });
+  }
+
+  /**
+   * Weiteres Gerät in die Szene stellen (z. B. die Mühle).
+   * @param {{w:number,d:number,z?:number}} shadow  Größe des Kontaktschattens (m), Versatz in Z
+   */
+  addModel(model, shadow) {
+    this.scene.add(model.root);
+    this.models.push(model);
+    const c = new THREE.Mesh(new THREE.PlaneGeometry(shadow.w, shadow.d), this.contactMat);
+    c.rotation.x = -Math.PI / 2;
+    c.userData.dz = shadow.z || 0;
+    this.rig.contact.add(c);
+    this.contacts.set(model, c);
+    this.pickables = this.models.flatMap((m) => m.pickables);
+    this.syncContacts();
     this.dirty = true;
+  }
+
+  /** Kontaktschatten an Position und Sichtbarkeit der Geräte anpassen */
+  syncContacts() {
+    for (const [m, c] of this.contacts) {
+      c.visible = m.root.visible;
+      c.position.set(m.root.position.x, 0.0006, m.root.position.z + c.userData.dz);
+    }
+    this.dirty = true;
+  }
+
+  /**
+   * Drehpunkt und Abstand der Kamera wechseln (weich), z. B. Maschine -> beide Geräte.
+   * @param {{target: number[], scale: number, maxDistance?: number, shadow?: number}} f
+   */
+  setFocus(f, animate = true) {
+    const oldT = this.focus.target.clone();
+    const oldS = this.focus.scale;
+    this.focus = { target: new THREE.Vector3(...f.target), scale: f.scale };
+    this.controls.maxDistance = f.maxDistance ?? 2.2 * f.scale;
+    this.controls.minDistance = 0.55 * Math.min(1, f.scale);
+    // Schattenkameras auf den größeren Bereich ausdehnen
+    const k = f.shadow ?? 1;
+    Object.assign(this.shadowCams.key, { left: -0.7 * k, right: 0.7 * k, top: 0.7 * k, bottom: -0.7 * k });
+    Object.assign(this.shadowCams.sky, { left: -0.62 * k, right: 0.62 * k, top: 0.62 * k, bottom: -0.62 * k });
+    this.shadowCams.key.updateProjectionMatrix();
+    this.shadowCams.sky.updateProjectionMatrix();
+    this.sky.target.position.set(this.focus.target.x, 0.14, this.focus.target.z);
+    this.sky.target.updateMatrixWorld();
+    // aktuelle Blickrichtung behalten, Abstand mitskalieren
+    const rel = this.camera.position.clone().sub(oldT);
+    const sph = new THREE.Spherical().setFromVector3(rel);
+    sph.radius *= f.scale / oldS;
+    const to = new THREE.Vector3().setFromSpherical(sph).add(this.focus.target);
+    this.#stopDamping();
+    if (!animate) {
+      this.camera.position.copy(to);
+      this.controls.target.copy(this.focus.target);
+      this.controls.update();
+      this.dirty = true;
+      return;
+    }
+    this.#startTween(oldT, to);
+  }
+
+  /** Kamerafahrt vom aktuellen Standpunkt zu `to` (Drehpunkt wandert von fromT zum aktuellen Fokus) */
+  #startTween(fromT, to) {
+    const T = this.focus.target;
+    const from = new THREE.Spherical().setFromVector3(this.camera.position.clone().sub(fromT));
+    const target = new THREE.Spherical().setFromVector3(to.clone().sub(T));
+    let dTheta = target.theta - from.theta;
+    while (dTheta > Math.PI) dTheta -= Math.PI * 2;
+    while (dTheta < -Math.PI) dTheta += Math.PI * 2;
+    this.tween = { from, dTheta, target, fromT: fromT.clone(), toT: T.clone(), t: 0, duration: 1.1 };
   }
 
   on(event, fn) {
@@ -229,9 +302,10 @@ export class Viewer {
     const cam = this.camera;
     const dir = this.controls.target.clone().sub(cam.position);
     const dist = dir.length();
-    if (!this.model) return dist;
+    if (!this.models.length) return dist;
     this.raycaster.set(cam.position, dir.normalize());
-    const hit = this.raycaster.intersectObject(this.model.root, true).find((h) => h.object.isMesh && this.#shown(h.object));
+    const roots = this.models.map((m) => m.root).filter((r) => r.visible);
+    const hit = this.raycaster.intersectObjects(roots, true).find((h) => h.object.isMesh && this.#shown(h.object));
     return hit ? Math.max(0.15, hit.distance) : dist;
   }
 
@@ -276,28 +350,21 @@ export class Viewer {
   setView(name, animate = true) {
     const v = VIEWS[name];
     if (!v) return;
+    const T = this.focus.target;
+    const d = v.dist * this.focus.scale;
     const az = THREE.MathUtils.degToRad(v.az);
     const el = THREE.MathUtils.degToRad(v.el);
-    const to = new THREE.Vector3(
-      TARGET.x + v.dist * Math.cos(el) * Math.sin(az),
-      TARGET.y + v.dist * Math.sin(el),
-      TARGET.z + v.dist * Math.cos(el) * Math.cos(az),
-    );
+    const to = new THREE.Vector3(T.x + d * Math.cos(el) * Math.sin(az), T.y + d * Math.sin(el), T.z + d * Math.cos(el) * Math.cos(az));
     this.#stopDamping();
     if (!animate) {
       this.camera.position.copy(to);
-      this.controls.target.copy(TARGET);
+      this.controls.target.copy(T);
       this.controls.update();
       this.dirty = true;
       return;
     }
-    // Interpolation in Kugelkoordinaten -> echte Kamerafahrt um die Maschine
-    const from = new THREE.Spherical().setFromVector3(this.camera.position.clone().sub(TARGET));
-    const target = new THREE.Spherical().setFromVector3(to.clone().sub(TARGET));
-    let dTheta = target.theta - from.theta;
-    while (dTheta > Math.PI) dTheta -= Math.PI * 2;
-    while (dTheta < -Math.PI) dTheta += Math.PI * 2;
-    this.tween = { from, dTheta, target, t: 0, duration: 1.1 };
+    // Interpolation in Kugelkoordinaten -> echte Kamerafahrt um das Gerät
+    this.#startTween(this.controls.target.clone(), to);
   }
 
   /** Restbewegung der gedämpften Steuerung (z. B. nach Auto-Rotation) verwerfen */
@@ -404,8 +471,9 @@ export class Viewer {
         THREE.MathUtils.lerp(tw.from.phi, tw.target.phi, k),
         tw.from.theta + tw.dTheta * k,
       );
-      this.camera.position.setFromSpherical(s).add(TARGET);
-      this.controls.target.copy(TARGET);
+      const T = tw.fromT.clone().lerp(tw.toT, k);
+      this.camera.position.setFromSpherical(s).add(T);
+      this.controls.target.copy(T);
       if (tw.t >= 1) this.tween = null;
       this.dirty = true;
     }

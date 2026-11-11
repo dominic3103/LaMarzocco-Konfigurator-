@@ -29,7 +29,7 @@
         <div class="viewer-top">
           <div class="brand">
             <span class="brand-eyebrow">360° Konfigurator</span>
-            <span class="brand-name">Linea Mini R</span>
+            <span class="brand-name" id="brand-name">Linea Mini R</span>
           </div>
           <div class="viewer-actions">
             <div class="light-menu">
@@ -87,7 +87,8 @@
           <p class="final-code">Konfigurationsnummer <strong id="final-code"></strong></p>
           <dl class="final-list" id="final-list"></dl>
           <div class="final-actions">
-            <button class="btn primary" id="final-shot" type="button">Bild speichern</button>
+            <button class="btn primary next" id="final-next" type="button">Weiter zur Mühle</button>
+            <button class="btn" id="final-shot" type="button">Bild speichern</button>
             <button class="btn" id="final-copy" type="button">Liste kopieren</button>
             <button class="btn" id="final-replay" type="button">Nochmal ansehen</button>
           <button class="btn" id="final-ar" type="button">In AR ansehen</button>
@@ -101,14 +102,21 @@
 
       <aside class="panel" aria-label="Konfiguration">
         <header class="panel-head">
-          <p class="eyebrow">Individuelle Gestaltung</p>
-          <h1>Deine Linea Mini R</h1>
-          <p class="lede">Gehäuse, Holz und Metallakzente frei kombinieren – jede Änderung siehst du sofort in 360°.</p>
+          <p class="eyebrow" id="panel-eyebrow">Individuelle Gestaltung</p>
+          <h1 id="panel-title">Deine Linea Mini R</h1>
+          <p class="lede" id="panel-lede">Gehäuse, Holz und Metallakzente frei kombinieren – jede Änderung siehst du sofort in 360°.</p>
+          <nav class="product-switch" id="product-switch" aria-label="Produkt wählen">
+            <button type="button" data-product="machine"><span class="ps-num">1</span><span class="ps-text"><span class="ps-name">Maschine</span><span class="ps-sub">Linea Mini R</span></span></button>
+            <button type="button" data-product="grinder"><span class="ps-num">2</span><span class="ps-text"><span class="ps-name">Mühle</span><span class="ps-sub">EG-1</span></span></button>
+            <button type="button" data-product="set"><span class="ps-num">3</span><span class="ps-text"><span class="ps-name">Zusammen</span><span class="ps-sub">Nebeneinander</span></span></button>
+          </nav>
         </header>
         <div id="config"></div>
+        <div id="config-grinder" hidden></div>
+        <div id="config-set" class="set-panel" hidden></div>
         <footer class="actions">
           <button class="btn finish" id="btn-finish" type="button">
-            <span>Konfiguration abschließen</span>
+            <span id="finish-label">Konfiguration abschließen</span>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
           <button class="btn" id="btn-share" type="button">Link teilen</button>

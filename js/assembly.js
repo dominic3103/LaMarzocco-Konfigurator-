@@ -85,11 +85,17 @@ export class AssemblyShow {
    * @param {import('./viewer.js').Viewer} viewer
    * @param {{root: THREE.Group, skeleton: THREE.Group}} model
    * @param {{onStage?: Function, onProgress?: Function, onDone?: Function}} hooks
+   * @param {{stages?: object[], isInner?: Function, target?: number[], dist?: number}} opts
+   *   eigener Ablaufplan (z. B. für die Mühle), Drehpunkt und Abstandsfaktor der Kamera
    */
-  constructor(viewer, model, hooks = {}) {
+  constructor(viewer, model, hooks = {}, opts = {}) {
     this.viewer = viewer;
     this.model = model;
     this.hooks = hooks;
+    this.stages = opts.stages || STAGES;
+    this.isInner = opts.isInner || isInnerStage;
+    this.target = opts.target ? new THREE.Vector3(...opts.target) : TARGET.clone();
+    this.dist = opts.dist || 1;
     this.items = [];
     this.timeline = [];
     this.running = false;
@@ -115,7 +121,7 @@ export class AssemblyShow {
     let first = true;
     let innerEnd = 0;
     let outerStart = null;
-    for (const st of STAGES) {
+    for (const st of this.stages) {
       const pool = st.src === 'skeleton' ? this.model.skeleton.children : this.model.root.children;
       const objs = pool.filter((o) => o.userData.stage === st.id && o.visible && (o.isMesh || o.isGroup));
       const parts = [];
@@ -130,7 +136,7 @@ export class AssemblyShow {
       }
       first = false;
       const start = t;
-      if (!isInnerStage(st.id) && outerStart === null) outerStart = start;
+      if (!this.isInner(st.id) && outerStart === null) outerStart = start;
 
       if (st.grow) {
         // Leitungen wachsen nacheinander; Muttern ploppen an den Enden ein
@@ -162,7 +168,7 @@ export class AssemblyShow {
         });
       }
       const stageEnd = this.items.reduce((m, it) => Math.max(m, it.start + it.dur), 0);
-      if (isInnerStage(st.id)) innerEnd = stageEnd;
+      if (this.isInner(st.id)) innerEnd = stageEnd;
       this.timeline.push({ id: st.id, at: start, done: false });
     }
     const last = this.items.reduce((m, it) => Math.max(m, it.start + it.dur), 0);
@@ -313,15 +319,12 @@ export class AssemblyShow {
     const az = THREE.MathUtils.degToRad(azDeg);
     const el = THREE.MathUtils.degToRad(elDeg);
     const cam = this.viewer.camera;
-    dist *= this.distScale;
-    cam.position.set(
-      TARGET.x + dist * Math.cos(el) * Math.sin(az),
-      TARGET.y + dist * Math.sin(el),
-      TARGET.z + dist * Math.cos(el) * Math.cos(az),
-    );
+    dist *= this.distScale * this.dist;
+    const T = this.target;
+    cam.position.set(T.x + dist * Math.cos(el) * Math.sin(az), T.y + dist * Math.sin(el), T.z + dist * Math.cos(el) * Math.cos(az));
     if (jitter) cam.position.add(new THREE.Vector3((Math.random() - 0.5) * jitter, (Math.random() - 0.5) * jitter, (Math.random() - 0.5) * jitter));
-    this.viewer.controls.target.copy(TARGET);
-    cam.lookAt(TARGET);
+    this.viewer.controls.target.copy(T);
+    cam.lookAt(T);
   }
 
   /** Kamera entlang der Stützpunkte (weich interpoliert) */

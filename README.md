@@ -1,6 +1,12 @@
-# Linea Mini R – 360° Konfigurator
+# Linea Mini R & EG-1 – 360° Konfigurator
 
-Interaktiver 3D-Konfigurator ausschließlich für die Espressomaschine **Linea Mini R**. Die Maschine lässt sich frei um 360° drehen und in allen sichtbaren Materialien individuell gestalten.
+Interaktiver 3D-Konfigurator für die Espressomaschine **La Marzocco Linea Mini R** und die passende Mühle **Weber Workshops EG-1**. Beide Geräte lassen sich frei um 360° drehen, in allen sichtbaren Materialien gestalten und maßstabsgetreu nebeneinander ansehen – auf dem Bildschirm und in AR.
+
+Ablauf in drei Schritten (Umschalter oben im Panel):
+
+1. **Maschine** – Linea Mini R gestalten, „Maschine abschließen“ zeigt die Montage, danach geht es mit „Weiter zur Mühle“ zum nächsten Schritt
+2. **Mühle** – EG-1 im gleichen Funktionsumfang gestalten, auf Wunsch mit „Wie meine Maschine“ an die Maschine angleichen
+3. **Zusammen** – beide Geräte nebeneinander (Mühle links oder rechts), Präsentation und „Beide in AR ansehen"
 
 ## Funktionen
 
@@ -45,7 +51,43 @@ Interaktiver 3D-Konfigurator ausschließlich für die Espressomaschine **Linea M
   - Android: WebXR in Chrome (benötigt die „Google Play-Dienste für AR“), das Modell wird als GLB erzeugt
   - Am Rechner: QR-Code, der den Konfigurator mit derselben Konfiguration auf dem Handy öffnet und den AR-Dialog gleich anzeigt; dazu die Modelle als Datei (`.usdz`, `.glb`)
   - AR braucht eine über **https** erreichbare Seite, siehe „Online stellen“
-- **Link teilen**: Die komplette Konfiguration steckt als Kurzform im Link (`#z=…`, rund 450 Zeichen). **Bild speichern** (PNG), **Liste kopieren** (Textzusammenfassung).
+- **Link teilen**: Die komplette Konfiguration (Maschine und Mühle) steckt als Kurzform im Link (`#z=…`), dazu der geöffnete Schritt (`&p=grinder` bzw. `&p=set`). **Bild speichern** (PNG), **Liste kopieren** (Textzusammenfassung).
+
+## Mühle Weber Workshops EG-1
+
+Gleicher Funktionsumfang wie bei der Maschine:
+
+- **Gehäuse** (Korpus, Säule & Elektronikblock, Sockel) in allen IGP-/RAL-Tönen oder eigener Farbe, mit Oberfläche
+- **Metallakzente** einzeln oder zusammen: Seitenschienen & Frontblock, Frontkappe, Einstellring (Skala passt sich hell/dunkel an), Trichter, Becher (Blind Shaker), Becherteller, Drehzahlknopf, Schrauben, Logo – Metall/PVD, Lack, „Wie Gehäuse“ oder IGP/RAL
+- **Holz**: Holzauflage (Platen, ab Werk Eiche) und optional ein Holzdeckel für den Trichter, in allen Hölzern
+- **Mahlscheiben** CORE oder ULTRA (80 mm, für die Bestellliste) und die **Aufstellung** neben der Maschine
+- **Presets**: passend zu den Maschinen-Editionen, die EG-1 von rb.crafts (Kieferngrün · Gold, Grünton geschätzt) sowie die Werksausführungen Onyx und Silver
+- **Teile anklicken**, Auswahlkarte, Zusammenfassung, Bild speichern, Liste kopieren
+- **Montage-Animation** von null an: Sockel, Platine und Netzteil, Elektronikblock, Säule, Motor, Antrieb, Mahlscheiben, Kabel, dann Korpus, Schienen, Einstellring, Mahlkammer, Frontblock, Trichter, Becherteller, Becher, Knopf, Schrauben, Logo
+- **AR**: Mühle allein oder zusammen mit der Maschine in ihrer Aufstellung (iPhone/iPad über AR Quick Look, Android über WebXR)
+
+### Maße und Vermessung
+
+Herstellerangaben: **245 × 235 × 456 mm** (B × T × H), 13,5 kg, 80-mm-Flachmahlscheiben. Die Proportionen stammen aus den maßstäblichen Produktansichten von Weber Workshops (links, vorne, hinten): Maßstab über die Gesamthöhe, darüber ein Millimeterraster gelegt und Bauteil für Bauteil abgelesen. Wichtige Werte:
+
+| Bauteil | Maß |
+|---|---|
+| Korpus | 45° geneigt, 357 mm lang bis zum Frontblock, Motorgehäuse 106 mm, Mittelteil 100 mm (Achteck) |
+| Einstellring / Mahlkammer | Ø 116 / 114 mm |
+| Seitenschienen | 248 × 28 × 21 mm, außen 144 mm breit |
+| Säule / Elektronikblock | 26 × 80 mm / 52 × 78 × 128 mm |
+| Trichter | Ø 118 mm, Oberkante 382 mm |
+| Becher / Becherteller | Ø 77 × 70 mm / Ø 107 mm |
+| Sockel | zweistufig, 20 und 38 mm hoch, Griffmulde vorne |
+
+Zur Kontrolle wird eine orthografische Ansicht des Modells über die Herstellerzeichnungen gelegt: Korpus, Säule, Block, Trichter, Becher, Teller, Schienen und Frontblock decken sich in Seiten- und Frontansicht auf wenige Millimeter. Der Sockel folgt der aktuellen Ausführung (Fotos), die Zeichnungen zeigen noch das Vorgängermodell Mk.3 mit flacherem Sockel.
+
+### Quellen
+
+- [Weber Workshops – The EG-1](https://weberworkshops.com/products/eg-1) (aktuelle Ausführung, Fotos aus allen Richtungen, Varianten Silver/Onyx, CORE/ULTRA)
+- [Weber Workshops – The EG-1 Mk.3](https://weberworkshops.com/products/the-eg-1-renewed) (maßstäbliche Ansichten vorne, links, rechts, hinten)
+- [Eight Ounce Coffee – EG-1](https://eightouncecoffee.ca/products/weber-workshops-eg-1-coffee-grinder-variable-90v-240v) (Maße, Gewicht, Lieferumfang: Eichen-Platen, Blind Shaker)
+- [rb.crafts – Veredelung](https://www.rb-crafts.de/veredelung) (EG-1 in Grün mit goldenen Teilen)
 
 ## Starten
 
@@ -78,6 +120,8 @@ js/main.js          Einstieg: verbindet Modell, Materialien, Viewer und Oberflä
 js/model.js         Prozedurales 3D-Modell der Maschine (Maße in mm, nach Werkszeichnung + Fotos)
 js/lighting.js      Lichtstimmungen (Umgebung, Lichter, Hintergrund, Überblendung)
 js/assembly.js      Montage-Animation "Konfiguration abschließen" (Ablaufplan, Flugbahnen, Kamerafahrt)
+js/grinder.js       Prozedurales 3D-Modell der Mühle EG-1 inkl. Innenleben und Montageplan
+js/grinder-ui.js    Konfigurations-Panel der Mühle (nutzt die Bausteine aus ui.js)
 js/ar.js            AR-Ansicht: Export der Konfiguration als USDZ/GLB, Dialog, QR-Code
 js/materials.js     Materialien je Bauteil-Gruppe (Lack, Holz, Metall)
 js/textures.js      Prozedurale Texturen: Pulverlack-Struktur, Metallic-Lack, Gitter, Zifferblätter
@@ -143,4 +187,4 @@ Die Geometrie folgt den Maßzeichnungen (Front-, Seiten- und Rückansicht) im of
 
 ## Hinweis
 
-Das 3D-Modell ist eine eigene, vereinfachte Nachbildung auf Basis von Werkszeichnungen und Fotos. Es handelt sich nicht um ein offizielles Produkt des Herstellers. Marken- und Produktnamen gehören ihren jeweiligen Inhabern.
+Die 3D-Modelle sind eigene, vereinfachte Nachbildungen auf Basis von Werkszeichnungen, Herstellerangaben und Fotos. Es handelt sich nicht um offizielle Produkte von La Marzocco oder Weber Workshops; das Logo der Mühle ist nur angedeutet. Marken- und Produktnamen gehören ihren jeweiligen Inhabern.

@@ -216,16 +216,20 @@ function doubleSided(geo, ctx) {
  * Baut aus den sichtbaren Teilen der Maschine eine eigenständige Szene in Metern:
  * mittig über dem Ursprung, Füße auf Höhe 0, Front nach +Z.
  */
-export function buildARScene(root) {
-  root.updateWorldMatrix(true, true);
+export function buildARScene(input) {
+  // ein Gerät (relativ zu seiner Wurzel, Maße in mm) oder mehrere Geräte in ihrer Aufstellung (Welt, m)
+  const world = Array.isArray(input);
+  const roots = world ? input : [input];
   const ctx = { mats: new Map(), geos: new Map(), woods: new Map(), disposables: [] };
   const scene = new THREE.Scene();
   const group = new THREE.Group();
-  group.name = 'LineaMiniR';
+  group.name = 'Konfiguration';
   scene.add(group);
-  const inv = new THREE.Matrix4().copy(root.matrixWorld).invert();
   let meshes = 0;
   let triangles = 0;
+  for (const root of roots) {
+  root.updateWorldMatrix(true, true);
+  const inv = world ? new THREE.Matrix4() : new THREE.Matrix4().copy(root.matrixWorld).invert();
   root.traverseVisible((o) => {
     if (!o.isMesh || Array.isArray(o.material)) return;
     const src = o.material;
@@ -243,8 +247,9 @@ export function buildARScene(root) {
     meshes++;
     triangles += (geo.index ? geo.index.count : geo.attributes.position.count) / 3;
   });
-  // Modellmaße sind Millimeter
-  group.scale.setScalar(0.001);
+  }
+  // Modellmaße sind Millimeter (Weltkoordinaten sind schon in Metern)
+  if (!world) group.scale.setScalar(0.001);
   scene.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(group);
   group.position.set(-(box.min.x + box.max.x) / 2, -box.min.y, -(box.min.z + box.max.z) / 2);
@@ -319,8 +324,10 @@ export class ARExperience {
    * @param {() => void} o.prepare                 vor dem Export (z. B. Hervorhebungen löschen)
    * @param {() => (string|null)} o.getShareUrl    Link zur aktuellen Konfiguration (oder null)
    */
-  constructor({ getRoot, prepare, getShareUrl }) {
+  constructor({ getRoot, getRoots, getName, prepare, getShareUrl }) {
     this.getRoot = getRoot;
+    this.getRoots = getRoots || null;
+    this.getName = getName || (() => FILE_NAME);
     this.prepare = prepare || (() => {});
     this.getShareUrl = getShareUrl || (() => null);
     this.urls = [];
@@ -343,7 +350,7 @@ export class ARExperience {
         'div',
         { className: 'ar-card' },
         el('p', { className: 'ar-eyebrow', textContent: 'Augmented Reality' }),
-        el('h2', { className: 'ar-title', id: 'ar-title', textContent: 'Deine Maschine bei dir zuhause' }),
+        el('h2', { className: 'ar-title', id: 'ar-title', textContent: 'In Originalgröße bei dir zuhause' }),
         this.text,
         this.stage,
         this.actions,
@@ -390,7 +397,7 @@ export class ARExperience {
 
   async #export(kind) {
     this.prepare();
-    const scene = buildARScene(this.getRoot());
+    const scene = buildARScene(this.getRoots ? this.getRoots() : this.getRoot());
     try {
       return kind === 'usdz' ? await exportUSDZ(scene) : await exportGLB(scene);
     } finally {
@@ -436,7 +443,7 @@ export class ARExperience {
   async #quickLook(run) {
     const blob = await this.#export('usdz');
     if (run !== this.run) return;
-    const anchor = el('a', { rel: 'ar', href: `${this.#url(blob)}#allowsContentScaling=0`, download: `${FILE_NAME}.usdz`, hidden: true }, el('img', { alt: '' }));
+    const anchor = el('a', { rel: 'ar', href: `${this.#url(blob)}#allowsContentScaling=0`, download: `${this.getName()}.usdz`, hidden: true }, el('img', { alt: '' }));
     const go = el('button', { className: 'btn primary', type: 'button', textContent: 'Jetzt in AR öffnen' });
     go.addEventListener('click', () => anchor.click());
     this.#set({
@@ -536,7 +543,7 @@ export class ARExperience {
       btn.textContent = 'Wird erstellt …';
       try {
         const blob = await this.#export(kind);
-        const a = el('a', { href: this.#url(blob), download: `${FILE_NAME}.${kind}` });
+        const a = el('a', { href: this.#url(blob), download: `${this.getName()}.${kind}` });
         a.click();
       } catch (err) {
         console.error(err);

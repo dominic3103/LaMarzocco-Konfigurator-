@@ -1564,3 +1564,6 @@ export function buildMachine(mm) {
     },
   };
 }
+
+// Geometrie-Helfer, auch für das Modell der Mühle (grinder.js)
+export { boxProjectUV, scaleUV, rbox, profileExtrudeX, extrudeZ, polyhedron, roundedPolyhedron, slottedScrewHead, mergeGeos, woodBoxUV, woodCylUV, swapUV };

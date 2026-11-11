@@ -43,11 +43,60 @@ export const CATEGORIES = {
   },
 };
 
-export const SLOT_LABELS = Object.fromEntries(
-  Object.values(CATEGORIES).flatMap((c) => c.slots.map((s) => [s.key, `${c.title} · ${s.label}`])),
-);
+/**
+ * Bauteil-Gruppen der Mühle Weber Workshops EG-1. Die Kategorie-Präfixe (gbody/gmetal/gwood)
+ * halten die Slots von denen der Maschine getrennt; kindOf() liefert die Materialart.
+ */
+export const GRINDER_CATEGORIES = {
+  gbody: {
+    title: 'Gehäuse',
+    allLabel: 'Komplett',
+    slots: [
+      { key: 'gbody.housing', label: 'Korpus' },
+      { key: 'gbody.stand', label: 'Säule & Elektronikblock' },
+      { key: 'gbody.base', label: 'Sockel' },
+    ],
+  },
+  gmetal: {
+    title: 'Metallakzente',
+    allLabel: 'Alle',
+    slots: [
+      { key: 'gmetal.rails', label: 'Seitenschienen & Frontblock' },
+      { key: 'gmetal.cap', label: 'Frontkappe' },
+      { key: 'gmetal.dial', label: 'Einstellring' },
+      { key: 'gmetal.funnel', label: 'Trichter' },
+      { key: 'gmetal.cup', label: 'Becher (Blind Shaker)' },
+      { key: 'gmetal.platform', label: 'Becherteller' },
+      { key: 'gmetal.knob', label: 'Drehknopf' },
+      { key: 'gmetal.screws', label: 'Schrauben' },
+      { key: 'gmetal.logo', label: 'Logo' },
+    ],
+  },
+  gwood: {
+    title: 'Holz',
+    allLabel: 'Alle',
+    slots: [
+      { key: 'gwood.platen', label: 'Holzauflage (Platen)' },
+      { key: 'gwood.lid', label: 'Trichterdeckel', panel: true },
+    ],
+  },
+};
+
+export const SLOT_LABELS = Object.fromEntries([
+  ...Object.values(CATEGORIES).flatMap((c) => c.slots.map((s) => [s.key, `${c.title} · ${s.label}`])),
+  ...Object.values(GRINDER_CATEGORIES).flatMap((c) => c.slots.map((s) => [s.key, `Mühle · ${s.label}`])),
+]);
 
 export const categoryOf = (slotKey) => slotKey.split('.')[0];
+/** Materialart eines Slots: body | wood | metal (auch für die Slots der Mühle) */
+const KIND = { body: 'body', wood: 'wood', metal: 'metal', gbody: 'body', gwood: 'wood', gmetal: 'metal' };
+export const kindOf = (slotKey) => KIND[categoryOf(slotKey)] || categoryOf(slotKey);
+/** Produkt eines Slots */
+export const productOf = (slotKey) => (slotKey.startsWith('g') ? 'grinder' : 'machine');
+/** Bezugs-Slot für Akzente "Wie Gehäuse" */
+export const baseSlotOf = (slotKey) => (productOf(slotKey) === 'grinder' ? 'gbody.housing' : 'body.base');
+export const MACHINE_SLOTS = Object.values(CATEGORIES).flatMap((c) => c.slots.map((s) => s.key));
+export const GRINDER_SLOTS = Object.values(GRINDER_CATEGORIES).flatMap((c) => c.slots.map((s) => s.key));
 
 // ---------------------------------------------------------------------------
 // Gehäuse-Lacke: IGP-DURA® Pulverlacke laut Farbkarten
@@ -157,6 +206,7 @@ export const BODY_COLLECTIONS = [
       ral('7021', 'Schwarzgrau', '#2f3234'),
       ral('9005', 'Tiefschwarz', '#111113'),
       ral('6009', 'Tannengrün', '#27352a'),
+      ral('6028', 'Kieferngrün', '#2d5546'),
       ral('6021', 'Blassgrün', '#8ba27c'),
       ral('5011', 'Stahlblau', '#1a2b3c'),
       ral('5024', 'Pastellblau', '#6a93b0'),
@@ -447,7 +497,95 @@ export const PRESETS = [
   }, { rail: true }),
 ];
 
-export const DEFAULT_CONFIG = PRESETS[0].config;
+// ---------------------------------------------------------------------------
+// Mühle Weber Workshops EG-1
+// ---------------------------------------------------------------------------
+/** Mahlscheiben (ab Werk wählbar, von außen nicht sichtbar) */
+export const BURRS = [
+  { id: 'core', name: 'CORE (Allround, Espresso bis Filter)' },
+  { id: 'ultra', name: 'ULTRA (Filter, maximale Klarheit)' },
+];
+/** Aufstellung der Mühle in der gemeinsamen Ansicht */
+export const GRINDER_SIDES = [
+  { id: 'left', name: 'Links der Maschine' },
+  { id: 'right', name: 'Rechts der Maschine' },
+];
+const G_NEUTRAL = { 'gwood.lid': { id: 'none', finish: 'oiled' } };
+const gAll = (cat, id, finish) => Object.fromEntries(GRINDER_CATEGORIES[cat].slots.map((s) => [s.key, { id, finish }]));
+function gpreset(name, swatches, slots, extra = {}) {
+  return {
+    name,
+    swatches,
+    config: {
+      slots: { ...G_NEUTRAL, 'gwood.platen': { id: 'oak', finish: 'oiled' }, ...slots },
+      grinder: { burrs: extra.burrs || 'core', side: 'left' },
+    },
+  };
+}
+const G_BLACK = { ...gAll('gmetal', 'black', 'matte'), 'gmetal.cup': { id: 'dlc', finish: 'satin' }, 'gmetal.logo': { id: 'steel', finish: 'satin' } };
+const G_GOLD = { ...gAll('gmetal', 'gold', 'gloss'), 'gmetal.platform': { id: 'body', finish: 'matte' } };
+const G_WOOD = (id) => ({ 'gwood.platen': { id, finish: 'oiled' }, 'gwood.lid': { id, finish: 'oiled' } });
+
+export const GRINDER_PRESETS = [
+  // passend zur Start-Maschine (Grau · Walnuss · Schwarz)
+  gpreset('Grau · Walnuss · Schwarz', ['#aea097', '#644434', '#161616'], {
+    ...gAll('gbody', '4201E77903L30', 'matte'),
+    ...G_BLACK,
+    ...G_WOOD('walnut'),
+  }),
+  // EG-1 von rb.crafts (Veredelungs-Galerie): dunkelgrün mit Gold – Grünton per Fotoabgleich geschätzt
+  gpreset('Kieferngrün · Gold (rb.crafts)', ['#2d5546', '#e1b866', '#644434'], {
+    ...gAll('gbody', 'RAL6028', 'matte'),
+    ...G_GOLD,
+    'gwood.platen': { id: 'walnut', finish: 'oiled' },
+  }),
+  // Werksausführungen von Weber Workshops
+  gpreset('Onyx (Werk)', ['#111113', '#232427', '#c88b4d'], {
+    ...gAll('gbody', 'RAL9005', 'satin'),
+    ...G_BLACK,
+  }),
+  gpreset('Silver (Werk)', ['#c6c2c3', '#111113', '#c88b4d'], {
+    'gbody.housing': { id: '4201E79975L30', finish: 'satin' },
+    'gbody.stand': { id: 'RAL9005', finish: 'satin' },
+    'gbody.base': { id: 'RAL9005', finish: 'satin' },
+    ...gAll('gmetal', 'steel', 'satin'),
+    'gmetal.rails': { id: 'body', finish: 'satin' },
+    'gmetal.cap': { id: 'body', finish: 'satin' },
+    'gmetal.dial': { id: 'black', finish: 'matte' },
+    'gmetal.platform': { id: 'black', finish: 'matte' },
+    'gmetal.knob': { id: 'black', finish: 'matte' },
+    'gmetal.screws': { id: 'black', finish: 'matte' },
+  }),
+  // passend zu den Maschinen-Editionen
+  gpreset('All Black · Walnuss', ['#111113', '#644434', '#232427'], {
+    ...gAll('gbody', 'RAL9005', 'matte'),
+    ...G_BLACK,
+    'gmetal.logo': { id: 'black', finish: 'matte' },
+    ...G_WOOD('walnut'),
+  }),
+  gpreset('Special Brown · Olive', ['#8c755d', '#dd9540', '#161616'], {
+    ...gAll('gbody', '4201E83829L30', 'texture'),
+    ...G_BLACK,
+    ...G_WOOD('olive'),
+  }),
+  gpreset('Elfenbein · Gold · Walnuss', ['#e5d8bd', '#644434', '#e1b866'], {
+    ...gAll('gbody', 'RAL1015', 'satin'),
+    ...G_GOLD,
+    ...G_WOOD('walnut'),
+  }),
+  gpreset('Special Bronze · Walnuss', ['#8c7d64', '#644434', '#161616'], {
+    ...gAll('gbody', '4201E13212L3F', 'texture'),
+    ...G_BLACK,
+    ...G_WOOD('walnut'),
+  }),
+];
+
+/** Startkonfiguration: Maschine und Mühle */
+export const DEFAULT_CONFIG = {
+  ...PRESETS[0].config,
+  slots: { ...PRESETS[0].config.slots, ...GRINDER_PRESETS[0].config.slots },
+  grinder: { ...GRINDER_PRESETS[0].config.grinder },
+};
 
 // ---------------------------------------------------------------------------
 // Nachschlagen von Farben (inkl. "Eigene Farbe")
