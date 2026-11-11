@@ -39,10 +39,11 @@ import { ARExperience } from './ar.js';
 import { buildGrinder, EG1 } from './grinder.js';
 import { GrinderUI } from './grinder-ui.js';
 import { MAX_VARIANTS, VARIANT_PRODUCTS, extractVariant, applyVariant, sanitizeVariants, filledVariants, stepVariant } from './variants.js';
+import { DEVICES, STANDARD_DEVICE, defaultVariantOf, devicesOfKind } from './devices.js';
 
 const STORAGE_KEY = 'lm-mini-r-konfigurator';
-const ALL_SLOTS = [...MACHINE_SLOTS, ...GRINDER_SLOTS];
-const SLOTS_OF = { machine: MACHINE_SLOTS, grinder: GRINDER_SLOTS, set: ALL_SLOTS };
+/** Slots des gewählten Geräts (bzw. beider Geräte im Set) */
+const slotsOf = (p, cfg = config) => (p === 'set' ? [...slotsOf('machine', cfg), ...slotsOf('grinder', cfg)] : DEVICES[cfg.devices[p]].slots);
 
 // ---------- Konfiguration laden (Link > zuletzt gespeichert > Standard) ----------
 const clone = (o) => JSON.parse(JSON.stringify(o));
@@ -58,6 +59,18 @@ function sanitize(cfg) {
 function sanitizeCore(cfg) {
   const out = clone(DEFAULT_CONFIG);
   if (!cfg || typeof cfg !== 'object') return out;
+  // gewählte Geräte; für andere als Linea Mini R / EG-1 deren Standardwerte einsetzen
+  for (const p of ['machine', 'grinder']) {
+    const id = cfg.devices?.[p];
+    if (!DEVICES[id] || DEVICES[id].kind !== p || id === STANDARD_DEVICE[p]) continue;
+    out.devices[p] = id;
+    for (const k of DEVICES[STANDARD_DEVICE[p]].slots) delete out.slots[k];
+    const dv = defaultVariantOf(id);
+    Object.assign(out.slots, dv.slots);
+    const raw = cfg.opts?.[id];
+    out.opts[id] = DEVICES[id].sanitizeOpts ? DEVICES[id].sanitizeOpts(raw, dv.opts) : dv.opts;
+  }
+  const defaults = clone(out.slots);
   // Manometer: neue Form je Anzeige; ältere Konfigurationen kannten nur ein Zifferblatt für beide
   for (const side of ['left', 'right']) {
     const g = cfg.gauges?.[side];
@@ -75,7 +88,7 @@ function sanitizeCore(cfg) {
     if (okStyle(TRAY_STYLES, cfg.tray.cup)) out.tray.cup = cfg.tray.cup;
   }
   // ältere Konfigurationen ohne die neuen optionalen Teile: neutral ergänzen
-  if (cfg.slots) {
+  if (cfg.slots && out.devices.machine === 'lmr') {
     for (const [k, v] of Object.entries(NEUTRAL_SLOTS)) if (!cfg.slots[k]) out.slots[k] = clone(v);
   }
   out.rail = typeof cfg.rail === 'boolean' ? cfg.rail : cfg.slots ? false : out.rail;
@@ -84,7 +97,7 @@ function sanitizeCore(cfg) {
     knobs: KNOB_SHAPES.some((x) => x.id === shape.knobs) ? shape.knobs : NEUTRAL_SHAPE.knobs,
     handle: HANDLE_SHAPES.some((x) => x.id === shape.handle) ? shape.handle : NEUTRAL_SHAPE.handle,
   };
-  for (const k of ALL_SLOTS) {
+  for (const k of slotsOf('set', out)) {
     const v = cfg.slots?.[k];
     const resolver = { body: resolveBody, wood: resolveWood, metal: resolveMetal }[kindOf(k)];
     // unbekannte Farb-IDs (z. B. aus älteren Links) -> Standard behalten
@@ -95,7 +108,7 @@ function sanitizeCore(cfg) {
         out.slots[k].color = v.color;
         out.slots[k].kind = v.kind;
       } else if (v.id === 'custom') {
-        out.slots[k] = clone(DEFAULT_CONFIG.slots[k]);
+        out.slots[k] = clone(defaults[k]);
       }
     }
   }
@@ -193,30 +206,80 @@ const productParam = () => (product === 'machine' ? '' : `&p=${product}`);
 const canvas = document.getElementById('scene');
 const viewerEl = document.getElementById('viewer');
 const mm = new MaterialManager();
-const model = buildMachine(mm);
-const gmodel = buildGrinder(mm);
+const built = {};
+/** 3D-Modell eines Geräts (wird beim ersten Aufruf gebaut) */
+function modelOf(id) {
+  if (!built[id]) built[id] = DEVICES[id].build(mm);
+  return built[id];
+}
+let model = modelOf(config.devices.machine);
+let gmodel = modelOf(config.devices.grinder);
 
 /** Konfiguration komplett auf Materialien und Bauteile anwenden */
 function applyAll() {
+  activateDevices();
   mm.apply(config);
   syncParts();
 }
-/** Sichtbarkeit optionaler Teile und Formen */
+
+// Aktive Geräte: Modell, Oberfläche und Montage folgen config.devices
+const activeIds = { ...config.devices };
+function activateDevices() {
+  let changed = false;
+  for (const p of ['machine', 'grinder']) {
+    const id = config.devices[p];
+    if (activeIds[p] === id) continue;
+    changed = true;
+    const m = modelOf(id);
+    viewer.removeModel(p === 'machine' ? model : gmodel);
+    if (p === 'machine') {
+      model = m;
+      viewer.setModel(m, DEVICES[id].shadow);
+    } else {
+      gmodel = m;
+      viewer.addModel(m, DEVICES[id].shadow);
+    }
+    const old = p === 'machine' ? ui : gui;
+    old.clearSelection();
+    old.container.hidden = true;
+    const u = uiOf(id);
+    if (p === 'machine') ui = u;
+    else gui = u;
+    activeIds[p] = id;
+  }
+  if (changed) setProduct(product, { force: true, animate: false });
+}
+
+/** Bedienoptionen für weitere Geräte (allgemeine Oberfläche) */
+function deviceOpts(id) {
+  return {
+    getConfig: () => config,
+    onSlots: (keys, patch) => updateSlots(keys, patch),
+    onPreset: (preset) => applyPreset(DEVICES[id].kind, preset),
+    onCopy: (keys, value) => copySlots(keys, value),
+    onHoverPart: (slot) => viewer.setHover(mm, slot),
+    onFocus: (keys) => viewer.flash(mm, keys),
+    onOption: (key, value) => {
+      config.opts[id] = { ...(config.opts[id] || {}), [key]: value };
+      syncParts();
+      commit();
+    },
+  };
+}
+const machineDeviceOpts = (id) => deviceOpts(id);
+const grinderDeviceOpts = (id) => ({
+  ...deviceOpts(id),
+  onSide: (side) => {
+    config.grinder.side = side;
+    if (product === 'set') setProduct('set', { force: true });
+    commit();
+  },
+  onAdoptMachine: () => adoptMachine(),
+});
+/** Sichtbarkeit optionaler Teile, Formen und Details der gewählten Geräte */
 function syncParts() {
-  model.setRail(config.rail, config.railStyle);
-  model.setTrays(config.tray);
-  model.setPanels({
-    upper: config.slots['wood.panelUpper'].id !== 'none',
-    lower: config.slots['wood.panelLower'].id !== 'none',
-  });
-  model.setShapes(config.shape);
-  model.setGauge('left', config.gauges.left);
-  model.setGauge('right', config.gauges.right);
-  model.setScrewHead(config.screwHead);
-  // Mühle
-  gmodel.setLid(config.slots['gwood.lid'].id !== 'none');
-  const dial = resolveMetal(config.slots['gmetal.dial']);
-  gmodel.setDialInk(dial.kind === 'body' ? resolveBody(config.slots['gbody.housing']).color : dial.color);
+  model.sync(config);
+  gmodel.sync(config);
 }
 applyAll();
 
@@ -235,11 +298,12 @@ const viewer = new Viewer(canvas, viewerEl, {
   quality: qParam === 'high' || qParam === 'low' ? qParam : 'auto',
   samples: Number(params.get('samples')) || 0,
 });
-viewer.setModel(model);
-viewer.addModel(gmodel, { w: 0.4, d: 0.4, z: 0.004 });
+viewer.setModel(model, DEVICES[config.devices.machine].shadow);
+viewer.addModel(gmodel, DEVICES[config.devices.grinder].shadow);
 
 // ---------- Oberfläche ----------
-const ui = new ConfiguratorUI(document.getElementById('config'), {
+/** Bedienoptionen der Linea Mini R */
+const machineUiOpts = {
   getConfig: () => config,
   onSlots: (keys, patch) => updateSlots(keys, patch),
   /** Manometer: Zifferblatt/Zeiger für eine oder beide Anzeigen */
@@ -303,10 +367,11 @@ const ui = new ConfiguratorUI(document.getElementById('config'), {
     commit();
   },
   onFocus: (keys) => viewer.flash(mm, keys),
-});
+};
 
 // ---------- Oberfläche der Mühle ----------
-const gui = new GrinderUI(document.getElementById('config-grinder'), {
+/** Bedienoptionen der Mühle EG-1 */
+const grinderUiOpts = {
   getConfig: () => config,
   onSlots: (keys, patch) => updateSlots(keys, patch),
   onPreset: (preset) => applyPreset('grinder', preset),
@@ -324,13 +389,49 @@ const gui = new GrinderUI(document.getElementById('config-grinder'), {
     commit();
   },
   onAdoptMachine: () => adoptMachine(),
-});
+};
+
+// Oberflächen je Gerät (werden erst bei Bedarf erzeugt)
+const uis = {};
+const CONTAINERS = { lmr: 'config', eg1: 'config-grinder' };
+function uiOf(id) {
+  if (uis[id]) return uis[id];
+  let el = document.getElementById(CONTAINERS[id] || `config-${id}`);
+  if (!el) {
+    el = document.createElement('div');
+    el.id = `config-${id}`;
+    el.className = 'device-config';
+    el.hidden = true;
+    document.getElementById('config-set').before(el);
+  }
+  const def = DEVICES[id];
+  const u =
+    id === 'lmr' ? new ConfiguratorUI(el, machineUiOpts) : id === 'eg1' ? new GrinderUI(el, grinderUiOpts) : new def.UI(el, def, def.kind === 'machine' ? machineDeviceOpts(id) : grinderDeviceOpts(id));
+  u.container = el;
+  uis[id] = u;
+  return u;
+}
+/** Zusammenfassung für eine beliebige Konfiguration eines Geräts (auch ohne erzeugte Oberfläche) */
+function summaryOf(id, cfg) {
+  if (uis[id]) return uis[id].finalSummary(cfg);
+  const proto = id === 'lmr' ? ConfiguratorUI.prototype : id === 'eg1' ? GrinderUI.prototype : DEVICES[id].UI.prototype;
+  const tmp = Object.assign(Object.create(proto), {
+    opts: { getConfig: () => cfg },
+    def: DEVICES[id],
+    cats: DEVICES[id].categories,
+    baseSlot: id === 'lmr' ? 'body.base' : id === 'eg1' ? 'gbody.housing' : `${id}:body.main`,
+  });
+  return tmp.finalSummary(cfg);
+}
+let ui = uiOf(config.devices.machine);
+let gui = uiOf(config.devices.grinder);
 
 /** Akzente "Wie Gehäuse" folgen der Gehäusefarbe ihres Geräts */
 function reapplyFollowers(keys) {
-  for (const base of ['body.base', 'gbody.housing']) {
+  const bases = ['body.base', 'gbody.housing', ...keys.filter((k) => k.endsWith(':body.main'))];
+  for (const base of bases) {
     if (!keys.includes(base)) continue;
-    for (const k of SLOTS_OF[productOf(base)]) {
+    for (const k of slotsOf(productOf(base))) {
       if (kindOf(k) === 'metal' && config.slots[k].id === 'body') mm.applySlot(k, config.slots[k], config);
     }
   }
@@ -352,25 +453,22 @@ function copySlots(keys, value) {
   });
 }
 
+/** Preset-Konfiguration eines Geräts als Variante */
+function presetVariant(which, preset) {
+  const id = config.devices[which];
+  const p = clone(preset);
+  if (id === 'lmr') return { device: id, slots: p.slots, gauges: p.gauges, screwHead: p.screwHead, rail: p.rail, railStyle: p.railStyle, tray: p.tray, shape: p.shape };
+  if (id === 'eg1') return { device: id, slots: p.slots, burrs: p.grinder?.burrs };
+  return { device: id, slots: p.slots, opts: p.opts || {} };
+}
+
 /** Preset nur für ein Gerät übernehmen – das andere bleibt, wie es ist */
 function applyPreset(which, preset) {
-  const merged = clone(config);
-  const own = SLOTS_OF[which];
-  for (const k of own) delete merged.slots[k];
-  if (which === 'machine') {
-    Object.assign(merged, clone(preset));
-    merged.slots = { ...clone(config.slots), ...clone(preset.slots) };
-    for (const k of MACHINE_SLOTS) if (!preset.slots[k]) delete merged.slots[k];
-    merged.grinder = clone(config.grinder);
-  } else {
-    merged.slots = { ...merged.slots, ...clone(preset.slots) };
-    merged.grinder = { ...config.grinder, burrs: preset.grinder?.burrs || config.grinder.burrs };
-  }
-  const next = sanitize(merged);
+  const next = sanitize(applyVariant(which, config, presetVariant(which, preset)));
   prepareWoods(next, () => {
     config = next;
     applyAll();
-    viewer.flash(mm, own);
+    viewer.flash(mm, slotsOf(which));
     commit();
   });
 }
@@ -382,8 +480,75 @@ function setLid(on) {
   updateSlots(['gwood.lid'], { id });
 }
 
+// ---------- Gerätewahl ----------
+const MEMORY_KEY = 'lm-geraete-speicher';
+let deviceMemory = {};
+try {
+  deviceMemory = JSON.parse(localStorage.getItem(MEMORY_KEY) || '{}') || {};
+} catch {
+  /* Speicher nicht verfügbar */
+}
+/** Gerät wechseln; der bisherige Stand des alten Geräts wird gemerkt */
+function setDevice(kind, id) {
+  if (!DEVICES[id] || DEVICES[id].kind !== kind || config.devices[kind] === id) return;
+  syncVariants();
+  deviceMemory[config.devices[kind]] = extractVariant(kind, config);
+  try {
+    localStorage.setItem(MEMORY_KEY, JSON.stringify(deviceMemory));
+  } catch {
+    /* ignorieren */
+  }
+  const remembered = deviceMemory[id];
+  const v = remembered && remembered.device === id ? remembered : defaultVariantOf(id);
+  const next = sanitize(applyVariant(kind, config, v));
+  prepareWoods(next, () => {
+    config = next;
+    applyAll();
+    viewer.flash(mm, slotsOf(kind));
+    commit();
+    toast(`${DEVICES[id].full} gewählt`);
+  });
+}
+
+/** Rollen-basierte Übernahme (Gehäuse, Akzente, Holz, Schrauben, Logo) zwischen beliebigen Geräten */
+function adoptByRoles(from, to) {
+  const next = {};
+  const m = config.slots;
+  for (const [role, targets] of Object.entries(to.roles || {})) {
+    const src = from.roles?.[role];
+    if (!src?.length || !Array.isArray(targets)) continue;
+    targets.forEach((k, i) => {
+      const v = m[src[Math.min(i, src.length - 1)]];
+      if (!v) return;
+      if (role === 'wood') {
+        const w = resolveWood(v);
+        if (w.plastic || w.none) return;
+      }
+      if (kindOf(k) === 'metal' && v.id === 'body') next[k] = { id: 'body', finish: v.finish };
+      else if (kindOf(k) === kindOf(src[0])) next[k] = clone(v);
+      else if (role === 'accent' || role === 'screws' || role === 'logo') next[k] = clone(v);
+    });
+  }
+  return next;
+}
+
 /** Mühle an die Maschine angleichen: Gehäusefarben, Holz und Akzente übernehmen */
 function adoptMachine() {
+  if (config.devices.machine !== 'lmr' || config.devices.grinder !== 'eg1') {
+    const next = adoptByRoles(DEVICES[config.devices.machine], DEVICES[config.devices.grinder]);
+    prepareWoods({ slots: next }, () => {
+      for (const [k, v] of Object.entries(next)) {
+        config.slots[k] = v;
+        mm.applySlot(k, v, config);
+      }
+      reapplyFollowers(Object.keys(next));
+      syncParts();
+      viewer.flash(mm, slotsOf('grinder'));
+      commit();
+      toast('Farben, Holz und Akzente der Maschine übernommen');
+    });
+    return;
+  }
   const m = config.slots;
   const pick = (k) => clone(m[k]);
   const wood = resolveWood(m['wood.handle']);
@@ -497,6 +662,7 @@ function commit() {
   gui.refresh();
   renderSetPanel();
   renderVariants();
+  renderDeviceBar();
   viewer.requestRender();
   persist(config);
   if (ARTIFACT) return;
@@ -756,16 +922,11 @@ function takeShot(opener) {
 shotBtn.addEventListener('click', () => takeShot(shotBtn));
 document.getElementById('btn-reset').addEventListener('click', () => {
   // nur das gerade bearbeitete Gerät zurücksetzen (im Set beide)
-  const next = clone(config);
-  const d = clone(DEFAULT_CONFIG);
-  for (const k of SLOTS_OF[product]) next.slots[k] = d.slots[k];
-  if (product !== 'grinder') {
-    for (const key of ['gauges', 'screwHead', 'rail', 'railStyle', 'tray', 'shape']) next[key] = d[key];
-  }
-  if (product !== 'machine') next.grinder = d.grinder;
+  let next = clone(config);
+  for (const p of product === 'set' ? VARIANT_PRODUCTS : [product]) next = applyVariant(p, next, defaultVariantOf(config.devices[p]));
   config = sanitize(next);
   applyAll();
-  viewer.flash(mm, SLOTS_OF[product]);
+  viewer.flash(mm, slotsOf(product));
   if (product === 'set') setProduct('set', { force: true });
   commit();
   toast(product === 'grinder' ? 'Mühle auf Standard zurückgesetzt' : product === 'set' ? 'Beide auf Standard zurückgesetzt' : 'Maschine auf Standard zurückgesetzt');
@@ -794,7 +955,11 @@ window.addEventListener('hashchange', applyFromHash);
 // ---------- AR: Maschine in Originalgröße in den Raum stellen ----------
 const ar = new ARExperience({
   getRoots: () => (product === 'grinder' ? [gmodel.root] : product === 'set' ? [model.root, gmodel.root] : [model.root]),
-  getName: () => ({ machine: 'Linea-Mini-R', grinder: 'EG-1', set: 'Linea-Mini-R-und-EG-1' })[product],
+  getName: () => {
+    const M = DEVICES[config.devices.machine].file;
+    const G = DEVICES[config.devices.grinder].file;
+    return { machine: M, grinder: G, set: `${M}-und-${G}` }[product];
+  },
   // QR-Code: nur die gezeigte Kombination (kürzer, besser lesbar)
   getShareUrl: () => shareUrl({ compact: true }),
 });
@@ -804,51 +969,48 @@ document.getElementById('final-ar').addEventListener('click', (e) => ar.open(e.c
 
 // ---------- Produktwechsel: Panels, Kamera, Aufstellung ----------
 const productSwitch = document.getElementById('product-switch');
-const panels = { machine: document.getElementById('config'), grinder: document.getElementById('config-grinder'), set: document.getElementById('config-set') };
-const TEXTS = {
-  machine: {
-    eyebrow: 'Schritt 1 · Maschine',
-    title: 'Deine Linea Mini R',
-    lede: 'Gehäuse, Holz und Metallakzente frei kombinieren – jede Änderung siehst du sofort in 360°.',
-    brand: 'Linea Mini R',
-    finish: 'Maschine abschließen',
-  },
-  grinder: {
-    eyebrow: 'Schritt 2 · Mühle',
-    title: 'Deine EG-1',
-    lede: 'Die Mühle Weber Workshops EG-1 im selben Umfang gestalten – passend zur Maschine oder ganz eigen.',
-    brand: 'Weber EG-1',
-    finish: 'Mühle abschließen',
-  },
-  set: {
-    eyebrow: 'Schritt 3 · Zusammen',
-    title: 'Maschine & Mühle',
-    lede: 'Beide Geräte maßstabsgetreu nebeneinander – in 360° und in AR bei dir zuhause.',
-    brand: 'Linea Mini R & EG-1',
-    finish: 'Set präsentieren',
-  },
-};
-// Kamera: Drehpunkt (m), Abstandsfaktor, Schattenbereich
-const FRAMES = {
-  machine: { target: [0, 0.185, 0], scale: 1, shadow: 1 },
-  grinder: { target: [0, 0.226, 0.012], scale: 1.08, shadow: 1 },
-  set: { target: [0, 0.2, 0.01], scale: 1.72, shadow: 1.5, maxDistance: 4.2 },
-};
+const setPanelEl = document.getElementById('config-set');
+const panelOf = (p) => (p === 'machine' ? ui.container : p === 'grinder' ? gui.container : setPanelEl);
+/** Texte des Panels je Produkt (mit den gewählten Geräten) */
+function textsOf(p) {
+  const M = DEVICES[config.devices.machine];
+  const G = DEVICES[config.devices.grinder];
+  if (p === 'machine') {
+    return { eyebrow: 'Schritt 1 · Maschine', title: `Deine ${M.name}`, lede: 'Gehäuse, Holz und Metallakzente frei kombinieren – jede Änderung siehst du sofort in 360°.', brand: M.name, finish: 'Maschine abschließen' };
+  }
+  if (p === 'grinder') {
+    return { eyebrow: 'Schritt 2 · Mühle', title: `Deine ${G.name}`, lede: `Die Mühle ${G.full} im selben Umfang gestalten – passend zur Maschine oder ganz eigen.`, brand: `${G.brand.split(' ')[0]} ${G.name}`, finish: 'Mühle abschließen' };
+  }
+  return { eyebrow: 'Schritt 3 · Zusammen', title: 'Maschine & Mühle', lede: 'Beide Geräte maßstabsgetreu nebeneinander – in 360° und in AR bei dir zuhause.', brand: `${M.name} & ${G.name}`, finish: 'Set präsentieren' };
+}
+// Kamera: Drehpunkt (m), Abstandsfaktor, Schattenbereich – aus den Gerätemaßen
+function frameOf(p) {
+  if (p !== 'set') return DEVICES[config.devices[p]].frame;
+  const M = DEVICES[config.devices.machine].dims;
+  const G = DEVICES[config.devices.grinder].dims;
+  const k = Math.max(1, ((M.w + G.w) / 1000 + SET_GAP) / 0.692);
+  const h = Math.max(M.h, G.h) / 1000;
+  return { target: [0, Math.min(0.26, h * 0.44), 0.01], scale: 1.72 * Math.max(k, h / 0.456), shadow: 1.5 * k, maxDistance: 4.2 * k };
+}
 const SET_GAP = 0.09; // Abstand zwischen Maschine und Mühle (m)
 /** Positionen (x, z in m) und Sichtbarkeit der Geräte je Produkt */
 function layoutFor(p) {
   const side = config.grinder.side === 'right' ? 1 : -1;
-  const mw = 0.357;
-  const gw = EG1.width / 1000;
+  const M = DEVICES[config.devices.machine];
+  const G = DEVICES[config.devices.grinder];
+  const mw = M.dims.w / 1000;
+  const gw = G.dims.w / 1000;
   const total = mw + SET_GAP + gw;
+  const mz = M.rootZ;
+  const gz = G.rootZ;
   if (p === 'set') {
     return {
-      machine: { x: -side * (total / 2 - mw / 2), z: 0.064, on: true },
-      grinder: { x: side * (total / 2 - gw / 2), z: 0.02, on: true },
+      machine: { x: -side * (total / 2 - mw / 2), z: mz, on: true },
+      grinder: { x: side * (total / 2 - gw / 2), z: gz + 0.02, on: true },
     };
   }
-  if (p === 'grinder') return { machine: { x: -side * (mw / 2 + SET_GAP + 0.45), z: 0.064, on: false }, grinder: { x: 0, z: 0, on: true } };
-  return { machine: { x: 0, z: 0.064, on: true }, grinder: { x: side * (mw / 2 + SET_GAP + 0.4), z: 0, on: false } };
+  if (p === 'grinder') return { machine: { x: -side * (mw / 2 + SET_GAP + 0.45), z: mz, on: false }, grinder: { x: 0, z: gz, on: true } };
+  return { machine: { x: 0, z: mz, on: true }, grinder: { x: side * (mw / 2 + SET_GAP + 0.4), z: gz, on: false } };
 }
 let layoutTicker = null;
 function applyLayout(p, animate) {
@@ -905,8 +1067,8 @@ function setProduct(p, { animate = true, force = false } = {}) {
   }
   ui.clearSelection();
   gui.clearSelection();
-  for (const [k, el] of Object.entries(panels)) el.hidden = k !== p;
-  const t = TEXTS[p];
+  for (const q of ['machine', 'grinder', 'set']) panelOf(q).hidden = q !== p;
+  const t = textsOf(p);
   document.getElementById('panel-eyebrow').textContent = t.eyebrow;
   document.getElementById('panel-title').textContent = t.title;
   document.getElementById('panel-lede').textContent = t.lede;
@@ -919,9 +1081,10 @@ function setProduct(p, { animate = true, force = false } = {}) {
   });
   document.querySelector('.app').dataset.product = p;
   applyLayout(p, animate);
-  viewer.setFocus(FRAMES[p], animate && (changed || force));
+  viewer.setFocus(frameOf(p), animate && (changed || force));
   renderSetPanel();
   renderVariants();
+  renderDeviceBar();
   if (!ARTIFACT) {
     clearTimeout(hashTimer);
     hashTimer = setTimeout(() => {
@@ -935,7 +1098,7 @@ productSwitch.querySelectorAll('button').forEach((b) => b.addEventListener('clic
 // ---------- Set-Panel: beide Geräte im Überblick ----------
 let setRefs = null;
 function renderSetPanel() {
-  const root = panels.set;
+  const root = setPanelEl;
   if (!root || !gui) return;
   if (!setRefs) {
     const mk = (tag, cls, text) => {
@@ -960,8 +1123,8 @@ function renderSetPanel() {
       cards.append(c);
       return { dots, desc: txt.querySelector('.set-desc') };
     };
-    const cm = card('machine', 'La Marzocco Linea Mini R');
-    const cg = card('grinder', 'Weber Workshops EG-1');
+    const cm = card('machine', DEVICES[config.devices.machine].full);
+    const cg = card('grinder', DEVICES[config.devices.grinder].full);
     const sideField = mk('div', 'field');
     sideField.append(mk('span', 'label', 'Aufstellung'));
     const seg = mk('div', 'seg');
@@ -992,7 +1155,7 @@ function renderSetPanel() {
   }
   // Kurzbeschreibung: Gehäuse · Holz · Akzente (je Gerät aus der Abschluss-Zusammenfassung)
   const fill = (ref, rows, labels) => {
-    const pick = labels.map((l) => rows.find(([label]) => label === l)).filter(Boolean);
+    const pick = labels.map((l) => rows.find(([label]) => label === l || (l === 'Holzteile' && label === 'Holz'))).filter(Boolean);
     ref.dots.replaceChildren(
       ...pick.map(([, , bg]) => {
         const d = document.createElement('span');
@@ -1005,8 +1168,8 @@ function renderSetPanel() {
   fill(setRefs.cm, ui.finalSummary(), ['Gehäuse', 'Holzteile', 'Akzente']);
   fill(setRefs.cg, gui.finalSummary(), ['Gehäuse', 'Holz', 'Akzente']);
   for (const [ref, p, name] of [
-    [setRefs.cm, 'machine', 'La Marzocco Linea Mini R'],
-    [setRefs.cg, 'grinder', 'Weber Workshops EG-1'],
+    [setRefs.cm, 'machine', DEVICES[config.devices.machine].full],
+    [setRefs.cg, 'grinder', DEVICES[config.devices.grinder].full],
   ]) {
     const V = config.variants[p];
     const n = filledVariants(V).length;
@@ -1019,6 +1182,107 @@ function renderSetPanel() {
   });
 }
 
+// ---------- Gerätewahl: Leiste im Panel und Startdialog ----------
+const deviceBar = document.getElementById('device-bar');
+let deviceBarOpen = false;
+const dmk = (tag, cls, text) => {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined) n.textContent = text;
+  return n;
+};
+const thumbOf = (id) => `img/devices/${id}.jpg`;
+/** Karte eines Geräts (Bild, Marke, Name, Maße) */
+function deviceCard(def, selected, onPick) {
+  const b = dmk('button', `device-card${selected ? ' active' : ''}`);
+  b.type = 'button';
+  b.dataset.device = def.id;
+  b.setAttribute('role', 'radio');
+  b.setAttribute('aria-checked', String(selected));
+  const img = dmk('img', 'device-thumb');
+  img.alt = '';
+  img.loading = 'lazy';
+  img.src = thumbOf(def.id);
+  img.addEventListener('error', () => img.replaceWith(dmk('span', 'device-thumb empty', def.name.slice(0, 2))), { once: true });
+  const txt = dmk('span', 'device-text');
+  txt.append(dmk('span', 'device-brand', def.brand), dmk('span', 'device-name', def.name), dmk('span', 'device-dims', `${def.dims.w} × ${def.dims.d} × ${def.dims.h} mm`));
+  b.append(img, txt);
+  b.addEventListener('click', () => onPick(def.id));
+  return b;
+}
+function renderDeviceBar() {
+  if (!deviceBar) return;
+  deviceBar.replaceChildren();
+  deviceBar.hidden = product === 'set';
+  if (product === 'set') return;
+  const kind = product;
+  const cur = DEVICES[config.devices[kind]];
+  const head = dmk('div', 'device-head');
+  head.append(dmk('span', 'label', kind === 'machine' ? 'Maschine' : 'Mühle'));
+  const all = devicesOfKind(kind);
+  const current = dmk('div', 'device-current');
+  const img = dmk('img', 'device-thumb small');
+  img.alt = '';
+  img.src = thumbOf(cur.id);
+  img.addEventListener('error', () => img.replaceWith(dmk('span', 'device-thumb small empty', cur.name.slice(0, 2))), { once: true });
+  const txt = dmk('span', 'device-text');
+  txt.append(dmk('span', 'device-brand', cur.brand), dmk('span', 'device-name', cur.name));
+  const toggle = dmk('button', 'btn small', deviceBarOpen ? 'Schließen' : all.length > 1 ? 'Gerät wechseln' : 'Geräte');
+  toggle.type = 'button';
+  toggle.id = 'device-toggle';
+  toggle.setAttribute('aria-expanded', String(deviceBarOpen));
+  toggle.addEventListener('click', () => {
+    deviceBarOpen = !deviceBarOpen;
+    renderDeviceBar();
+  });
+  current.append(img, txt, toggle);
+  deviceBar.append(head, current);
+  if (deviceBarOpen) {
+    const grid = dmk('div', 'device-grid');
+    grid.setAttribute('role', 'radiogroup');
+    for (const d of all) {
+      grid.append(
+        deviceCard(d, d.id === cur.id, (id) => {
+          deviceBarOpen = false;
+          setDevice(kind, id);
+          renderDeviceBar();
+        }),
+      );
+    }
+    deviceBar.append(grid);
+  }
+}
+
+// Startdialog beim ersten Besuch (nicht bei Links mit Konfiguration und nicht im Testmodus ?q=…)
+const startOverlay = document.getElementById('start-overlay');
+const startChoice = { machine: config.devices.machine, grinder: config.devices.grinder };
+function renderStart() {
+  for (const [kind, elId] of [
+    ['machine', 'start-machines'],
+    ['grinder', 'start-grinders'],
+  ]) {
+    const grid = document.getElementById(elId);
+    grid.replaceChildren(
+      ...devicesOfKind(kind).map((d) =>
+        deviceCard(d, d.id === startChoice[kind], (id) => {
+          startChoice[kind] = id;
+          renderStart();
+        }),
+      ),
+    );
+  }
+}
+function openStart() {
+  renderStart();
+  startOverlay.hidden = false;
+  document.getElementById('start-go').focus();
+}
+document.getElementById('start-go').addEventListener('click', () => {
+  startOverlay.hidden = true;
+  persist(config);
+  for (const kind of ['machine', 'grinder']) if (startChoice[kind] !== config.devices[kind]) setDevice(kind, startChoice[kind]);
+});
+
 // ---------- Variationen: bis zu 5 je Gerät, frei kombinierbar ----------
 const PRODUCT_NAME = { machine: 'Maschine', grinder: 'Mühle' };
 const variantBar = document.getElementById('variant-bar');
@@ -1029,9 +1293,8 @@ const finalVariants = document.getElementById('final-variants');
 function describeVariant(p, i) {
   const V = config.variants[p];
   const cfg = i === V.active ? config : applyVariant(p, config, V.list[i]);
-  const rows = p === 'grinder' ? gui.finalSummary(cfg) : ui.finalSummary(cfg);
-  const labels = p === 'grinder' ? ['Gehäuse', 'Holz', 'Akzente'] : ['Gehäuse', 'Holzteile', 'Akzente'];
-  const pick = labels.map((l) => rows.find(([x]) => x === l)).filter(Boolean);
+  const rows = summaryOf(cfg.devices[p], cfg);
+  const pick = [['Gehäuse'], ['Holzteile', 'Holz'], ['Akzente']].map((ls) => rows.find(([x]) => ls.includes(x))).filter(Boolean);
   return { dots: pick.map(([, , bg]) => bg), text: pick.map(([, v]) => v.split(' · ')[0].replace(/ \(.*\)$/, '')).join(' · ') };
 }
 
@@ -1048,7 +1311,7 @@ function switchVariant(p, idx) {
   prepareWoods(next, () => {
     config = next;
     applyAll();
-    if (!created) viewer.flash(mm, SLOTS_OF[p]);
+    if (!created) viewer.flash(mm, slotsOf(p));
     commit();
     if (!finalCard.hidden) updateFinalCard();
     toast(created ? `Variante ${idx + 1} angelegt (Kopie von ${from + 1}) – jetzt anpassen` : `${PRODUCT_NAME[p]}: Variante ${idx + 1}`);
@@ -1073,7 +1336,7 @@ function deleteVariant(p, idx) {
   prepareWoods(next, () => {
     config = next;
     applyAll();
-    viewer.flash(mm, SLOTS_OF[p]);
+    viewer.flash(mm, slotsOf(p));
     commit();
     toast(`Variante ${idx + 1} gelöscht – Variante ${target + 1} wird gezeigt`);
   });
@@ -1225,21 +1488,30 @@ const showHooks = (labelUI, isInner) => ({
   },
   onDone: () => openFinalCard(),
 });
-const show = new AssemblyShow(viewer, model, showHooks(ui, isInnerStage));
-const gshow = new AssemblyShow(viewer, gmodel, showHooks(gui, gmodel.isInner), {
-  stages: gmodel.stages,
-  isInner: gmodel.isInner,
-  target: FRAMES.grinder.target,
-  dist: FRAMES.grinder.scale,
-});
+// Montage je Gerät (erst bei Bedarf erzeugt)
+const deviceShows = {};
+function showOfDevice(id) {
+  if (deviceShows[id]) return deviceShows[id];
+  const m = modelOf(id);
+  const u = uiOf(id);
+  const opts = id === 'lmr' ? {} : { stages: m.stages, isInner: m.isInner, target: DEVICES[id].frame.target, dist: DEVICES[id].frame.scale };
+  deviceShows[id] = new AssemblyShow(viewer, m, showHooks(u, m.isInner || isInnerStage), opts);
+  return deviceShows[id];
+}
 // Set: keine Montage, nur eine Kamerafahrt um beide Geräte
 const sshow = new AssemblyShow(viewer, { root: { children: [] }, skeleton: { visible: false } }, showHooks(ui, () => false), {
   stages: [],
-  target: FRAMES.set.target,
-  dist: FRAMES.set.scale,
+  target: frameOf('set').target,
+  dist: frameOf('set').scale,
 });
-const shows = { machine: show, grinder: gshow, set: sshow };
-let currentShow = show;
+function showFor(p) {
+  if (p !== 'set') return showOfDevice(config.devices[p]);
+  const f = frameOf('set');
+  sshow.target.set(...f.target);
+  sshow.dist = f.scale;
+  return sshow;
+}
+let currentShow = showFor('machine');
 
 const nextBtn = document.getElementById('final-next');
 function finalRows() {
@@ -1271,8 +1543,8 @@ function openFinalCard() {
 function updateFinalCard() {
   const vtag = (p) => (filledVariants(config.variants[p]).length > 1 ? ` · V${config.variants[p].active + 1}` : '');
   document.getElementById('final-title').textContent = {
-    machine: `Deine Linea Mini R${vtag('machine')}`,
-    grinder: `Deine EG-1${vtag('grinder')}`,
+    machine: `Deine ${DEVICES[config.devices.machine].name}${vtag('machine')}`,
+    grinder: `Deine ${DEVICES[config.devices.grinder].name}${vtag('grinder')}`,
     set: 'Dein Set',
   }[product];
   document.getElementById('final-code').textContent =
@@ -1302,8 +1574,8 @@ function updateFinalCard() {
 function resetShowText() {
   showEyebrow.textContent = product === 'set' ? 'Präsentation' : 'Montage';
   showTitle.textContent = {
-    machine: 'Deine Linea Mini R entsteht – von null an',
-    grinder: 'Deine EG-1 entsteht – von null an',
+    machine: `Deine ${DEVICES[config.devices.machine].name} entsteht – von null an`,
+    grinder: `Deine ${DEVICES[config.devices.grinder].name} entsteht – von null an`,
     set: 'Maschine und Mühle – dein Set',
   }[product];
   showList.replaceChildren();
@@ -1314,7 +1586,7 @@ function startShow() {
   setAutoRotate(false);
   ui.clearSelection();
   gui.clearSelection();
-  currentShow = shows[product];
+  currentShow = showFor(product);
   appEl.classList.add('show-mode');
   finalCard.hidden = true;
   resetShowText();
@@ -1375,14 +1647,28 @@ requestAnimationFrame(() => document.body.classList.add('ready'));
 window.__konfigurator = {
   viewer,
   mm,
-  model,
-  gmodel,
+  get model() {
+    return model;
+  },
+  get gmodel() {
+    return gmodel;
+  },
   getConfig: () => config,
-  ui,
-  gui,
-  show,
-  gshow,
+  get ui() {
+    return ui;
+  },
+  get gui() {
+    return gui;
+  },
+  get show() {
+    return showFor('machine');
+  },
+  get gshow() {
+    return showFor('grinder');
+  },
   sshow,
+  DEVICES,
+  setDevice: (kind, id) => setDevice(kind, id),
   ar,
   shareUrl,
   setProduct,
@@ -1391,6 +1677,15 @@ window.__konfigurator = {
 
 // Startansicht: gespeichertes bzw. im Link genanntes Produkt
 setProduct(product, { animate: false, force: true });
+{
+  let saved = false;
+  try {
+    saved = !!localStorage.getItem(STORAGE_KEY);
+  } catch {
+    /* Speicher nicht verfügbar */
+  }
+  if (!saved && !/(cfg|z)=/.test(location.hash) && !params.has('q')) openStart();
+}
 
 // Kurzlink (#z=…) übernehmen; mit "ar=1" – z. B. vom QR-Code – gleich den AR-Dialog öffnen
 {

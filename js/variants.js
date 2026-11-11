@@ -5,29 +5,44 @@
 // Die gerade bearbeitete Konfiguration ist immer die aktive Variante; ihre
 // Kopie in der Liste wird bei jeder Änderung nachgeführt.
 // ---------------------------------------------------------------------------
-import { MACHINE_SLOTS, GRINDER_SLOTS } from './data.js';
+import { DEVICES, STANDARD_DEVICE } from './devices.js';
 
 export const MAX_VARIANTS = 5;
 export const VARIANT_PRODUCTS = ['machine', 'grinder'];
-const MACHINE_KEYS = ['gauges', 'screwHead', 'rail', 'railStyle', 'tray', 'shape'];
+// Einstellungen der Linea Mini R liegen (aus älteren Versionen) direkt in der Konfiguration
+export const LMR_KEYS = ['gauges', 'screwHead', 'rail', 'railStyle', 'tray', 'shape'];
 const clone = (o) => JSON.parse(JSON.stringify(o));
 
-/** Gerätespezifischer Teil einer Konfiguration */
+/** Gerätespezifischer Teil einer Konfiguration (mit Gerät) */
 export function extractVariant(product, cfg) {
-  if (product === 'grinder') {
-    return { slots: Object.fromEntries(GRINDER_SLOTS.map((k) => [k, clone(cfg.slots[k])])), burrs: cfg.grinder.burrs };
+  const id = cfg.devices?.[product] || STANDARD_DEVICE[product];
+  const v = { device: id, slots: Object.fromEntries(DEVICES[id].slots.map((k) => [k, clone(cfg.slots[k])])) };
+  if (id === 'lmr') {
+    for (const k of LMR_KEYS) v[k] = clone(cfg[k]);
+  } else if (id === 'eg1') {
+    v.burrs = cfg.grinder.burrs;
+  } else {
+    v.opts = clone(cfg.opts?.[id] || {});
   }
-  const v = { slots: Object.fromEntries(MACHINE_SLOTS.map((k) => [k, clone(cfg.slots[k])])) };
-  for (const k of MACHINE_KEYS) v[k] = clone(cfg[k]);
   return v;
 }
 
-/** Konfiguration mit eingesetzter Variante (Kopie) */
+/** Konfiguration mit eingesetzter Variante (Kopie); wechselt bei Bedarf das Gerät */
 export function applyVariant(product, cfg, v) {
   const out = clone(cfg);
+  out.devices = { ...STANDARD_DEVICE, ...(out.devices || {}) };
+  const oldId = out.devices[product];
+  const id = v.device && DEVICES[v.device] ? v.device : STANDARD_DEVICE[product];
+  if (oldId !== id && DEVICES[oldId]) for (const k of DEVICES[oldId].slots) delete out.slots[k];
+  out.devices[product] = id;
   Object.assign(out.slots, clone(v.slots || {}));
-  if (product === 'grinder') out.grinder = { ...out.grinder, burrs: v.burrs || out.grinder.burrs };
-  else for (const k of MACHINE_KEYS) if (v[k] !== undefined) out[k] = clone(v[k]);
+  if (id === 'lmr') {
+    for (const k of LMR_KEYS) if (v[k] !== undefined) out[k] = clone(v[k]);
+  } else if (id === 'eg1') {
+    out.grinder = { ...out.grinder, burrs: v.burrs || out.grinder.burrs };
+  } else {
+    out.opts = { ...(out.opts || {}), [id]: clone(v.opts || {}) };
+  }
   return out;
 }
 

@@ -15,6 +15,7 @@
 import * as THREE from 'three';
 import { boxProjectUV, rbox, profileExtrudeX, extrudeZ, woodBoxUV } from './model.js';
 import { makeCanvas } from './noise.js';
+import { resolveBody, resolveMetal } from './data.js';
 
 /** Hauptmaße (mm) */
 export const EG1 = {
@@ -763,5 +764,11 @@ export function buildGrinder(mm) {
       root.userData.dialInk.color.set(lum > 0.35 ? 0x1a1a1a : 0xf2f2f2);
     },
     setBarista() {},
+    /** Deckel und Skalenfarbe aus der Konfiguration übernehmen */
+    sync(config) {
+      this.setLid(config.slots['gwood.lid'].id !== 'none');
+      const dial = resolveMetal(config.slots['gmetal.dial']);
+      this.setDialInk(dial.kind === 'body' ? resolveBody(config.slots['gbody.housing']).color : dial.color);
+    },
   };
 }

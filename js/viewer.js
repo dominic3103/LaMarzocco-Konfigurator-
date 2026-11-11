@@ -157,13 +157,28 @@ export class Viewer {
     renderer.setAnimationLoop(() => this.#tick());
   }
 
-  setModel(model) {
+  /** Maschine setzen (sie steuert das Barista-Licht) */
+  setModel(model, shadow = { w: 0.62, d: 0.72, z: -0.069 }) {
     this.model = model;
-    // Modell so verschieben, dass es um seine Mitte rotiert
-    model.root.position.z = 0.064;
     this.rig.model = model;
     model.setBarista(this.rig.baristaLevel ?? 0);
-    this.addModel(model, { w: 0.62, d: 0.72, z: -0.069 });
+    this.addModel(model, shadow);
+  }
+
+  /** Gerät aus der Szene nehmen (z. B. beim Gerätewechsel) */
+  removeModel(model) {
+    if (!model) return;
+    this.scene.remove(model.root);
+    this.models = this.models.filter((m) => m !== model);
+    const c = this.contacts.get(model);
+    if (c) {
+      this.rig.contact.remove(c);
+      c.geometry.dispose();
+      this.contacts.delete(model);
+    }
+    if (this.model === model) this.model = null;
+    this.pickables = this.models.flatMap((m) => m.pickables);
+    this.dirty = true;
   }
 
   /**

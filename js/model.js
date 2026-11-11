@@ -1557,6 +1557,19 @@ export function buildMachine(mm) {
       handleVariants.facet.visible = handle === 'facet';
     },
     /** Barista-Licht: 0 = aus, 1 = voll */
+    /** Formen, optionale Teile, Manometer und Schrauben aus der Konfiguration übernehmen */
+    sync(config) {
+      this.setRail(config.rail, config.railStyle);
+      this.setTrays(config.tray);
+      this.setPanels({
+        upper: config.slots['wood.panelUpper'].id !== 'none',
+        lower: config.slots['wood.panelLower'].id !== 'none',
+      });
+      this.setShapes(config.shape);
+      this.setGauge('left', config.gauges.left);
+      this.setGauge('right', config.gauges.right);
+      this.setScrewHead(config.screwHead);
+    },
     setBarista(level) {
       baristaSpot.intensity = level * 0.2;
       if (level > 0.01) ledMat.color.setRGB(1.6 * Math.max(0.35, level), 1.5 * Math.max(0.35, level), 1.3 * Math.max(0.35, level));

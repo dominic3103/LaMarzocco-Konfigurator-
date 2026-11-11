@@ -88,13 +88,32 @@ export const SLOT_LABELS = Object.fromEntries([
 ]);
 
 export const categoryOf = (slotKey) => slotKey.split('.')[0];
-/** Materialart eines Slots: body | wood | metal (auch für die Slots der Mühle) */
+/** Gerät eines Slots neuer Geräte ("<gerät>:<kategorie>.<teil>"), sonst null */
+export const deviceOfSlot = (slotKey) => {
+  const i = slotKey.indexOf(':');
+  return i > 0 ? slotKey.slice(0, i) : null;
+};
+/** Art (machine | grinder) je Gerät – wird von devices.js gefüllt */
+export const DEVICE_KIND = {};
+/** Materialart eines Slots: body | wood | metal (für alle Geräte) */
 const KIND = { body: 'body', wood: 'wood', metal: 'metal', gbody: 'body', gwood: 'wood', gmetal: 'metal' };
-export const kindOf = (slotKey) => KIND[categoryOf(slotKey)] || categoryOf(slotKey);
+export const kindOf = (slotKey) => {
+  const c = categoryOf(slotKey);
+  const base = c.includes(':') ? c.slice(c.indexOf(':') + 1) : c;
+  return KIND[base] || base;
+};
 /** Produkt eines Slots */
-export const productOf = (slotKey) => (slotKey.startsWith('g') ? 'grinder' : 'machine');
-/** Bezugs-Slot für Akzente "Wie Gehäuse" */
-export const baseSlotOf = (slotKey) => (productOf(slotKey) === 'grinder' ? 'gbody.housing' : 'body.base');
+export const productOf = (slotKey) => {
+  const d = deviceOfSlot(slotKey);
+  if (d) return DEVICE_KIND[d] || 'machine';
+  return slotKey.startsWith('g') ? 'grinder' : 'machine';
+};
+/** Bezugs-Slot für Akzente "Wie Gehäuse" (neue Geräte: "<gerät>:body.main") */
+export const baseSlotOf = (slotKey) => {
+  const d = deviceOfSlot(slotKey);
+  if (d) return `${d}:body.main`;
+  return productOf(slotKey) === 'grinder' ? 'gbody.housing' : 'body.base';
+};
 export const MACHINE_SLOTS = Object.values(CATEGORIES).flatMap((c) => c.slots.map((s) => s.key));
 export const GRINDER_SLOTS = Object.values(GRINDER_CATEGORIES).flatMap((c) => c.slots.map((s) => s.key));
 
@@ -585,6 +604,9 @@ export const DEFAULT_CONFIG = {
   ...PRESETS[0].config,
   slots: { ...PRESETS[0].config.slots, ...GRINDER_PRESETS[0].config.slots },
   grinder: { ...GRINDER_PRESETS[0].config.grinder },
+  // gewählte Geräte (weitere Geräte siehe devices.js) und deren Einstellungen
+  devices: { machine: 'lmr', grinder: 'eg1' },
+  opts: {},
 };
 
 // ---------------------------------------------------------------------------

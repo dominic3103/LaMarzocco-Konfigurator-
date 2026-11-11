@@ -112,6 +112,7 @@
             <button type="button" data-product="grinder"><span class="ps-num">2</span><span class="ps-text"><span class="ps-name">Mühle</span><span class="ps-sub">EG-1</span></span></button>
             <button type="button" data-product="set"><span class="ps-num">3</span><span class="ps-text"><span class="ps-name">Zusammen</span><span class="ps-sub">Nebeneinander</span></span></button>
           </nav>
+          <section class="device-bar" id="device-bar" aria-label="Gerät"></section>
           <section class="variant-bar" id="variant-bar" aria-label="Variationen"></section>
         </header>
         <div id="config"></div>
@@ -135,6 +136,18 @@
         <figcaption>Zum Speichern Rechtsklick auf das Bild › „Bild speichern unter …“, am Handy das Bild lange drücken.</figcaption>
         <button class="btn" id="shot-close" type="button">Schließen</button>
       </figure>
+    </div>
+    <div class="start-overlay" id="start-overlay" role="dialog" aria-modal="true" aria-labelledby="start-title" hidden>
+      <div class="start-card">
+        <p class="start-eyebrow">360° Konfigurator</p>
+        <h2 class="start-title" id="start-title">Womit möchtest du starten?</h2>
+        <p class="start-lede">Wähle deine Espressomaschine und deine Mühle. Beides lässt sich später jederzeit wechseln.</p>
+        <h3 class="start-kind">Maschine</h3>
+        <div class="device-grid" id="start-machines" role="radiogroup" aria-label="Maschine"></div>
+        <h3 class="start-kind">Mühle</h3>
+        <div class="device-grid" id="start-grinders" role="radiogroup" aria-label="Mühle"></div>
+        <button class="btn finish" id="start-go" type="button"><span>Los geht's</span></button>
+      </div>
     </div>
     <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
     <script type="module" src="js/main.js"></script>
