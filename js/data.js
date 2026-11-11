@@ -365,6 +365,7 @@ export const GAUGE_DIALS = [
   { id: 'black', name: 'Schwarz' },
   { id: 'cream', name: 'Creme' },
   { id: 'naked', name: 'Naked (offenes Werk)' },
+  { id: 'red', name: 'Rot' },
 ];
 export const NEEDLES = [
   { id: 'red', name: 'Rot', color: '#c2231d' },

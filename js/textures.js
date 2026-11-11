@@ -338,6 +338,7 @@ const DIAL_STYLES = {
   cream: { face: '#eadfc6', ink: '#3a2a1c', zone: '#a8322a' },
   // offenes Werk: nur ein schwarzer Skalenring, die Mitte ist ausgestanzt
   naked: { face: '#121212', ink: '#f0ece2', zone: '#c0201c', ring: true },
+  red: { face: '#c1261d', ink: '#f6f1e6', zone: '#f6f1e6' },
 };
 
 /** Winkel auf dem Zifferblatt (Canvas-Koordinaten): 0 unten links, 270° im Uhrzeigersinn */

@@ -263,6 +263,8 @@ function deviceOpts(id) {
     onOption: (key, value) => {
       config.opts[id] = { ...(config.opts[id] || {}), [key]: value };
       syncParts();
+      // Optionen, die die Gerätemaße ändern (z. B. Gruppenzahl): Aufstellung und Kamera nachführen
+      if (DEVICES[id].options?.find((o) => o.key === key)?.layout) setProduct(product, { force: true });
       commit();
     },
   };
@@ -281,7 +283,19 @@ const grinderDeviceOpts = (id) => ({
 function syncParts() {
   model.sync(config);
   gmodel.sync(config);
+  // Maße können von Optionen abhängen: Aufstellung (ohne Animation) und Schatten aktualisieren
+  if (typeof product !== 'undefined' && layoutReady) {
+    applyLayout(product, false);
+    // Kamera nur nachführen, wenn sich der Ausschnitt tatsächlich geändert hat
+    const f = JSON.stringify(frameOf(product));
+    if (f !== lastFrame) {
+      lastFrame = f;
+      viewer.setFocus(frameOf(product), true);
+    }
+  }
 }
+let layoutReady = false;
+let lastFrame = '';
 applyAll();
 
 const LIGHT_KEY = 'lm-mini-r-licht';
@@ -1083,6 +1097,7 @@ function setProduct(p, { animate = true, force = false } = {}) {
   document.querySelector('.app').dataset.product = p;
   applyLayout(p, animate);
   viewer.setFocus(frameOf(p), animate && (changed || force));
+  lastFrame = JSON.stringify(frameOf(p));
   renderSetPanel();
   renderVariants();
   renderDeviceBar();
@@ -1677,6 +1692,7 @@ window.__konfigurator = {
 };
 
 // Startansicht: gespeichertes bzw. im Link genanntes Produkt
+layoutReady = true;
 setProduct(product, { animate: false, force: true });
 {
   let saved = false;

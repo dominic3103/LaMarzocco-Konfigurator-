@@ -191,6 +191,10 @@ export class Viewer {
     const c = new THREE.Mesh(new THREE.PlaneGeometry(shadow.w, shadow.d), this.contactMat);
     c.rotation.x = -Math.PI / 2;
     c.userData.dz = shadow.z || 0;
+    // Größe folgt der Gerätebeschreibung (z. B. Gruppenzahl der Linea PB)
+    c.userData.shadow = shadow;
+    c.userData.w0 = shadow.w;
+    c.userData.d0 = shadow.d;
     this.rig.contact.add(c);
     this.contacts.set(model, c);
     this.pickables = this.models.flatMap((m) => m.pickables);
@@ -202,6 +206,8 @@ export class Viewer {
   syncContacts() {
     for (const [m, c] of this.contacts) {
       c.visible = m.root.visible;
+      const sh = c.userData.shadow;
+      if (sh) c.scale.set(sh.w / c.userData.w0, sh.d / c.userData.d0, 1);
       c.position.set(m.root.position.x, 0.0006, m.root.position.z + c.userData.dz);
     }
     this.dirty = true;
