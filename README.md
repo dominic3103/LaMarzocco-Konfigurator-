@@ -1,11 +1,16 @@
-# Linea Mini R & EG-1 – 360° Konfigurator
+# Espressomaschinen & Mühlen – 360° Konfigurator
 
-Interaktiver 3D-Konfigurator für die Espressomaschine **La Marzocco Linea Mini R** und die passende Mühle **Weber Workshops EG-1**. Beide Geräte lassen sich frei um 360° drehen, in allen sichtbaren Materialien gestalten und maßstabsgetreu nebeneinander ansehen – auf dem Bildschirm und in AR.
+Interaktiver 3D-Konfigurator im Stil von rb.crafts für Espressomaschinen und Mühlen. Ganz am Anfang wählt man **Maschine und Mühle** aus:
+
+- **Maschinen**: La Marzocco Linea Mini R, Linea Micra, Linea Mini (klassisch), GS3 (AV/MP), Linea PB und Linea PB X (2, 3 oder 4 Gruppen), Victoria Arduino E1 Prima
+- **Mühlen**: Weber Workshops EG-1, La Marzocco Pico, Mahlkönig E64 WS
+
+Alle Geräte lassen sich frei um 360° drehen, in allen sichtbaren Materialien gestalten und maßstabsgetreu nebeneinander ansehen – auf dem Bildschirm und in AR. Aufgenommen wurde nur, was sich auf dem Niveau der Linea Mini R nachbauen ließ: nach bemaßten Werkszeichnungen (teils mit CAD-Daten als Messreferenz), Explosionszeichnungen und Fotos, mit Überlagerungsprüfung gegen die Zeichnung (siehe „Weitere Geräte“).
 
 Ablauf in drei Schritten (Umschalter oben im Panel):
 
-1. **Maschine** – Linea Mini R gestalten, „Maschine abschließen“ zeigt die Montage, danach geht es mit „Weiter zur Mühle“ zum nächsten Schritt
-2. **Mühle** – EG-1 im gleichen Funktionsumfang gestalten, auf Wunsch mit „Wie meine Maschine“ an die Maschine angleichen
+1. **Maschine** – Maschine wählen und gestalten, „Maschine abschließen“ zeigt die Montage, danach geht es mit „Weiter zur Mühle“ zum nächsten Schritt
+2. **Mühle** – Mühle wählen und im gleichen Funktionsumfang gestalten, auf Wunsch mit „Wie meine Maschine“ an die Maschine angleichen
 3. **Zusammen** – beide Geräte nebeneinander (Mühle links oder rechts), Präsentation und „Beide in AR ansehen“
 
 ## Variationen
@@ -99,6 +104,44 @@ Zur Kontrolle wird eine orthografische Ansicht des Modells über die Herstellerz
 - [Eight Ounce Coffee – EG-1](https://eightouncecoffee.ca/products/weber-workshops-eg-1-coffee-grinder-variable-90v-240v) (Maße, Gewicht, Lieferumfang: Eichen-Platen, Blind Shaker)
 - [rb.crafts – Veredelung](https://www.rb-crafts.de/veredelung) (EG-1 in Grün mit goldenen Teilen)
 
+## Weitere Geräte
+
+Jedes Gerät ist ein eigenes Modul unter `js/devices/` und trägt sich beim Laden in die Geräteliste ein (`registerDevice` in `js/devices.js`). Es bringt Bauteil-Slots, Kategorien, Presets, Optionen, Montageplan und Innenleben mit; Panel, Teileauswahl per Klick, Varianten, Teilen-Link, Bild, Liste und AR funktionieren für alle Geräte gleich.
+
+| Gerät | Grundlage der Maße | Kontrolle | Besonderheiten im Konfigurator |
+|---|---|---|---|
+| **La Marzocco Linea Micra** | Werkszeichnung LM0028856 (1:5), 3D-CAD von La Marzocco als Messreferenz, Ersatzteilkatalog V1.0 | Silhouette Front 97,7 %, Seite 95 %, oben 98 % Deckung | Knöpfe rund/gelappt, Griff rund/facettiert, Zifferblatt, Zeiger, Reling, Holz für Knöpfe, Paddle, Rahmen, Griff und Seitenflächen; Presets All Black · Walnuss, Elfenbein · Eiche, Special Bronze · Walnuss (rb.crafts), Edelstahl, Weiß |
+| **La Marzocco Linea Mini** (klassisch) | Werkszeichnung „LINEA MINI“ (1:5, 02/2015), CAD als Messreferenz, Ersatzteilkatalog V1.6 | Front 97,3 %, Seite 93 % | Knöpfe gelappt/gerillt, Paddle-Rahmen original oder rb.crafts-Block mit L-Paddle, Griff, Zifferblatt, Zeiger, Reling |
+| **La Marzocco GS3** (AV/MP) | Werkszeichnungen GS3-AV und GS3-MP (1:10), CAD als Messreferenz, Ersatzteilkatalog V3.4 | Front 95,7 %, Seite 90,5 % (Siebträger nicht im CAD), oben 96,8 % | Umschalter AV/MP (Tastenfeld oder Paddle), Holz-Seitenteile, Holzdeckel, Paddle und Dampfknopf; Presets u. a. Schwarz · Gold · Olive (rb.crafts) und Corian-Beton |
+| **La Marzocco Linea PB / PB X** | Werkszeichnungen „LINEA PB“ (1:10; 710 / 950 / 1190 mm breit), CAD als Messreferenz, Ersatzteilkatalog V3.8 | Front und Seite über der Zeichnung | 2, 3 oder 4 Gruppen (Breite, Schatten und Bildausschnitt passen sich an), PB mit rotem, PB X mit weißem Zifferblatt |
+| **Victoria Arduino E1 Prima** | Maßstäbliche Zeichnungen im Prospekt „E1 Prima EXP“ (S. 20; 411 × 510 × 379 mm) | Front und Seite über der Zeichnung | Haube mit schräger Rückseite, Pure-Brew-Siebträger, hinten Licht oder Holzpaneel; Preset Weiß · Gold · Eiche (rb.crafts) |
+| **La Marzocco Pico** (Mühle) | Maßstäbliche Zeichnung im Ersatzteilkatalog „Pico V1.0“ (S. 4; Höhe 400, Breite 155 mm), Explosionszeichnungen S. 6–10 | Umriss 842 × 1142 px gegen 842 × 1145 px der Zeichnung | Holzdeckel, Skala passt sich hell/dunkel an, Werks-Kits in Farbe |
+| **Mahlkönig E64 WS** (Mühle) | Bemaßte Zeichnung in der Ersatzteilliste „E64 WS“ V1.0 (S. 2: Höhe 388, Ø 154, Tiefe 230 mm, Auslauf 123 mm, Becherhalter 27–42 mm, Stellfläche 180 × 255 mm), Explosionszeichnungen S. 3–7 | Seiten- und Frontansicht decken sich mit der Zeichnung (Kopf, Kinn, Auslauf, Gabel, Becherhalter, Säule, Rückseite) | Holzdeckel für den 250-g-Trichter wie bei rb.crafts, getrennte Farben für Korpus, Deckel und Sockel, Tasten und Rändelknopf als Akzent oder aus Holz |
+
+**Vorgehen beim Vermessen**: Zeichnungen aus den PDFs mit 500–600 dpi rendern, den Maßstab über mehrere Herstellermaße bestimmen und prüfen (z. B. Höhe, Breite, Durchmesser), Bauteil für Bauteil ablesen. Wo La Marzocco CAD-Daten veröffentlicht, wurden daraus nur Schnitte und Maße gewonnen; die Modelle selbst sind prozedural aufgebaut. Zur Kontrolle wird eine orthografische Silhouette des Modells über die Zeichnung gelegt.
+
+### Nicht aufgenommen
+
+Die folgenden Geräte aus der rb.crafts-Liste sind **nicht** enthalten, weil es keine Unterlagen gibt, mit denen sie auf demselben Niveau wie die Linea Mini R gebaut werden könnten:
+
+| Gerät | Grund |
+|---|---|
+| Rocket Appartamento | Nur Front- und Rückansichten sowie perspektivische Fotos; die Explosionszeichnungen sind nicht maßstäblich, eine bemaßte oder maßstäbliche Seitenansicht gibt es nicht |
+| VBM Pistone | Modell nicht eindeutig (mehrere Ausführungen), keine Zeichnungen |
+| Bentwood H75 und V63 | Nur Gesamtmaße (B × T × H) und Fotos, keine maßstäblichen Ansichten |
+| Fiorenzato AllGround Sense | Gesamtmaße, unmaßstäbliche Strichzeichnungen und eine Explosionsansicht ohne Maßstab |
+| Niche Zero und Niche Duo | Nur Gesamtmaße und Fotos |
+| Eureka Mignon und Eureka Atom 75 | Gesamtmaße und Explosionszeichnungen ohne Maßstab, keine bemaßten Ansichten |
+
+Sobald für eines dieser Geräte eine bemaßte oder maßstäbliche Zeichnung vorliegt (z. B. vom Hersteller), lässt es sich nach demselben Muster als Modul unter `js/devices/` ergänzen.
+
+### Quellen weitere Geräte
+
+- La Marzocco Dokumentation (Werkszeichnungen, 3D-Daten, Ersatzteilkataloge für Linea Micra, Linea Mini, GS3, Linea PB, Pico)
+- [Victoria Arduino – Eagle One Prima](https://www.victoriaarduino.com/) (Prospekt E1 Prima EXP mit technischen Zeichnungen)
+- [Mahlkönig – E64 WS](https://www.mahlkoenig.com/) (Ersatzteilliste mit Maßzeichnung und Explosionszeichnungen, Bedienungsanleitung, Prospekt)
+- [rb.crafts](https://www.rb-crafts.de/) (Veredelungen, Holzdeckel für die E64 WS)
+
 ## Starten
 
 Das Projekt kommt ohne Build-Schritt aus. Three.js liegt lokal unter `vendor/three/`, es wird also kein CDN benötigt.
@@ -132,6 +175,10 @@ js/lighting.js      Lichtstimmungen (Umgebung, Lichter, Hintergrund, Überblendu
 js/assembly.js      Montage-Animation "Konfiguration abschließen" (Ablaufplan, Flugbahnen, Kamerafahrt)
 js/grinder.js       Prozedurales 3D-Modell der Mühle EG-1 inkl. Innenleben und Montageplan
 js/grinder-ui.js    Konfigurations-Panel der Mühle (nutzt die Bausteine aus ui.js)
+js/devices.js       Geräteliste (registerDevice), Standardvarianten, Bauteil-Bezeichnungen
+js/device-ui.js     Konfigurations-Panel für die weiteren Geräte (Slots, Presets, Optionen)
+js/parts.js         Gemeinsame Bauteile: Baukasten, Profile, Blechschalen, Manometer, Schrauben, Logo
+js/devices/*.js     Je ein Gerät: Linea Micra, Linea Mini, GS3, Pico, Linea PB/PB X, E1 Prima, E64 WS
 js/variants.js      Variationen: Speichern, Prüfen und Umschalten der Fassungen je Gerät
 js/ar.js            AR-Ansicht: Export der Konfiguration als USDZ/GLB, Dialog, QR-Code
 js/materials.js     Materialien je Bauteil-Gruppe (Lack, Holz, Metall)
@@ -198,4 +245,4 @@ Die Geometrie folgt den Maßzeichnungen (Front-, Seiten- und Rückansicht) im of
 
 ## Hinweis
 
-Die 3D-Modelle sind eigene, vereinfachte Nachbildungen auf Basis von Werkszeichnungen, Herstellerangaben und Fotos. Es handelt sich nicht um offizielle Produkte von La Marzocco oder Weber Workshops; das Logo der Mühle ist nur angedeutet. Marken- und Produktnamen gehören ihren jeweiligen Inhabern.
+Die 3D-Modelle sind eigene, vereinfachte Nachbildungen auf Basis von Werkszeichnungen, Herstellerangaben und Fotos; CAD-Daten der Hersteller dienten nur als Messreferenz und sind nicht enthalten. Es handelt sich nicht um offizielle Produkte von La Marzocco, Weber Workshops, Victoria Arduino oder Mahlkönig; Logos sind nur angedeutet. Marken- und Produktnamen gehören ihren jeweiligen Inhabern.

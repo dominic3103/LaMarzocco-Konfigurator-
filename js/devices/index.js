@@ -5,3 +5,4 @@ import './gs3.js';
 import './pico.js';
 import './linea-pb.js';
 import './e1-prima.js';
+import './e64.js';
