@@ -6,3 +6,5 @@ import './linea-pb.js';
 import './rocket.js';
 import './pico.js';
 import './e64.js';
+import './niche.js';
+import './bentwood.js';
