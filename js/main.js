@@ -40,6 +40,7 @@ import { buildGrinder, EG1 } from './grinder.js';
 import { GrinderUI } from './grinder-ui.js';
 import { MAX_VARIANTS, VARIANT_PRODUCTS, extractVariant, applyVariant, sanitizeVariants, filledVariants, stepVariant } from './variants.js';
 import { DEVICES, STANDARD_DEVICE, defaultVariantOf, devicesOfKind } from './devices.js';
+import './devices/index.js';
 
 const STORAGE_KEY = 'lm-mini-r-konfigurator';
 /** Slots des gewählten Geräts (bzw. beider Geräte im Set) */

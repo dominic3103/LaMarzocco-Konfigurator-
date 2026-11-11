@@ -194,7 +194,16 @@ export class DeviceUI extends ConfiguratorUI {
     } else {
       const k = resolveMetal(value).kind;
       this.colorTab.edit = k === 'metal' ? 'metal' : k === 'paint' ? 'igp' : 'uni';
-      const picker = this._accentPicker('edit', () => [slot]);
+      if (info.woodLogo && k === 'wood') this.colorTab.edit = 'wood';
+      // passende Optionen direkt am Bauteil (z. B. Zifferblatt und Zeiger am Manometer)
+      for (const key of info.options || []) {
+        const o = (D.options || []).find((x) => x.key === key);
+        if (!o) continue;
+        const seg = this._segmented(o.choices, (id) => this.opts.onOption(o.key, id));
+        blocks.push(el('div', { class: 'field' }, [el('span', { class: 'label', text: o.label }), seg]));
+        refreshers.push((x) => setActive(seg, x.opts?.[D.id]?.[o.key]));
+      }
+      const picker = this._accentPicker('edit', () => [slot], { wood: !!info.woodLogo });
       blocks.push(picker.node);
       refreshers.push((x) => picker.refresh(x, [slot]));
       if (others.length) actions.append(action('Auf alle Akzente übertragen', () => this.opts.onCopy(others, this.opts.getConfig().slots[slot])));

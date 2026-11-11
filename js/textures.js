@@ -286,6 +286,39 @@ export function makeDripGrateTexture(widthMM, depthMM, style = 'slots') {
   return finishTexture(c);
 }
 
+/**
+ * Lochblech nach Maß: rechteckige Schlitzfelder (für weitere Geräte).
+ * fields: [{x, y, w, h, pitch, slot, dir}] in mm, Ursprung oben links; dir 'rows' = Schlitze quer (über w),
+ * 'cols' = Schlitze längs (über h). brushed: Schliffrichtung ('x' | 'y' | false).
+ */
+export function makeSlotFieldTexture(widthMM, depthMM, fields, { brushed: dir = 'y', pxPerMM = 5 } = {}) {
+  const W = Math.round(widthMM * pxPerMM);
+  const H = Math.round(depthMM * pxPerMM);
+  const c = makeCanvas(W, H);
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, H);
+  if (dir) brushed(ctx, W, H, dir === 'y');
+  punch(ctx, () => {
+    for (const f of fields) {
+      const s = f.slot * pxPerMM;
+      const rr = (f.r ?? f.slot / 2) * pxPerMM;
+      if (f.dir === 'cols') {
+        for (let x = f.x; x <= f.x + f.w - f.slot + 0.01; x += f.pitch) {
+          roundRect(ctx, x * pxPerMM, f.y * pxPerMM, s, f.h * pxPerMM, Math.min(rr, s / 2));
+          ctx.fill();
+        }
+      } else {
+        for (let y = f.y; y <= f.y + f.h - f.slot + 0.01; y += f.pitch) {
+          roundRect(ctx, f.x * pxPerMM, y * pxPerMM, f.w * pxPerMM, s, Math.min(rr, s / 2));
+          ctx.fill();
+        }
+      }
+    }
+  });
+  return finishTexture(c);
+}
+
 function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
@@ -493,7 +526,7 @@ export function makeDisplayTexture() {
   return finishTexture(c);
 }
 
-export function makePlateTexture() {
+export function makePlateTexture(model = 'LINEA MINI R') {
   const W = 256;
   const H = 164;
   const c = makeCanvas(W, H);
@@ -508,7 +541,7 @@ export function makePlateTexture() {
   ctx.strokeRect(6, 6, W - 12, H - 12);
   ctx.fillStyle = '#222';
   ctx.font = '700 22px Arial, sans-serif';
-  ctx.fillText('LINEA MINI R', 18, 36);
+  ctx.fillText(model, 18, 36);
   ctx.font = '700 26px Arial, sans-serif';
   ctx.fillText('CE', W - 60, 36);
   ctx.fillRect(14, 48, W - 28, 2);

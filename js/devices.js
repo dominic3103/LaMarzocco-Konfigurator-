@@ -6,7 +6,7 @@
 // baut (erst bei Bedarf). Slots neuer Geräte sind mit "<id>:" vorangestellt,
 // damit sie sich nicht mit denen anderer Geräte überschneiden.
 // ---------------------------------------------------------------------------
-import { MACHINE_SLOTS, GRINDER_SLOTS, CATEGORIES, GRINDER_CATEGORIES, PRESETS, GRINDER_PRESETS, DEVICE_KIND } from './data.js';
+import { MACHINE_SLOTS, GRINDER_SLOTS, CATEGORIES, GRINDER_CATEGORIES, PRESETS, GRINDER_PRESETS, DEVICE_KIND, SLOT_LABELS } from './data.js';
 import { buildMachine } from './model.js';
 import { buildGrinder } from './grinder.js';
 
@@ -66,6 +66,19 @@ export const DEVICES = {
 
 /** Neues Gerät aufnehmen (Gerätemodule rufen das beim Import auf) */
 export function registerDevice(def) {
+  // Optionen prüfen: unbekannte Werte fallen auf den Standard zurück
+  if (def.options && !def.sanitizeOpts) {
+    def.sanitizeOpts = (raw, defaults) => {
+      const out = { ...defaults };
+      for (const o of def.options) {
+        const v = raw?.[o.key];
+        if (o.choices.some((c) => c.id === v)) out[o.key] = v;
+      }
+      return out;
+    };
+  }
+  // Beschriftung für Tooltips im 3D-Modell
+  for (const c of Object.values(def.categories)) for (const s of c.slots) SLOT_LABELS[s.key] = `${c.title} · ${s.label}`;
   DEVICES[def.id] = def;
   DEVICE_KIND[def.id] = def.kind;
 }
