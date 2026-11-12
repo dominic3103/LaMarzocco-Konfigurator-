@@ -1113,6 +1113,10 @@ function setProduct(p, { animate = true, force = false } = {}) {
     const on = b.dataset.product === p;
     b.classList.toggle('active', on);
     b.setAttribute('aria-current', on ? 'step' : 'false');
+    // Untertitel der Schritte: gewähltes Gerät
+    const sub = b.querySelector('.ps-sub');
+    const dev = DEVICES[config.devices[b.dataset.product]];
+    if (sub && dev) sub.textContent = dev.name;
   });
   document.querySelector('.app').dataset.product = p;
   applyLayout(p, animate);
