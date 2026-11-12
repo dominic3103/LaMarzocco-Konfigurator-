@@ -512,6 +512,22 @@ export function makeLogoTexture(text) {
   return finishTexture(c, false);
 }
 
+/** Schriftzug mit untereinander stehenden Buchstaben (z. B. senkrechtes ROCKET), Zelle 128 × 128 */
+export function makeStackedLogoTexture(text) {
+  const chars = [...text];
+  const S = 128;
+  const c = makeCanvas(S, S * chars.length);
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(0, 0, S, S * chars.length);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 104px "Inter", "Arial Black", "Helvetica Neue", Arial, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  chars.forEach((ch, i) => ctx.fillText(ch, S / 2, S * i + S / 2 + 6));
+  return finishTexture(c, false);
+}
+
 export function makeDisplayTexture() {
   const W = 256;
   const H = 160;

@@ -403,7 +403,11 @@ function buildRocket(mm) {
   {
     const z0 = -60;
     const z1 = 169.5;
-    B.add(boxProjectUV(plateY(filletShape([[-HW + 1, z0], [HW - 1, z0], [HW - 1, z1], [-HW + 1, z1]], [0, 0, 3, 3], 3), 22, 77, 1)), trayMat, S('metal.tray'));
+    B.add(boxProjectUV(plateY(filletShape([[-HW + 1, z0], [HW - 1, z0], [HW - 1, z1], [-HW + 1, z1]], [0, 0, 3, 3], 3), 22, 64, 1)), trayMat, S('metal.tray'));
+    // Wände der Schale bis zum Rand (innen dunkel)
+    const wall = filletShape([[-HW + 1, z0], [HW - 1, z0], [HW - 1, z1], [-HW + 1, z1]], [0, 0, 3, 3], 3);
+    wall.holes.push(filletShape([[-HW + 4, z0 + 2], [HW - 4, z0 + 2], [HW - 4, z1 - 3], [-HW + 4, z1 - 3]], 1.5, 2));
+    B.add(boxProjectUV(plateY(wall, 85, 15, 0.4)), trayMat, S('metal.tray'));
     const rim = filletShape([[-HW + 1, z0], [HW - 1, z0], [HW - 1, z1], [-HW + 1, z1]], [0, 0, 3, 3], 3);
     rim.holes.push(filletShape([[-HW + 6, z0 + 4], [HW - 6, z0 + 4], [HW - 6, z1 - 5], [-HW + 6, z1 - 5]], 1.5, 2));
     B.add(boxProjectUV(plateY(rim, 99, 6, 0.6)), trayMat, S('metal.tray'));
@@ -415,7 +419,7 @@ function buildRocket(mm) {
     const g = new THREE.PlaneGeometry(W, D);
     g.rotateX(-Math.PI / 2);
     B.add(g, mat('metal.tray', { map: tex, alphaTest: 0.5, alphaToCoverage: true, side: THREE.DoubleSide, shadowSide: THREE.DoubleSide }), S('metal.tray')).position.set(0, 102.5, z0 + 4 + D / 2);
-    B.plain(new THREE.BoxGeometry(W - 2, 1, D - 2), F.trayInner).position.set(0, 96, z0 + 4 + D / 2);
+    B.plain(new THREE.BoxGeometry(2 * HW - 7, 1, z1 - z0 - 4), F.trayInner).position.set(0, 87, z0 + (z1 - z0) / 2);
   }
 
   // =========================================================================
@@ -466,13 +470,11 @@ function buildRocket(mm) {
   // =========================================================================
   B.stage('logo');
   {
-    const letters = 'ROCKET';
-    for (let i = 0; i < letters.length; i++) {
-      const mk = logoFactory(B, S('metal.logo'), 30, 22, letters[i]);
-      const l = mk(3);
-      l.rotation.y = Math.PI;
-      l.position.set(0, 290 - i * 33, ZR - 0.05);
-    }
+    // Buchstaben untereinander, je ca. 22 mm hoch, mittig auf der Rückwand
+    const mk = logoFactory(B, S('metal.logo'), 26, 26 * 6, 'ROCKET', { stacked: true });
+    const l = mk(3);
+    l.rotation.y = Math.PI;
+    l.position.set(0, 196, ZR - 0.05);
   }
 
   // =========================================================================

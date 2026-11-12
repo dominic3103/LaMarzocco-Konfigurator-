@@ -304,7 +304,11 @@ function makeBuilder(ID, version) {
       // ---------------- Tropfschale (C.1.151) mit Lochblech (C.1.157) ----------------
       B.stage('drip');
       {
-        B.add(boxProjectUV(rbox(2 * (H - 42), 88, 182, 3, 3)), body, S('body.main')).position.set(0, 105 + 44, 91);
+        // Schale: Boden und Wände (innen dunkel, damit das Lochblech nicht hell durchscheint)
+        B.add(boxProjectUV(rbox(2 * (H - 42), 52, 182, 3, 3)), body, S('body.main')).position.set(0, 105 + 26, 91);
+        const walls = filletShape([[-(H - 42), 0], [H - 42, 0], [H - 42, 182], [-(H - 42), 182]], 3, 3);
+        walls.holes.push(filletShape([[-(H - 46), 4], [H - 46, 4], [H - 46, 178], [-(H - 46), 178]], 1.5, 2));
+        B.add(boxProjectUV(plateY(walls, 154, 39, 0.8)), body, S('body.main'));
         const GW = 2 * (H - 57);
         const GD = 160.2;
         const fields = [];
@@ -332,7 +336,7 @@ function makeBuilder(ID, version) {
         hole.closePath();
         rim.holes.push(hole);
         B.add(boxProjectUV(plateY(rim, 192, 4, 1)), mat('metal.grates'), S('metal.grates'));
-        B.plain(new THREE.BoxGeometry(GW - 4, 1, GD - 4), F.trayInner).position.set(0, 160, 9.1 + GD / 2);
+        B.plain(new THREE.BoxGeometry(2 * (H - 47), 1, 172), F.trayInner).position.set(0, 158, 91);
       }
       // ---------------- Tassenablage (C.1.164): Lochbleche mit runden Löchern ----------------
       B.stage('tray');

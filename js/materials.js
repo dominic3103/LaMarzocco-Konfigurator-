@@ -22,7 +22,9 @@ export class MaterialManager {
   get(slot, extra = {}) {
     const list = this.slots.get(slot) || [];
     if (!extra.map) {
-      const plain = list.find((m) => !m.userData.baseMap);
+      // Schriftzüge mit Maske (alphaMap) bekommen je Maske ein eigenes Material,
+      // sonst würde ein vorhandenes Material ohne Maske (volle Fläche) zurückgegeben
+      const plain = list.find((m) => !m.userData.baseMap && (m.alphaMap || null) === (extra.alphaMap || null));
       if (plain) return plain;
     }
     const mat = new THREE.MeshPhysicalMaterial({ color: 0xffffff, ...extra });

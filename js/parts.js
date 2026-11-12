@@ -9,7 +9,7 @@
 // ---------------------------------------------------------------------------
 import * as THREE from 'three';
 import { rbox, slottedScrewHead, boxProjectUV, mergeGeos } from './model.js';
-import { makeGaugeTexture, gaugeAngle, makeLogoTexture } from './textures.js';
+import { makeGaugeTexture, gaugeAngle, makeLogoTexture, makeStackedLogoTexture } from './textures.js';
 import { needleById } from './data.js';
 
 export const WOOD_U = 160;
@@ -495,9 +495,11 @@ export function screwSet(B, slot, { R = 4.9, H = 3.3 } = {}) {
 // Erhabener Schriftzug (mehrere Lagen einer Maske; auch aus Holz möglich)
 // ---------------------------------------------------------------------------
 const logoTextures = new Map();
-export function logoFactory(B, slot, w, h, text = 'LA MARZOCCO') {
-  if (!logoTextures.has(text)) logoTextures.set(text, makeLogoTexture(text));
-  const mat = B.mm.get(slot, { alphaMap: logoTextures.get(text), alphaTest: 0.4, alphaToCoverage: true });
+/** Schriftzug als Maske; { stacked: true } setzt die Buchstaben untereinander (Fläche w × w·n) */
+export function logoFactory(B, slot, w, h, text = 'LA MARZOCCO', { stacked = false } = {}) {
+  const key = (stacked ? 'v:' : 'h:') + text;
+  if (!logoTextures.has(key)) logoTextures.set(key, stacked ? makeStackedLogoTexture(text) : makeLogoTexture(text));
+  const mat = B.mm.get(slot, { alphaMap: logoTextures.get(key), alphaTest: 0.4, alphaToCoverage: true });
   mat.userData.logo = { w, h };
   const geo = new THREE.PlaneGeometry(w, h);
   return (layers = 6, parent = B.root) => {

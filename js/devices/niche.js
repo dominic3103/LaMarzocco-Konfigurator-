@@ -361,7 +361,7 @@ function makeNicheBuilder(V) {
       r.position.set(lx, ly, lz + 1.2);
       const disk = B.plain(new THREE.CylinderGeometry(21 * sx, 21 * sx, 2.4, 48).rotateX(Math.PI / 2), F.blackPlastic);
       disk.position.set(lx, ly, lz);
-      const mk = logoFactory(B, S('metal.logo'), 31 * sx, 7.5 * sx, 'NICHE');
+      const mk = logoFactory(B, S('metal.logo'), 72 * sx, 9 * sx, 'NICHE'); // Textmaske 8:1, Schrift ca. 30 mm breit
       const l = mk(2);
       l.position.set(lx, ly, lz + 1.2);
     }
