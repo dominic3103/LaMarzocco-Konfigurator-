@@ -97,6 +97,28 @@ function makeBadge(kind) {
   return t;
 }
 
+/** Polylinie mit gerundeten Ecken (Radius r): gerade Rohrstücke und enge Biegungen */
+function bendPath(points, r) {
+  const P = points.map((p) => new THREE.Vector3(...p));
+  const out = [P[0].toArray()];
+  for (let i = 1; i < P.length - 1; i++) {
+    const a = P[i - 1];
+    const b = P[i];
+    const c = P[i + 1];
+    const d1 = a.clone().sub(b);
+    const d2 = c.clone().sub(b);
+    const k = Math.min(r, d1.length() * 0.45, d2.length() * 0.45);
+    const p1 = b.clone().addScaledVector(d1.normalize(), k);
+    const p2 = b.clone().addScaledVector(d2.normalize(), k);
+    for (let t = 0; t <= 1.0001; t += 1 / 8) {
+      const q = p1.clone().multiplyScalar((1 - t) * (1 - t)).addScaledVector(b, 2 * t * (1 - t)).addScaledVector(p2, t * t);
+      out.push(q.toArray());
+    }
+  }
+  out.push(P[P.length - 1].toArray());
+  return out;
+}
+
 /** kleine gravierte Beschriftung (Alpha-Maske) */
 function makeLabel(text) {
   const c = makeCanvas(256, 72);
@@ -160,6 +182,10 @@ const MODELS = {
     knobs: { x: 114, h: 340, z: 80, shape: 'star' },
     steam: { side: -1, tip: [-157, 140, 92] },
     water: { tip: [159, 180, 92] },
+    // Lanzen (Zeichnung Front + Seite): Auslass am Ventil z = 12, dann Knick nach außen/vorn
+    lanceZ: 12,
+    steamPath: [[-114, 270, 12], [-138, 243, 56], [-157, 140, 87]],
+    waterPath: [[114, 270, 12], [130, 247, 50], [159, 180, 80]],
     lever: true,
     gauge: { x: 73, h: 165, r: 32, dual: true },
     groupGauge: { h: 331, r: 17 },
@@ -193,7 +219,12 @@ const MODELS = {
     spoutH: 155,
     knobs: { x: 85.5, h: 348, z: 72, shape: 'gem' },
     steam: { side: -1, tip: [-141, 145, 100] },
-    water: { tip: [72, 188, 66], grip: true, short: true },
+    water: { tip: [92, 188, 32], grip: true, short: true },
+    // Lanzen (Werksansichten Front + Seite): Dampf mit waagerechtem Knick nach außen,
+    // Heißwasser kurz und leicht nach außen geneigt mit Holzgriff
+    lanceZ: 22,
+    steamPath: [[-85.5, 283, 22], [-104, 260, 42], [-121, 252, 66], [-141, 146, 100]],
+    waterPath: [[80, 262, 26], [92, 190, 32]],
     lever: false,
     gauge: { x: -55, h: 251, r: 25, dual: false },
     groupGauge: null,
@@ -455,7 +486,7 @@ function makeBuilder(V) {
       const v = B.add(latheZ([[0, 0], [10, 0], [10, 6], [12.5, 7], [12.5, 18], [9.5, 19], [9, K.z - 2], [0, K.z - 2]], 32), groupMat, S('metal.group'));
       v.position.set(sx * K.x, K.h, 0);
       // Ventilkörper nach unten (Lanzenanschluss)
-      B.add(latheY([[0, -26], [8, -26], [9, -20], [9, 0], [0, 0]], 24), groupMat, S('metal.group')).position.set(sx * K.x, K.h, K.z - 22);
+      B.add(latheY([[0, -26], [8, -26], [9, -20], [9, 0], [0, 0]], 24), groupMat, S('metal.group')).position.set(sx * K.x, K.h, V.lanceZ);
     }
     B.stage('knobs');
     {
@@ -478,44 +509,31 @@ function makeBuilder(V) {
     }
     B.stage('wands');
     {
-      const st = V.steam;
-      const x0 = st.side * K.x;
-      const [tx, th, tzz] = st.tip;
-      const pts = [
-        [x0, K.h - 26, K.z - 22],
-        [x0, K.h - 50, K.z - 20],
-        [x0 + st.side * 6, K.h - 80, K.z - 12],
-        [(x0 + tx) / 2, (K.h - 80 + th) / 2 + 20, (K.z + tzz) / 2],
-        [tx, th + 30, tzz],
-        [tx, th + 6, tzz],
-      ];
-      B.add(tubeAlong(pts, 4.8, 120, 20), groupMat, S('metal.group'));
-      B.add(latheY([[0, 0], [5.6, 0], [7, 4], [7, 12], [0, 12]], 20), groupMat, S('metal.group')).position.set(tx, th - 6, tzz);
-      // Heißwasser aus dem rechten Ventil: Bianca lange Lanze nach außen, MaraX3 kurzer Auslauf mit Holzgriff
-      const w = V.water;
-      const xw = K.x;
-      const [wx, wh, wz] = w.tip;
-      const wpts = w.short
-        ? [
-            [xw, K.h - 26, K.z - 22],
-            [xw - 4, K.h - 50, K.z - 18],
-            [wx, wh + 40, wz - 4],
-            [wx, wh + 6, wz],
-          ]
-        : [
-            [xw, K.h - 26, K.z - 22],
-            [xw, K.h - 50, K.z - 20],
-            [xw + 6, K.h - 80, K.z - 12],
-            [(xw + wx) / 2, (K.h - 80 + wh) / 2 + 20, (K.z + wz) / 2],
-            [wx, wh + 30, wz],
-            [wx, wh + 6, wz],
-          ];
-      B.add(tubeAlong(wpts, w.short ? 4.4 : 4.6, 100, 18), groupMat, S('metal.group'));
-      B.add(latheY([[0, 0], [5, 0], [6.4, 4], [6.4, 10], [0, 10]], 20), groupMat, S('metal.group')).position.set(wx, wh - 4, wz);
-      if (w.grip) {
-        const grip = woodCylUV(latheY([[0, 0], [7, 0], [8, 6], [8, 34], [7, 40], [0, 40]], 24).rotateX(-Math.PI / 2), [0.3, 0.1]).rotateX(Math.PI / 2);
-        B.add(grip, mat('wood.handle'), S('wood.handle')).position.set(wx, wh + 8, wz - 1);
-      }
+      // Lanzen als gerade Rohrstücke mit engen Biegungen, Verlauf aus Front- und Seitenansicht
+      // abgelesen: kurzes senkrechtes Stück unter dem Ventil, Knick nach außen und vorn,
+      // dann ein langes, fast senkrechtes gerades Stück bis zur Düse
+      const lance = (path, r, radius, grip) => {
+        const pts = bendPath(path, radius);
+        B.add(tubeAlong(pts, r, 160, 18), groupMat, S('metal.group'));
+        // Kugelgelenk oben (Mehrwege-Dampflanze) bzw. Überwurf
+        B.add(new THREE.SphereGeometry(r + 2.4, 20, 14), groupMat, S('metal.group')).position.set(...path[0]);
+        const [ex, ey, ez] = path[path.length - 1];
+        const [px, py, pz] = path[path.length - 2];
+        const dir = new THREE.Vector3(ex - px, ey - py, ez - pz).normalize();
+        const tip = B.add(latheY([[0, 0], [r + 0.8, 0], [r + 2.2, 4], [r + 2.2, 12], [r + 1.4, 14], [0, 14]], 20), groupMat, S('metal.group'));
+        tip.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), dir);
+        tip.position.set(ex, ey, ez);
+        if (grip) {
+          const L = 40;
+          const g = woodCylUV(latheY([[0, 0], [r + 2.4, 0], [r + 3.4, 5], [r + 3.4, L - 5], [r + 2.4, L], [0, L]], 24).rotateX(-Math.PI / 2), [0.3, 0.1]).rotateX(Math.PI / 2);
+          const gm = B.add(g, mat('wood.handle'), S('wood.handle'));
+          gm.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), dir);
+          gm.position.set(ex - dir.x * (L + 4), ey - dir.y * (L + 4), ez - dir.z * (L + 4));
+        }
+      };
+      const out = (sx) => [sx * K.x, K.h - 26, V.lanceZ];
+      lance([out(-1), ...V.steamPath], 4.8, V.id === 'bianca' ? 20 : 17, false);
+      lance([out(1), ...V.waterPath], V.water.short ? 4.4 : 4.6, V.water.short ? 8 : 20, !!V.water.grip);
     }
     // E61-Hebel rechts an der Gruppe (Bianca)
     if (V.lever) {
