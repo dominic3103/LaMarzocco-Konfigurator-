@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// Grafik-Stufe: "2" = fotorealistisches Studio-Update (Vorschau über ?gfx=2)
+// Grafik-Stufe: fotorealistisches Studio-Update (Standard; ?gfx=1 zeigt die frühere Darstellung)
 //
 // Bündelt alle Einstellungen des Updates an einer Stelle, damit sie sich
 // gemeinsam ein- und ausschalten lassen: Studio-Umgebung mit Softboxen,
@@ -8,8 +8,8 @@
 // ---------------------------------------------------------------------------
 const params = typeof location !== 'undefined' ? new URLSearchParams(location.search) : new URLSearchParams();
 
-/** true = neues Grafik-Update aktiv */
-export const GFX2 = params.get('gfx') === '2';
+/** true = Grafik-Update aktiv (Standard); ?gfx=1 schaltet auf die frühere Darstellung zurück */
+export const GFX2 = params.get('gfx') !== '1';
 
 /** Einstellungen des Updates */
 export const GFX = {

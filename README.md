@@ -188,7 +188,8 @@ js/materials.js     Materialien je Bauteil-Gruppe (Lack, Holz, Metall)
 js/textures.js      Prozedurale Texturen: Pulverlack-Struktur, Metallic-Lack, Gitter, Zifferblätter
 js/wood.js          Prozedurale Holztexturen (Farbe, Relief, Glanz) je Holzart
 js/noise.js         Rauschfunktionen für die Texturen
-js/pipeline.js      Render-Pipeline: progressives Rendering, Tone-Mapping, Bloom
+js/pipeline.js      Render-Pipeline: progressives Rendering, Tone-Mapping, Bloom, Vignette, Filmkorn
+js/gfx.js           Grafik-Stufe und Einstellungen des fotorealistischen Studio-Updates
 js/viewer.js        Renderer, Licht, 360°-Kamera, Auswahl per Klick, Screenshot
 js/ui.js            Konfigurations-Panel
 js/data.js          Farbpaletten, Holzarten, Presets, Bauteil-Gruppen
@@ -203,6 +204,7 @@ vendor/qrcode/      QR-Code-Erzeugung, wird erst bei Bedarf geladen (MIT-Lizenz)
 - **IGP-Farben** sind in `BODY_COLLECTIONS` hinterlegt: `igp('Code', 'Name', '#hex')`. Die Hex-Werte wurden aus Fotos der Farbkarten gemessen und weißabgeglichen. Es sind also Näherungswerte für den Bildschirm, keine Farbmesswerte. Liegen offizielle RGB/Lab-Werte vor, einfach den Hex-Wert ersetzen.
 - **Holzmaserungen** werden über Kennwerte gesteuert (`style`, `light`/`mid`/`dark`, `rings`, `contrast`, `late`, `figure`, `pore`, `streak` …). Für `style` gibt es `ring`, `olive`, `zebra`, `burl` und `solid`.
 - **Darstellung testen**: `?q=high` bzw. `?q=low` in der Adresse erzwingt die fotorealistische bzw. schnelle Darstellung, `&samples=32` setzt die Zahl der gemittelten Bilder.
+- **Grafik**: Standard ist das fotorealistische Studio (Softboxen als Umgebung und Flächenlichter, Lack mit weichem Glanz, geöltes Holz mit Ölfilm, tiefere Verschattung, Schärfentiefe, Vignette, Filmkorn; Einstellungen in `js/gfx.js`). `?gfx=1` zeigt zum Vergleich die frühere Darstellung (Vergleichsbild: `docs/grafik-update-vergleich.jpg`).
 - **AR testen**: `?ar=ios`, `?ar=webxr` oder `?ar=none` erzwingt am Rechner den jeweiligen Ablauf des AR-Dialogs. Für AR werden die Materialien vereinfacht (Farbe, Metall, Rauheit, Klarlack, Holzmaserung; ohne Feinstruktur) und das Glas der Manometer weggelassen.
 - **Geometrie**: Alle Maße stehen in Millimetern in `js/model.js` (Konstante `M` und die einzelnen Bauteil-Abschnitte).
 
