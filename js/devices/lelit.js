@@ -97,6 +97,20 @@ function makeBadge(kind) {
   return t;
 }
 
+/** kleine gravierte Beschriftung (Alpha-Maske) */
+function makeLabel(text) {
+  const c = makeCanvas(256, 72);
+  const g = c.getContext('2d');
+  g.fillStyle = '#000';
+  g.fillRect(0, 0, 256, 72);
+  g.fillStyle = '#fff';
+  g.font = '600 40px "Helvetica Neue", Arial, sans-serif';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillText(text, 128, 38);
+  return new THREE.CanvasTexture(c);
+}
+
 const STAGES = [
   { id: 'sk-frame', src: 'skeleton', from: [0, 1, 0], dist: 400, gap: 0, dur: 0.7, drop: true },
   { id: 'sk-boiler', src: 'skeleton', from: [0, 1, 0], dist: 700, gap: 0.45, dur: 0.85, heavy: true, stagger: 0.2 },
@@ -134,6 +148,7 @@ const MODELS = {
     bot: 33,
     trayHW: 145,
     tray: [-30, 181, 92], // Abtropfschale: z hinten, z vorn, Oberkante
+    rack: { w: 140, z0: 72, z1: 128, h: 20, n: 10 }, // erhöhte Tassenablage (Werksbild Front)
     feet: { x: 120, z: [-192, 153], r: [26, 22.5] },
     frames: [-197, -49], // Seitenblech zwischen Rahmenprofilen
     tank: { z0: -304.6, bot: 71 },
@@ -166,6 +181,7 @@ const MODELS = {
     bot: 34,
     trayHW: 108.5,
     tray: [-39, 166, 92],
+    rack: { w: 125, z0: 48, z1: 92, h: 19, n: 9 }, // erhöhte Tassenablage (Werksansichten)
     feet: { x: 92, z: [-201, 151], r: [16, 16] },
     frames: null,
     strip: [-75, -54],
@@ -342,15 +358,36 @@ function makeBuilder(V) {
       const g = new THREE.PlaneGeometry(W, D);
       g.rotateX(-Math.PI / 2);
       B.add(g, mat('metal.tray', { map: tex, alphaTest: 0.5, alphaToCoverage: true, side: THREE.DoubleSide, shadowSide: THREE.DoubleSide }), S('metal.tray')).position.set(0, tTop - 2.5, tz0 + 4 + D / 2);
-      // Tassenbügel (Drahtgitter) vorn
-      const cw = 60;
-      const pts = [
-        [-cw, tTop - 2, tz1 - 34],
-        [-cw, tTop + 16, tz1 - 30],
-        [cw, tTop + 16, tz1 - 30],
-        [cw, tTop - 2, tz1 - 34],
-      ];
-      B.add(tubeAlong(pts, 1.6, 60, 10), mat('metal.tray'), S('metal.tray'));
+      // erhöhte Tassenablage: quer laufende Drähte, an den Enden abgerundet nach unten gebogen,
+      // zwei Querstege darunter (Werksansichten: ca. 20 mm über dem Gitter)
+      const R0 = V.rack;
+      const base = tTop - 2.5;
+      const hw = R0.w / 2;
+      const h = R0.h;
+      const rackMat = mat('metal.tray');
+      const nW = R0.n;
+      for (let i = 0; i < nW; i++) {
+        const z = R0.z0 + ((R0.z1 - R0.z0) * i) / (nW - 1);
+        const pts = [
+          [-hw, base, z],
+          [-hw - 1.5, base + h * 0.45, z],
+          [-hw + h * 0.12, base + h * 0.9, z],
+          [-hw + h * 0.55, base + h, z],
+          [hw - h * 0.55, base + h, z],
+          [hw - h * 0.12, base + h * 0.9, z],
+          [hw + 1.5, base + h * 0.45, z],
+          [hw, base, z],
+        ];
+        B.add(tubeAlong(pts, 1.15, 70, 8), rackMat, S('metal.tray'));
+      }
+      for (const sx of [-1, 1]) {
+        const bar = B.add(new THREE.CylinderGeometry(1.2, 1.2, R0.z1 - R0.z0 + 4, 10).rotateX(Math.PI / 2), rackMat, S('metal.tray'));
+        bar.position.set(sx * hw * 0.42, base + h - 2.3, (R0.z0 + R0.z1) / 2);
+        for (const z of [R0.z0 + 3, R0.z1 - 3]) {
+          const leg = B.add(new THREE.CylinderGeometry(1, 1, h - 2, 8), rackMat, S('metal.tray'));
+          leg.position.set(sx * hw * 0.42, base + (h - 2) / 2, z);
+        }
+      }
     }
 
     // =======================================================================
@@ -509,10 +546,36 @@ function makeBuilder(V) {
       const led = B.plain(new THREE.TorusGeometry(5.5, 0.6, 8, 32), new THREE.MeshStandardMaterial({ color: 0xdfe8ef, emissive: 0x5a7a98, roughness: 0.3 }));
       led.position.set(p.x, p.h, 4.2);
       if (V.pagaia) {
-        // Pagaia: Holzpaddel mit zwei Tasten an der linken Seite
-        const pg = woodBoxUV(rbox(5, 54, 34, 2.4, 2), 2, [0.4, 0.2]);
-        B.add(pg, mat('wood.paddle'), S('wood.paddle')).position.set(-HW - 3, 280, -20);
-        for (const dy of [-13, 13]) B.plain(new THREE.CylinderGeometry(9, 9, 3, 28).rotateZ(Math.PI / 2), F.chrome).position.set(-HW - 6, 280 + dy, -20);
+        // Pagaia: ovaler Drehregler aus Holz (51 × 33 mm, 12 mm stark) mit zwei runden Aussparungen,
+        // auf einem kurzen Stiel seitlich an der linken Gehäusewand (Mitte z −19, Höhe 280)
+        const g = new THREE.Group();
+        g.position.set(-HW - 1, 280.5, -19.5);
+        root.add(g);
+        const sh = new THREE.Shape();
+        const r = 16.5;
+        const half = 25.5 - r;
+        sh.moveTo(-r, -half);
+        sh.absarc(0, -half, r, Math.PI, Math.PI * 2, false);
+        sh.lineTo(r, half);
+        sh.absarc(0, half, r, 0, Math.PI, false);
+        sh.closePath();
+        for (const dy of [-11.5, 11.5]) {
+          const hole = new THREE.Path();
+          hole.absarc(0, dy, 9.2, 0, Math.PI * 2, true);
+          sh.holes.push(hole);
+        }
+        const plate = new THREE.ExtrudeGeometry(sh, { depth: 12, bevelEnabled: true, bevelThickness: 1.2, bevelSize: 1.2, bevelOffset: -1.2, bevelSegments: 3, curveSegments: 40 });
+        // Shape (x, y) = (z, Höhe), Extrusion nach außen (−X)
+        plate.rotateY(-Math.PI / 2);
+        B.add(woodBoxUV(plate, 1, [0.35, 0.2]), mat('wood.paddle'), S('wood.paddle'), g).position.x = -7;
+        // Grundplatte und Achse aus Edelstahl, in den Aussparungen sichtbar
+        const disc = new THREE.CylinderGeometry(9.4, 9.4, 3, 32).rotateZ(Math.PI / 2);
+        for (const dy of [-11.5, 11.5]) B.add(disc, groupMat, S('metal.group'), g).position.set(-15.5, dy, 0);
+        B.add(new THREE.CylinderGeometry(4.5, 4.5, 8, 20).rotateZ(Math.PI / 2), groupMat, S('metal.group'), g).position.set(-3, 0, 0);
+        // Beschriftung "Pagaia" und Bogen darüber (graviert)
+        const lab = B.plain(new THREE.PlaneGeometry(26, 7), new THREE.MeshStandardMaterial({ color: 0x2a2a2a, alphaMap: makeLabel('Pagaia'), transparent: true, roughness: 0.6 }));
+        lab.rotation.y = -Math.PI / 2;
+        lab.position.set(-HW - 0.15, 318, -19.5);
       }
     }
 
