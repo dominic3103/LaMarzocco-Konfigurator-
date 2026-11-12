@@ -657,16 +657,19 @@ function prepareWoods(cfg, done) {
 }
 
 function updateSlots(keys, patch) {
+  // Konfiguration sofort übernehmen (z. B. für einen direkt danach geteilten Link);
+  // nur das Anwenden der Materialien wartet bei Holz kurz auf die Texturen
+  for (const k of keys) {
+    const cur = config.slots[k];
+    let next;
+    if (patch.id === 'custom') next = { id: 'custom', finish: cur.finish, color: patch.color, kind: patch.kind };
+    else if (patch.id) next = { id: patch.id, finish: cur.finish };
+    else next = { ...cur, ...patch };
+    config.slots[k] = next;
+  }
+  syncVariants();
   const apply = () => {
-    for (const k of keys) {
-      const cur = config.slots[k];
-      let next;
-      if (patch.id === 'custom') next = { id: 'custom', finish: cur.finish, color: patch.color, kind: patch.kind };
-      else if (patch.id) next = { id: patch.id, finish: cur.finish };
-      else next = { ...cur, ...patch };
-      config.slots[k] = next;
-      mm.applySlot(k, next, config);
-    }
+    for (const k of keys) mm.applySlot(k, config.slots[k], config);
     reapplyFollowers(keys);
     syncParts();
     viewer.requestRender();

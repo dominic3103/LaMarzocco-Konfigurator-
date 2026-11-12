@@ -134,9 +134,6 @@ function buildBentwood(mm) {
       [-60, 80],
       [60, 80],
     ]) B.plain(new THREE.CylinderGeometry(9, 10, H0, 20), F.rubber).position.set(x, H0 / 2, z);
-    // Aussparung für den Auslauf
-    const rec = B.plain(rbox(40, 72, 4, 8, 3), F.darkGap);
-    rec.position.set(FX, 160, HD - 1.4);
   }
   // Seitenteile: Holz oder in Gehäusefarbe
   B.stage('sides');
@@ -162,7 +159,7 @@ function buildBentwood(mm) {
   B.stage('display');
   {
     const g = new THREE.Group();
-    g.position.set(FX, 222, HD + 6);
+    g.position.set(FX, 227, HD + 6);
     g.rotation.x = -0.21;
     root.add(g);
     const frame = filletShape([[-45, -29], [45, -29], [45, 29], [-45, 29]], 5, 4);
@@ -179,14 +176,59 @@ function buildBentwood(mm) {
   // =========================================================================
   B.stage('spout');
   {
-    const g = new THREE.Group();
-    g.position.set(FX, 178, HD + 2);
-    g.rotation.x = 0.55;
-    root.add(g);
-    const tube = latheY([[13, -48], [14.5, -48], [14.5, 0], [17, 0], [17, 6], [0.01, 6]], 40);
-    tube.rotateX(Math.PI);
-    B.add(tube, mat('metal.spout'), S('metal.spout'), g).position.set(0, 0, 12);
-    B.add(rbox(30, 18, 14, 4, 2), mat('metal.spout'), S('metal.spout'), g).position.set(0, 0, 4);
+    // Auslaufgehäuse direkt unter dem Display: leicht erhaben, oben gerade, unten rund,
+    // mit hochovaler Öffnung (Werksfotos: ca. 40 × 67 mm, Öffnung ca. 32 × 52 mm)
+    const HT = 199;
+    const HBOT = 132;
+    const hw = 20;
+    const hs = new THREE.Shape();
+    hs.moveTo(FX - hw, HT - 3);
+    hs.lineTo(FX - hw, HBOT + hw);
+    hs.absarc(FX, HBOT + hw, hw, Math.PI, Math.PI * 2, false);
+    hs.lineTo(FX + hw, HT - 3);
+    hs.quadraticCurveTo(FX + hw, HT, FX + hw - 3, HT);
+    hs.lineTo(FX - hw + 3, HT);
+    hs.quadraticCurveTo(FX - hw, HT, FX - hw, HT - 3);
+    const hole = new THREE.Path();
+    hole.absellipse(FX, 166, 16, 26, 0, Math.PI * 2, true);
+    hs.holes.push(hole);
+    B.add(boxProjectUV(plateZ(hs, HD - 1, 5, 0.9, 48)), bodyMat, S('body.main'));
+    // dunkler Schacht hinter der Öffnung
+    const shaft = B.plain(new THREE.CylinderGeometry(16, 16, 10, 40, 1, true), F.darkGap);
+    shaft.scale.set(1, 1, 26 / 16);
+    shaft.rotation.x = Math.PI / 2;
+    shaft.position.set(FX, 166, HD - 1);
+    shaft.material = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.9, side: THREE.DoubleSide });
+    const back = B.plain(new THREE.CircleGeometry(1, 40), F.darkGap);
+    back.scale.set(16, 26, 1);
+    back.position.set(FX, 166, HD - 5.5);
+    // Rohr Ø 29 mm, 50° nach vorn unten (füllt die 52 mm hohe Öffnung), Mündung schräg nach vorn-unten offen
+    const ang = (50 * Math.PI) / 180;
+    const d = new THREE.Vector3(0, -Math.sin(ang), Math.cos(ang));
+    const P0 = new THREE.Vector3(FX, 166, HD + 4); // Achse durch die Mitte der Öffnung
+    const M = P0.clone().addScaledVector(d, 27); // Mitte der Mündung
+    const L = 60;
+    const A = M.clone().addScaledVector(d, -L);
+    const prof = [];
+    for (let k = 0; k <= 30; k++) prof.push([14.5, (L * 1.4 * k) / 30]);
+    for (let k = 30; k >= 0; k--) prof.push([13.6, (L * 1.4 * k) / 30]);
+    const g = latheY(prof, 56);
+    // Achse +Y -> d, dann an der Mündungsebene schräg abschneiden
+    g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d));
+    g.translate(A.x, A.y, A.z);
+    const n = new THREE.Vector3(0, -Math.sin(0.21), Math.cos(0.21)); // Mündungsebene: nach vorn, 12° nach unten
+    const pos = g.attributes.position;
+    const v = new THREE.Vector3();
+    for (let i = 0; i < pos.count; i++) {
+      v.fromBufferAttribute(pos, i);
+      const over = v.clone().sub(M).dot(n);
+      if (over > 0) {
+        v.addScaledVector(d, -over / d.dot(n));
+        pos.setXYZ(i, v.x, v.y, v.z);
+      }
+    }
+    g.computeVertexNormals();
+    B.add(g, mat('metal.spout'), S('metal.spout'));
   }
 
   // =========================================================================
