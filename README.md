@@ -2,7 +2,7 @@
 
 Interaktiver 3D-Konfigurator im Stil von rb.crafts für Espressomaschinen und Mühlen. Ganz am Anfang wählt man **Maschine und Mühle** aus:
 
-- **Maschinen**: La Marzocco Linea Mini R, Linea Micra, Linea Mini (klassisch), GS3 (AV/MP), Linea PB und Linea PB X (2, 3 oder 4 Gruppen), Rocket Appartamento
+- **Maschinen**: La Marzocco Linea Mini R, Linea Micra, Linea Mini (klassisch), GS3 (AV/MP), Linea PB und Linea PB X (2, 3 oder 4 Gruppen), Rocket Appartamento, Lelit Bianca, Lelit MaraX3
 - **Mühlen**: Weber Workshops EG-1, La Marzocco Pico, Mahlkönig E64 WS, Niche Zero, Niche Duo, Bentwood H75, Option-O Lagom P80
 
 Alle Geräte lassen sich frei um 360° drehen, in allen sichtbaren Materialien gestalten und maßstabsgetreu nebeneinander ansehen – auf dem Bildschirm und in AR. Grundlage sind bemaßte Werkszeichnungen (teils mit CAD-Daten als Messreferenz), orthografische Herstelleransichten, Explosionszeichnungen und Fotos, mit Überlagerungsprüfung gegen Zeichnung oder Ansicht; wo es keine Zeichnung gibt, steht das in der Tabelle (siehe „Weitere Geräte“).
@@ -117,6 +117,8 @@ Jedes Gerät ist ein eigenes Modul unter `js/devices/` und trägt sich beim Lade
 | **La Marzocco Pico** (Mühle) | Maßstäbliche Zeichnung im Ersatzteilkatalog „Pico V1.0“ (S. 4; Höhe 400, Breite 155 mm), Explosionszeichnungen S. 6–10 | Umriss 842 × 1142 px gegen 842 × 1145 px der Zeichnung | Holzdeckel, Skala passt sich hell/dunkel an, Werks-Kits in Farbe |
 | **Mahlkönig E64 WS** (Mühle) | Bemaßte Zeichnung in der Ersatzteilliste „E64 WS“ V1.0 (S. 2: Höhe 388, Ø 154, Tiefe 230 mm, Auslauf 123 mm, Becherhalter 27–42 mm, Stellfläche 180 × 255 mm), Explosionszeichnungen S. 3–7 | Seiten- und Frontansicht decken sich mit der Zeichnung (Kopf, Kinn, Auslauf, Gabel, Becherhalter, Säule, Rückseite) | Holzdeckel für den 250-g-Trichter wie bei rb.crafts, getrennte Farben für Korpus, Deckel und Sockel, Tasten und Rändelknopf als Akzent oder aus Holz |
 | **Rocket Appartamento** | Herstellermaße 274 × 425 × 360 mm (Rocket Domestic Brochure 2023), orthografische Seitenansichten der Farbreihe auf rocket-espresso.com (Maßstab über die Höhe, Front- und Seitenansicht ergeben übereinstimmend 274 mm Breite), Ersatzteilkatalog Ed. 10.2016 | Silhouette deckt sich mit der Herstelleransicht (Gehäuse, Reling, Tropfschale, Füße, E61-Gruppe, Knöpfe, Lanzen, Siebträger); die Tiefe ergibt sich daraus zu rund 445 mm (Rocket nennt 425 mm, für die TCA 448 mm) | Lochraster-Einlagen in Weiß, Kupfer, Schwarz oder aus Holz, Holz für Knöpfe, Siebträgergriff und Hebelkugel, Manometer-Zifferblatt und -Zeiger |
+| **Lelit Bianca** | Maßstäbliche Front- und Seitenansicht im offiziellen technischen Datenblatt (Quick-Start-Leaflet PL162T, 2,39 px/mm; Höhe 400 und Tiefe 585 mm mit Tank wie in den Herstellerangaben), Produktansicht der Bedienungsanleitung, Werksbilder von lelit.com | Front- und Seitenansicht decken sich mit der Zeichnung (Gehäuse, Rahmen, Tank, Abtropfschale, Füße, E61-Gruppe mit Paddel und Manometer, Knöpfe, Lanzen, Siebträger) | Holz für Knöpfe, Griff, Flow-Control-Paddel, Hebelkugel und Füße, optional Holz-Seitenteile, Manometer-Zifferblatt und Zeiger |
+| **Lelit MaraX3** | Orthografische Seiten- und Frontansicht der Werks-Renderings, Maßstab über die Höhe 385 mm (technisches Datenblatt PL62X3); Gehäuse rund 220 mm breit wie bei Händlern angegeben | Seiten- und Frontansicht decken sich mit den Werksansichten; Lelit nennt 535 mm Tiefe, die Ansichten ergeben rund 507 mm | fünfeckige Holzknöpfe mit Kappen, Holzgriffe, Pagaia, Holzfüße, Zierleisten, optional Holz-Seitenteile |
 | **Niche Duo** (Mühle) | Orthografische Seitenansicht auf der Titelseite der Bedienungsanleitung „Niche Duo 83F“ (3,75 px/mm; Höhe 355 und Tiefe 231 mm wie in den Herstellerangaben 135 × 230 × 355 mm), beschriftete Ansicht S. 5, Werksfotos | Seitenansicht deckt sich mit der Zeichnung (Gehäuse, Kopf, Rückenlinie, Säule, Sockel, Füße, Becher, Auslauf) | Holzplatte und Holzfüße (Holz-Set wie bei rb.crafts), Lünette, Mahlgradring mit Skala, Logo auch aus Holz |
 | **Niche Zero** (Mühle) | Herstellermaße 122 × 211 × 311 mm; dieselbe Formensprache wie die Duo, Kontur aus der Duo-Seitenansicht auf die Zero-Maße umgerechnet, Details nach der (perspektivischen) Ansicht der Anleitung und den Fotos | keine eigene orthografische Zeichnung verfügbar, Proportionen über die Herstellermaße | wie Niche Duo |
 | **Bentwood H75** (Mühle) | Herstellermaße 170 × 302 × 444 mm (mit 600-g-Trichter) und Werksfotos von bentwoodcoffee.ch | keine Zeichnung verfügbar; Gehäuse, Display, Auslauf, Halter und Trichter über die Herstellermaße aus den Fotos abgeleitet, daher weniger genau als die übrigen Geräte | Holz-Seitenteile und Holz-Abstellfläche (Walnuss ab Werk, weitere Hölzer wie bei rb.crafts) oder in Gehäusefarbe |
@@ -126,13 +128,14 @@ Jedes Gerät ist ein eigenes Modul unter `js/devices/` und trägt sich beim Lade
 
 ### Auswahl
 
-Aufgenommen sind auf Wunsch die La-Marzocco-Maschinen, die Rocket Appartamento sowie die Mühlen Pico, Niche Zero, Niche Duo, Mahlkönig E64 WS, Bentwood H75 und Option-O Lagom P80 (dazu die ursprüngliche Linea Mini R mit der EG-1). Weitere Geräte aus der rb.crafts-Liste (z. B. Victoria Arduino E1 Prima, VBM Pistone, Bentwood Vertical 63, Fiorenzato AllGround Sense, Eureka Mignon und Atom 75) sind nicht enthalten. Ein neues Gerät lässt sich als Modul unter `js/devices/` nach demselben Muster ergänzen.
+Aufgenommen sind auf Wunsch die La-Marzocco-Maschinen, die Rocket Appartamento, die Lelit Bianca und MaraX3 sowie die Mühlen Pico, Niche Zero, Niche Duo, Mahlkönig E64 WS, Bentwood H75 und Option-O Lagom P80 (dazu die ursprüngliche Linea Mini R mit der EG-1). Weitere Geräte aus der rb.crafts-Liste (z. B. Victoria Arduino E1 Prima, VBM Pistone, Bentwood Vertical 63, Fiorenzato AllGround Sense, Eureka Mignon und Atom 75) sind nicht enthalten. Ein neues Gerät lässt sich als Modul unter `js/devices/` nach demselben Muster ergänzen.
 
 ### Quellen weitere Geräte
 
 - La Marzocco Dokumentation (Werkszeichnungen, 3D-Daten, Ersatzteilkataloge für Linea Micra, Linea Mini, GS3, Linea PB, Pico)
 - [Mahlkönig – E64 WS](https://www.mahlkoenig.com/) (Ersatzteilliste mit Maßzeichnung und Explosionszeichnungen, Bedienungsanleitung, Prospekt)
 - [Rocket Espresso – Appartamento](https://rocket-espresso.com/products/domestic-models/appartamento) (Seitenansichten der Farbreihe, Prospekt, Ersatzteilkatalog)
+- [Lelit](https://www.lelit.com/) (Bianca PL162T und MaraX3 PL62X3: technische Datenblätter, Bedienungsanleitungen, Werksbilder)
 - [Niche Coffee](https://www.nichecoffee.co.uk/) (Bedienungsanleitungen Niche Zero und Niche Duo, Herstellermaße, Fotos)
 - [Bentwood – H75](https://www.bentwoodcoffee.ch/h75/) (technische Daten, Fotos der Farbvarianten)
 - [Option-O – Lagom P80](https://www.option-o.com/lagom-p80) (technische Daten, Kurzanleitung und Sicherheitshandbuch, Werksfotos)
@@ -181,7 +184,7 @@ js/device-ui.js     Konfigurations-Panel für die weiteren Geräte (Slots, Prese
 js/parts.js         Gemeinsame Bauteile: Baukasten, Profile, Blechschalen, Manometer, Schrauben, Logo
 netlify.toml        Einstellungen für Netlify (kein Build, Hauptverzeichnis veröffentlichen)
 TEILEN.md           Anleitung: Konfigurator online stellen und verschicken
-js/devices/*.js     Je ein Gerät: Linea Micra, Linea Mini, GS3, Linea PB/PB X, Rocket Appartamento, Pico, E64 WS, Niche Zero/Duo, Bentwood H75, Lagom P80
+js/devices/*.js     Je ein Gerät: Linea Micra, Linea Mini, GS3, Linea PB/PB X, Rocket Appartamento, Lelit Bianca/MaraX3, Pico, E64 WS, Niche Zero/Duo, Bentwood H75, Lagom P80
 js/variants.js      Variationen: Speichern, Prüfen und Umschalten der Fassungen je Gerät
 js/ar.js            AR-Ansicht: Export der Konfiguration als USDZ/GLB, Dialog, QR-Code
 js/materials.js     Materialien je Bauteil-Gruppe (Lack, Holz, Metall)
@@ -250,4 +253,4 @@ Die Geometrie folgt den Maßzeichnungen (Front-, Seiten- und Rückansicht) im of
 
 ## Hinweis
 
-Die 3D-Modelle sind eigene, vereinfachte Nachbildungen auf Basis von Werkszeichnungen, Herstellerangaben und Fotos; CAD-Daten der Hersteller dienten nur als Messreferenz und sind nicht enthalten. Es handelt sich nicht um offizielle Produkte von La Marzocco, Weber Workshops, Rocket Espresso, Mahlkönig, Niche, Bentwood oder Option-O; Logos sind nur angedeutet. Marken- und Produktnamen gehören ihren jeweiligen Inhabern.
+Die 3D-Modelle sind eigene, vereinfachte Nachbildungen auf Basis von Werkszeichnungen, Herstellerangaben und Fotos; CAD-Daten der Hersteller dienten nur als Messreferenz und sind nicht enthalten. Es handelt sich nicht um offizielle Produkte von La Marzocco, Weber Workshops, Rocket Espresso, Lelit, Mahlkönig, Niche, Bentwood oder Option-O; Logos sind nur angedeutet. Marken- und Produktnamen gehören ihren jeweiligen Inhabern.

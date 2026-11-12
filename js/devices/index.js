@@ -4,6 +4,7 @@ import './linea-mini.js';
 import './gs3.js';
 import './linea-pb.js';
 import './rocket.js';
+import './lelit.js';
 import './pico.js';
 import './e64.js';
 import './niche.js';
