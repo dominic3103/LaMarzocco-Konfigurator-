@@ -152,6 +152,8 @@ Alternativ `npx serve .` oder die „Live Server“-Erweiterung in VS Code.
 
 ### Online stellen
 
+**Online unter [https://dominic3103.github.io/LaMarzocco-Konfigurator-/](https://dominic3103.github.io/LaMarzocco-Konfigurator-/)** (GitHub Pages aus dem Branch `claude/zen-albattani-jfzyt8`, aktualisiert sich bei jedem Push).
+
 Der Konfigurator besteht nur aus statischen Dateien (rund 3 MB) und läuft auf jedem Webspace mit https. Erst online funktionieren der teilbare Link mit Konfiguration, der QR-Code und die AR-Ansicht auf dem Handy. Schritt-für-Schritt-Anleitung und eine Nachrichtenvorlage zum Verschicken: **[TEILEN.md](TEILEN.md)**.
 
 - **Netlify (empfohlen)**: Repository verbinden, Branch wählen, kein Build-Befehl – die Einstellungen stehen in `netlify.toml`. Kostenlos, auch mit privatem Repository, und jede Änderung ist automatisch online. Ohne GitHub geht es per Drag-and-drop des Website-Pakets auf [app.netlify.com/drop](https://app.netlify.com/drop).

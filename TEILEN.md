@@ -1,10 +1,16 @@
 # Konfigurator teilen
 
+**Der Konfigurator ist online: [https://dominic3103.github.io/LaMarzocco-Konfigurator-/](https://dominic3103.github.io/LaMarzocco-Konfigurator-/)**
+
+Diesen Link einfach verschicken. Er läuft über GitHub Pages direkt aus dem Branch `claude/zen-albattani-jfzyt8`; jede Änderung, die dort hochgeladen wird, ist nach ein bis zwei Minuten online. Eingeschaltet ist das unter **Settings → Pages** im (öffentlichen) Repository.
+
+Die übrigen Wege unten sind nur nötig, wenn das Repository wieder privat werden soll.
+
 Am einfachsten für den Empfänger ist ein **ganz normaler Link** (https), der auf jedem Rechner, Tablet und Handy direkt im Browser läuft – ohne Installation, ohne Konto. Nur so funktionieren auch AR (iPhone/iPad mit Safari, Android mit Chrome), der QR-Code für den Wechsel aufs Handy und „Link teilen“ mit der fertigen Konfiguration.
 
-Empfohlen ist **Netlify** (kostenlos, funktioniert mit dem privaten GitHub-Repository, aktualisiert sich bei jeder Änderung von selbst). Das Repository ist dafür vorbereitet (`netlify.toml`).
+Soll das Repository privat sein, eignet sich **Netlify** (kostenlos, funktioniert mit privatem GitHub-Repository, aktualisiert sich bei jeder Änderung von selbst). Das Repository ist dafür vorbereitet (`netlify.toml`).
 
-## Weg A: Netlify mit GitHub verbinden (empfohlen, einmalig ca. 5 Minuten)
+## Weg A: Netlify mit GitHub verbinden (einmalig ca. 5 Minuten)
 
 1. [app.netlify.com](https://app.netlify.com) öffnen und mit **„Sign up with GitHub“** ein kostenloses Konto anlegen.
 2. **„Add new site“ → „Import an existing project“ → „GitHub“** wählen und Netlify den Zugriff erlauben – am besten nur auf das Repository `LaMarzocco-Konfigurator-`.
@@ -41,6 +47,6 @@ Bei späteren Änderungen muss das Paket erneut hochgeladen werden.
 
 ## Nachricht zum Verschicken (Vorlage)
 
-> Hi! Hier kannst du dir deine Espressomaschine und Mühle zusammenstellen: **https://DEIN-NAME.netlify.app**
+> Hi! Hier kannst du dir deine Espressomaschine und Mühle zusammenstellen: **https://dominic3103.github.io/LaMarzocco-Konfigurator-/**
 >
 > Einfach Maschine und Mühle auswählen, Farben, Holz und Metallteile anpassen und frei drehen. Am Handy kannst du dir das Ergebnis mit „AR ansehen“ in Originalgröße in deine Küche stellen. Wenn du fertig bist, tipp auf „Link teilen“ und schick mir den Link – dann sehe ich genau deine Konfiguration.

@@ -503,9 +503,28 @@ try {
 } catch {
   /* Speicher nicht verfügbar */
 }
-/** Gerät wechseln; der bisherige Stand des alten Geräts wird gemerkt */
+/**
+ * Gerät wechseln; der bisherige Stand des alten Geräts wird gemerkt. Wechsel laufen
+ * nacheinander ab (z. B. Maschine und Mühle aus dem Startdialog), damit keiner den
+ * anderen mit einem veralteten Stand überschreibt.
+ */
+let deviceQueue = Promise.resolve();
 function setDevice(kind, id) {
-  if (!DEVICES[id] || DEVICES[id].kind !== kind || config.devices[kind] === id) return;
+  deviceQueue = deviceQueue.then(
+    () =>
+      new Promise((resolve) => {
+        try {
+          switchDevice(kind, id, resolve);
+        } catch (e) {
+          console.error(e);
+          resolve();
+        }
+      }),
+  );
+  return deviceQueue;
+}
+function switchDevice(kind, id, done) {
+  if (!DEVICES[id] || DEVICES[id].kind !== kind || config.devices[kind] === id) return done();
   syncVariants();
   deviceMemory[config.devices[kind]] = extractVariant(kind, config);
   try {
@@ -522,6 +541,7 @@ function setDevice(kind, id) {
     viewer.flash(mm, slotsOf(kind));
     commit();
     toast(`${DEVICES[id].full} gewählt`);
+    done();
   });
 }
 
