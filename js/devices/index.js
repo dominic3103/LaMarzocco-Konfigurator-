@@ -8,3 +8,4 @@ import './pico.js';
 import './e64.js';
 import './niche.js';
 import './bentwood.js';
+import './lagom.js';

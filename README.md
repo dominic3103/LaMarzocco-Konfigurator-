@@ -3,7 +3,7 @@
 Interaktiver 3D-Konfigurator im Stil von rb.crafts für Espressomaschinen und Mühlen. Ganz am Anfang wählt man **Maschine und Mühle** aus:
 
 - **Maschinen**: La Marzocco Linea Mini R, Linea Micra, Linea Mini (klassisch), GS3 (AV/MP), Linea PB und Linea PB X (2, 3 oder 4 Gruppen), Rocket Appartamento
-- **Mühlen**: Weber Workshops EG-1, La Marzocco Pico, Mahlkönig E64 WS, Niche Zero, Niche Duo, Bentwood H75
+- **Mühlen**: Weber Workshops EG-1, La Marzocco Pico, Mahlkönig E64 WS, Niche Zero, Niche Duo, Bentwood H75, Option-O Lagom P80
 
 Alle Geräte lassen sich frei um 360° drehen, in allen sichtbaren Materialien gestalten und maßstabsgetreu nebeneinander ansehen – auf dem Bildschirm und in AR. Grundlage sind bemaßte Werkszeichnungen (teils mit CAD-Daten als Messreferenz), orthografische Herstelleransichten, Explosionszeichnungen und Fotos, mit Überlagerungsprüfung gegen Zeichnung oder Ansicht; wo es keine Zeichnung gibt, steht das in der Tabelle (siehe „Weitere Geräte“).
 
@@ -120,12 +120,13 @@ Jedes Gerät ist ein eigenes Modul unter `js/devices/` und trägt sich beim Lade
 | **Niche Duo** (Mühle) | Orthografische Seitenansicht auf der Titelseite der Bedienungsanleitung „Niche Duo 83F“ (3,75 px/mm; Höhe 355 und Tiefe 231 mm wie in den Herstellerangaben 135 × 230 × 355 mm), beschriftete Ansicht S. 5, Werksfotos | Seitenansicht deckt sich mit der Zeichnung (Gehäuse, Kopf, Rückenlinie, Säule, Sockel, Füße, Becher, Auslauf) | Holzplatte und Holzfüße (Holz-Set wie bei rb.crafts), Lünette, Mahlgradring mit Skala, Logo auch aus Holz |
 | **Niche Zero** (Mühle) | Herstellermaße 122 × 211 × 311 mm; dieselbe Formensprache wie die Duo, Kontur aus der Duo-Seitenansicht auf die Zero-Maße umgerechnet, Details nach der (perspektivischen) Ansicht der Anleitung und den Fotos | keine eigene orthografische Zeichnung verfügbar, Proportionen über die Herstellermaße | wie Niche Duo |
 | **Bentwood H75** (Mühle) | Herstellermaße 170 × 302 × 444 mm (mit 600-g-Trichter) und Werksfotos von bentwoodcoffee.ch | keine Zeichnung verfügbar; Gehäuse, Display, Auslauf, Halter und Trichter über die Herstellermaße aus den Fotos abgeleitet, daher weniger genau als die übrigen Geräte | Holz-Seitenteile und Holz-Abstellfläche (Walnuss ab Werk, weitere Hölzer wie bei rb.crafts) oder in Gehäusefarbe |
+| **Option-O Lagom P80** (Mühle) | Herstellermaße 24 × 14 × 38 cm (T × B × H, option-o.com und Sicherheitshandbuch), nahezu orthografische Seitenansicht der Werksfotos (3,31 px/mm; Höhe 380 und Plattenlänge 236 mm wie angegeben), Strichzeichnungen der Kurzanleitung | Silhouette deckt sich mit der Werksansicht (Säule Ø 114 mm mit 20° Neigung, Oberteil, Trichter Ø 80 mm, Auslauf, Gabel, Tasten, Bodenplatte) | Silber eloxiert oder Schwarz, Holz-Bodenplatte, Drehzahlknopf auch aus Holz, Akzente z. B. in Gold, Skala passt sich hell/dunkel an |
 
 **Vorgehen beim Vermessen**: Zeichnungen aus den PDFs mit 500–600 dpi rendern, den Maßstab über mehrere Herstellermaße bestimmen und prüfen (z. B. Höhe, Breite, Durchmesser), Bauteil für Bauteil ablesen. Wo La Marzocco CAD-Daten veröffentlicht, wurden daraus nur Schnitte und Maße gewonnen; die Modelle selbst sind prozedural aufgebaut. Zur Kontrolle wird eine orthografische Silhouette des Modells über die Zeichnung gelegt.
 
 ### Auswahl
 
-Aufgenommen sind auf Wunsch die La-Marzocco-Maschinen, die Rocket Appartamento sowie die Mühlen Pico, Niche Zero, Niche Duo, Mahlkönig E64 WS und Bentwood H75 (dazu die ursprüngliche Linea Mini R mit der EG-1). Weitere Geräte aus der rb.crafts-Liste (z. B. Victoria Arduino E1 Prima, VBM Pistone, Bentwood Vertical 63, Fiorenzato AllGround Sense, Eureka Mignon und Atom 75) sind nicht enthalten. Ein neues Gerät lässt sich als Modul unter `js/devices/` nach demselben Muster ergänzen.
+Aufgenommen sind auf Wunsch die La-Marzocco-Maschinen, die Rocket Appartamento sowie die Mühlen Pico, Niche Zero, Niche Duo, Mahlkönig E64 WS, Bentwood H75 und Option-O Lagom P80 (dazu die ursprüngliche Linea Mini R mit der EG-1). Weitere Geräte aus der rb.crafts-Liste (z. B. Victoria Arduino E1 Prima, VBM Pistone, Bentwood Vertical 63, Fiorenzato AllGround Sense, Eureka Mignon und Atom 75) sind nicht enthalten. Ein neues Gerät lässt sich als Modul unter `js/devices/` nach demselben Muster ergänzen.
 
 ### Quellen weitere Geräte
 
@@ -134,6 +135,7 @@ Aufgenommen sind auf Wunsch die La-Marzocco-Maschinen, die Rocket Appartamento s
 - [Rocket Espresso – Appartamento](https://rocket-espresso.com/products/domestic-models/appartamento) (Seitenansichten der Farbreihe, Prospekt, Ersatzteilkatalog)
 - [Niche Coffee](https://www.nichecoffee.co.uk/) (Bedienungsanleitungen Niche Zero und Niche Duo, Herstellermaße, Fotos)
 - [Bentwood – H75](https://www.bentwoodcoffee.ch/h75/) (technische Daten, Fotos der Farbvarianten)
+- [Option-O – Lagom P80](https://www.option-o.com/lagom-p80) (technische Daten, Kurzanleitung und Sicherheitshandbuch, Werksfotos)
 - [rb.crafts](https://www.rb-crafts.de/) (Veredelungen, Holzdeckel für die E64 WS, Holz-Sets)
 
 ## Starten
@@ -179,7 +181,7 @@ js/device-ui.js     Konfigurations-Panel für die weiteren Geräte (Slots, Prese
 js/parts.js         Gemeinsame Bauteile: Baukasten, Profile, Blechschalen, Manometer, Schrauben, Logo
 netlify.toml        Einstellungen für Netlify (kein Build, Hauptverzeichnis veröffentlichen)
 TEILEN.md           Anleitung: Konfigurator online stellen und verschicken
-js/devices/*.js     Je ein Gerät: Linea Micra, Linea Mini, GS3, Linea PB/PB X, Rocket Appartamento, Pico, E64 WS, Niche Zero/Duo, Bentwood H75
+js/devices/*.js     Je ein Gerät: Linea Micra, Linea Mini, GS3, Linea PB/PB X, Rocket Appartamento, Pico, E64 WS, Niche Zero/Duo, Bentwood H75, Lagom P80
 js/variants.js      Variationen: Speichern, Prüfen und Umschalten der Fassungen je Gerät
 js/ar.js            AR-Ansicht: Export der Konfiguration als USDZ/GLB, Dialog, QR-Code
 js/materials.js     Materialien je Bauteil-Gruppe (Lack, Holz, Metall)
@@ -246,4 +248,4 @@ Die Geometrie folgt den Maßzeichnungen (Front-, Seiten- und Rückansicht) im of
 
 ## Hinweis
 
-Die 3D-Modelle sind eigene, vereinfachte Nachbildungen auf Basis von Werkszeichnungen, Herstellerangaben und Fotos; CAD-Daten der Hersteller dienten nur als Messreferenz und sind nicht enthalten. Es handelt sich nicht um offizielle Produkte von La Marzocco, Weber Workshops, Rocket Espresso, Mahlkönig, Niche oder Bentwood; Logos sind nur angedeutet. Marken- und Produktnamen gehören ihren jeweiligen Inhabern.
+Die 3D-Modelle sind eigene, vereinfachte Nachbildungen auf Basis von Werkszeichnungen, Herstellerangaben und Fotos; CAD-Daten der Hersteller dienten nur als Messreferenz und sind nicht enthalten. Es handelt sich nicht um offizielle Produkte von La Marzocco, Weber Workshops, Rocket Espresso, Mahlkönig, Niche, Bentwood oder Option-O; Logos sind nur angedeutet. Marken- und Produktnamen gehören ihren jeweiligen Inhabern.
