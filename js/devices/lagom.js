@@ -350,8 +350,8 @@ const CATEGORIES = {
   },
 };
 const SLOTS = Object.values(CATEGORIES).flatMap((c) => c.slots.map((s) => s.key));
-const SILVER = { id: 'custom', finish: 'satin', color: '#e8e9eb', kind: 'metallic' }; // eloxiertes Aluminium
-const BLACK = { id: 'RAL9005', finish: 'matte' };
+const SILVER = { id: 'ALU-SILBER', finish: 'satin' }; // eloxiertes Aluminium (Werk)
+const BLACK = { id: 'ALU-SCHWARZ', finish: 'matte' };
 const m = (id, finish = 'satin') => ({ id, finish });
 const preset = (name, swatches, body, plate, accents = {}) => ({
   name,

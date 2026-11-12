@@ -234,6 +234,15 @@ export const BODY_COLLECTIONS = [
     ],
   },
   {
+    id: 'werk',
+    name: 'Werk',
+    series: 'Werksoberflächen (eloxiertes Aluminium)',
+    colors: [
+      { id: 'ALU-SILBER', code: 'Werk', name: 'Aluminium eloxiert, Silber', color: '#e8e9eb', effect: 'M' },
+      { id: 'ALU-SCHWARZ', code: 'Werk', name: 'Aluminium eloxiert, Schwarz', color: '#1c1c1e', effect: 'M' },
+    ],
+  },
+  {
     id: 'design',
     name: 'Design',
     series: 'IGP-DURA® xal 4601',
