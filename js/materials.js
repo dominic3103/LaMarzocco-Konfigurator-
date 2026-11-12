@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { kindOf, baseSlotOf, resolveBody, resolveMetal, resolveWood } from './data.js';
 import { getFlakeNormalMap, getSparkleMaps, getPowderNormalMap } from './textures.js';
 import { getWoodTextures } from './wood.js';
+import { GFX2 } from './gfx.js';
 
 export class MaterialManager {
   constructor() {
@@ -175,6 +176,17 @@ function applyPaint(m, color, finish) {
   }
   m.normalScale.set(ns, ns);
   setMaps(m, { normalMap, bumpMap: null, roughnessMap: null, map });
+  if (GFX2) {
+    // Pulverlack: weicher, breiter Glanz statt "Plastik"; zum Rand hin leicht heller (Mikrostruktur)
+    const R = { matte: 0.66, satin: 0.42, gloss: 0.16, texture: 0.72 };
+    const CC = { matte: [0.06, 0.6], satin: [0.25, 0.32], gloss: [1, 0.02], texture: [0, 0.6] };
+    m.roughness = fx === 'A' ? R[f] : Math.max(0.12, e.rough[f] - 0.05);
+    [m.clearcoat, m.clearcoatRoughness] = CC[f];
+    m.specularIntensity = 1;
+    m.sheen = f === 'gloss' ? 0 : 0.1;
+    m.sheenRoughness = 0.55;
+    m.sheenColor.setRGB(1, 1, 1);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -184,6 +196,7 @@ function applyWood(m, wood, finish) {
   const lacquer = finish === 'lacquer';
   if (wood.none) return; // Teil wird ausgeblendet
   m.metalness = 0;
+  m.sheen = 0;
   if (wood.plastic) {
     setMaps(m, { map: null, bumpMap: null, normalMap: null, roughnessMap: null });
     m.color.set(wood.mid);
@@ -201,6 +214,15 @@ function applyWood(m, wood, finish) {
   m.clearcoatRoughness = lacquer ? 0.05 : 0.4;
   const ns = lacquer ? 0.25 : 0.6;
   m.normalScale.set(ns, ns);
+  if (GFX2 && !lacquer) {
+    // geöltes, poliertes Holz (wie bei rb.crafts): satter, etwas dunklerer Ton, seidiger
+    // Ölfilm mit deutlichen, weichen Glanzlichtern über der Maserung
+    m.color.setRGB(0.86, 0.81, 0.77);
+    m.roughness = 0.72;
+    m.clearcoat = 0.5;
+    m.clearcoatRoughness = 0.24;
+    m.normalScale.set(0.35, 0.35);
+  }
 }
 
 /** Holz-Schriftzug: Holzfarbe mit Maserung längs der Buchstaben (eigene Textur-Ausrichtung) */
@@ -228,10 +250,11 @@ function applyLogoWood(m, wood, finish) {
 // ---------------------------------------------------------------------------
 function applyMetal(m, color, finish) {
   m.color.set(color.color);
+  m.sheen = 0;
   setMaps(m, { normalMap: null, bumpMap: null, roughnessMap: null, map: m.userData.baseMap || null });
   if (color.kind === 'metal') {
     m.metalness = 1;
-    m.roughness = { gloss: 0.1, satin: 0.3, matte: 0.48 }[finish] ?? 0.1;
+    m.roughness = (GFX2 ? { gloss: 0.045, satin: 0.24, matte: 0.42 } : { gloss: 0.1, satin: 0.3, matte: 0.48 })[finish] ?? 0.1;
     m.clearcoat = 0;
   } else {
     m.metalness = 0;

@@ -7,6 +7,7 @@
 // ---------------------------------------------------------------------------
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { GFX2 } from './gfx.js';
 
 export const LIGHTINGS = [
   {
@@ -152,7 +153,72 @@ export const LIGHTINGS = [
   },
 ];
 
+// Grafik-Update: Fotostudio wie bei Produktaufnahmen – dunkler Raum, große Softboxen mit
+// weichem Rand (Reflexe auf Lack und Chrom), Oberlicht, Streiflichter, heller Boden als Aufheller
+if (GFX2) {
+  const st = LIGHTINGS.find((l) => l.id === 'studio');
+  Object.assign(st, {
+    env: {
+      top: '#0d0d0f',
+      mid: '#2b2b2e',
+      bottom: '#77736c',
+      sigma: 0.012,
+      panels: [
+        { color: '#ffffff', intensity: 10, w: 3.4, h: 2.6, pos: [2.5, 3.1, 3.7], soft: 0.32 }, // Hauptlicht-Softbox
+        { color: '#fff6ec', intensity: 1.9, w: 3.6, h: 3.2, pos: [-4.4, 1.7, 3.1], soft: 0.45 }, // Aufheller vorne links
+        { color: '#ffffff', intensity: 6, w: 3.8, h: 1.5, pos: [0, 5.2, 0.3], soft: 0.4 }, // Oberlicht (Verlauf auf Deckflächen)
+        { color: '#ffffff', intensity: 9, w: 0.7, h: 3.8, pos: [-4.3, 1.8, -2.7], soft: 0.25 }, // Streiflicht links hinten
+        { color: '#ffffff', intensity: 8, w: 0.6, h: 3.4, pos: [4.6, 1.6, -1.9], soft: 0.25 }, // Streiflicht rechts hinten
+        { color: '#f4efe8', intensity: 1.1, w: 6, h: 1.6, pos: [0, -1.1, 4.2], soft: 0.6 }, // Bodenreflex vorne
+      ],
+    },
+    envIntensity: 1.0,
+    exposure: 0.9,
+    key: { color: '#fffaf3', intensity: 1.9, pos: [0.82, 1.0, 1.25] },
+    areaKey: 2.0,
+    areaTop: 1.0,
+    rim: { color: '#ffffff', intensity: 1.0, pos: [-0.95, 0.75, -0.9] },
+    hemi: { sky: '#f4f6f8', ground: '#6f6a62', intensity: 0.85 },
+    shadow: 0.74,
+    contact: 0.7,
+    bg: {
+      css: 'radial-gradient(ellipse 72% 62% at 50% 40%, #fbfaf8 0%, #ebe8e3 50%, #d6d1c9 82%, #c9c3ba 100%)',
+      snap: { cx: 0.5, cy: 0.4, stops: [[0, '#fbfaf8'], [0.5, '#ebe8e3'], [0.82, '#d6d1c9'], [1, '#c9c3ba']] },
+    },
+  });
+}
+
 export const lightingById = (id) => LIGHTINGS.find((l) => l.id === id) || LIGHTINGS[0];
+
+/** Leuchtfläche einer Softbox: gleichmäßig mit leichtem Hotspot, Rand weich auslaufend */
+const softTex = new Map();
+function softboxTexture(soft) {
+  const key = soft.toFixed(2);
+  if (softTex.has(key)) return softTex.get(key);
+  const S = 128;
+  const c = document.createElement('canvas');
+  c.width = c.height = S;
+  const g = c.getContext('2d');
+  const img = g.createImageData(S, S);
+  for (let y = 0; y < S; y++) {
+    for (let x = 0; x < S; x++) {
+      const u = Math.abs((x + 0.5) / S - 0.5) * 2;
+      const v = Math.abs((y + 0.5) / S - 0.5) * 2;
+      // Rechteck mit weichem Rand (Diffusor) und sanftem Hotspot in der Mitte
+      const edge = (t) => 1 - Math.min(1, Math.max(0, (t - (1 - soft)) / soft)) ** 2;
+      const hot = 0.82 + 0.18 * Math.exp(-(u * u + v * v) * 2.2);
+      const val = Math.max(0, Math.min(1, edge(u) * edge(v) * hot));
+      const i = (y * S + x) * 4;
+      img.data[i] = img.data[i + 1] = img.data[i + 2] = Math.round(val * 255);
+      img.data[i + 3] = 255;
+    }
+  }
+  g.putImageData(img, 0, 0);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.NoColorSpace;
+  softTex.set(key, t);
+  return t;
+}
 
 /** Einfache Umgebung: Himmel mit Farbverlauf + leuchtende Flächen (Softboxen, Sonne, Fenster). */
 function gradientEnvScene({ top, mid, bottom, panels }) {
@@ -173,9 +239,10 @@ function gradientEnvScene({ top, mid, bottom, panels }) {
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   scene.add(new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide })));
   for (const p of panels) {
+    const map = GFX2 ? softboxTexture(p.soft ?? 0.3) : null;
     const m = new THREE.Mesh(
       new THREE.PlaneGeometry(p.w, p.h),
-      new THREE.MeshBasicMaterial({ color: new THREE.Color(p.color).multiplyScalar(p.intensity), side: THREE.DoubleSide }),
+      new THREE.MeshBasicMaterial({ color: new THREE.Color(p.color).multiplyScalar(p.intensity), map, side: THREE.DoubleSide }),
     );
     m.position.set(...p.pos);
     m.lookAt(0, 0, 0);
@@ -261,6 +328,12 @@ export class LightingRig {
     this.tween = { from, to, t: 0, duration: 0.9 };
   }
 
+  /** Flächenlichter (Grafik-Update) übernehmen und an die Lichtstimmung koppeln */
+  setAreas(areas) {
+    this.areas = areas;
+    this.#applyState(this.#capture());
+  }
+
   setBaristaOverride(level) {
     this.baristaOverride = level;
     if (!this.current) return;
@@ -274,6 +347,19 @@ export class LightingRig {
   }
 
   #applyState(s) {
+    if (this.areas) {
+      // Softbox in Richtung des Hauptlichts (1,5 m), Oberlicht darüber; Helligkeit folgt dem Hauptlicht
+      const T = new THREE.Vector3(0, 0.2, 0);
+      const [soft, top] = this.areas;
+      soft.position.copy(s.keyPos).normalize().multiplyScalar(1.5).add(T);
+      soft.lookAt(T);
+      soft.color.copy(s.keyColor);
+      soft.intensity = s.keyI * (this.current?.areaKey ?? 1.6);
+      top.position.set(0, 1.5, 0.35);
+      top.lookAt(T);
+      top.color.copy(s.keyColor);
+      top.intensity = s.keyI * (this.current?.areaTop ?? 0.9);
+    }
     this.scene.environmentIntensity = s.envIntensity;
     this.renderer.toneMappingExposure = s.exposure;
     this.key.color.copy(s.keyColor);

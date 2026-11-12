@@ -13,6 +13,7 @@
 // in beide Richtungen nahtlos wiederholbar.
 // ---------------------------------------------------------------------------
 import * as THREE from 'three';
+import { GFX2 } from './gfx.js';
 import { createNoise, cellDist, clamp01, smoothstep, hexToRgb, makeCanvas } from './noise.js';
 
 /** Physikalische Größe einer Kachel in mm (quer, längs) */
@@ -40,11 +41,12 @@ export function generateWood(def, size = 1024) {
   const S = def.streak ? hexToRgb(def.streak.color) : null;
 
   const K = def.rings || 24;
-  const contrast = def.contrast ?? 0.5;
-  const late = def.late ?? 0.35;
+  // Grafik-Update: feinere, weniger "gezeichnete" Jahresringe, mehr Faser – wie echtes Furnier
+  const contrast = (def.contrast ?? 0.5) * (GFX2 ? 0.6 : 1);
+  const late = (def.late ?? 0.35) * (GFX2 ? 0.72 : 1);
   const warp = def.warp ?? 0.03;
   const figure = def.figure ?? 2;
-  const fiber = def.fiber ?? 0.5;
+  const fiber = (def.fiber ?? 0.5) * (GFX2 ? 1.25 : 1);
   const pore = def.pore || null;
   const tone = def.tone ?? 0.12;
   const style = def.style || 'ring';

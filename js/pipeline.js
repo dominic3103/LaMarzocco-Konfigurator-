@@ -13,6 +13,7 @@
 // Ende mit Tone-Mapping und leichtem Überstrahlen (Bloom) ausgegeben.
 // ---------------------------------------------------------------------------
 import * as THREE from 'three';
+import { GFX } from './gfx.js';
 
 /**
  * Himmelslicht-Samples sollen nur diffus beleuchten (sonst entstehen auf
@@ -47,7 +48,7 @@ function patchShaders() {
   // von Hauptlicht und Himmelslicht. Spiegelungen der Umgebung bleiben voll erhalten.
   const maps = THREE.ShaderChunk.lights_fragment_maps;
   const ibl = /iblIrradiance\s*\+=\s*getIBLIrradiance\(\s*geometryNormal\s*\);/;
-  if (ibl.test(maps)) THREE.ShaderChunk.lights_fragment_maps = maps.replace(ibl, 'iblIrradiance += getIBLIrradiance( geometryNormal ) * 0.15;');
+  if (ibl.test(maps)) THREE.ShaderChunk.lights_fragment_maps = maps.replace(ibl, `iblIrradiance += getIBLIrradiance( geometryNormal ) * ${GFX.iblDiffuse.toFixed(3)};`);
 }
 patchShaders();
 
@@ -125,9 +126,9 @@ export class RenderPipeline {
     this.maxSamples = samples || 64;
     this.n = 0;
     this.cur = 0;
-    this.aperture = 0.0035; // Blendenradius in m (Tiefenunschärfe)
+    this.aperture = GFX.aperture; // Blendenradius in m (Tiefenunschärfe)
     this.keyRadius = 0.3; // Radius der Hauptlicht-Softbox in m
-    this.bloom = 0.05;
+    this.bloom = GFX.bloom;
     this.frameTimes = [];
     this.lastFrameAt = 0;
     this.focus = 1.4;
@@ -181,7 +182,14 @@ void main() {
 uniform sampler2D tDiffuse;
 uniform sampler2D tBloom;
 uniform float bloom;
+uniform float vignette;
+uniform float grain;
 varying vec2 vUv;
+float hash12( vec2 p ) {
+	vec3 p3 = fract( vec3( p.xyx ) * 0.1031 );
+	p3 += dot( p3, p3.yzx + 33.33 );
+	return fract( ( p3.x + p3.y ) * p3.z );
+}
 void main() {
 	vec4 c = texture2D( tDiffuse, vUv );
 	vec3 rgb = c.a > 0.0001 ? c.rgb / c.a : vec3( 0.0 );
@@ -192,8 +200,18 @@ void main() {
 	glow.rgb = glow.rgb / ( 1.0 + glow.rgb );
 	glow = linearToOutputTexel( glow );
 	gl_FragColor.rgb = gl_FragColor.rgb * gl_FragColor.a + glow.rgb * step( 0.0001, bloom );
+	// fotografische Nachbearbeitung: Objektiv-Vignette (Lichtabfall zum Rand) und feines Filmkorn
+	if ( vignette > 0.0 ) {
+		vec2 d = vUv - 0.5;
+		float v = 1.0 - vignette * smoothstep( 0.18, 0.62, dot( d, d ) * 1.6 );
+		gl_FragColor.rgb *= v;
+	}
+	if ( grain > 0.0 ) {
+		float n = hash12( gl_FragCoord.xy ) + hash12( gl_FragCoord.yx + 17.0 ) - 1.0;
+		gl_FragColor.rgb += n * grain * gl_FragColor.a;
+	}
 }`,
-      { tDiffuse: { value: null }, tBloom: { value: null }, bloom: { value: this.bloom } },
+      { tDiffuse: { value: null }, tBloom: { value: null }, bloom: { value: this.bloom }, vignette: { value: GFX.vignette }, grain: { value: GFX.grain } },
       { toneMapped: true },
     );
     this.#syncMode();

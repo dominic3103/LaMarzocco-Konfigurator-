@@ -6,6 +6,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { makeContactShadowTexture } from './textures.js';
 import { LightingRig, lightingById } from './lighting.js';
 import { RenderPipeline, makeGroundMaterial } from './pipeline.js';
+import { GFX, GFX2 } from './gfx.js';
 
 const TARGET = new THREE.Vector3(0, 0.185, 0);
 
@@ -37,7 +38,9 @@ export class Viewer {
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.toneMapping = THREE.NeutralToneMapping;
+    // Neutral (Khronos PBR Neutral): farbtreu für Lack- und Holzfarben (AgX entsättigt zu stark)
+    const tm = new URLSearchParams(location.search).get('tm');
+    renderer.toneMapping = tm === 'agx' ? THREE.AgXToneMapping : THREE.NeutralToneMapping;
     renderer.toneMappingExposure = 0.92;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -95,6 +98,21 @@ export class Viewer {
 
     // Lichtstimmungen (Umgebung, Lichter, Belichtung, Schatten, Barista-Licht)
     this.rig = new LightingRig({ renderer, scene, key, rim, hemi, ground, contact });
+    // Grafik-Update: Softboxen als echte Flächenlichter (Lichtverlauf über große Flächen,
+    // weiche Glanzlichter auf Lack); die Texturdaten werden nur hierfür nachgeladen
+    if (GFX2) {
+      import('three/addons/lights/RectAreaLightUniformsLib.js').then(({ RectAreaLightUniformsLib }) => {
+        RectAreaLightUniformsLib.init();
+        const soft = new THREE.RectAreaLight(0xffffff, 0, 1.0, 0.8);
+        const top = new THREE.RectAreaLight(0xffffff, 0, 1.3, 0.5);
+        scene.add(soft, top);
+        this.rig.setAreas([soft, top]);
+        scene.traverse((o) => {
+          if (o.material) for (const m of [].concat(o.material)) m.needsUpdate = true;
+        });
+        this.dirty = true;
+      });
+    }
     this.sky = sky;
     this.rig.set(lighting, false);
 
@@ -134,7 +152,7 @@ export class Viewer {
       ground,
       contact,
       quality,
-      samples: samples || (isPhone ? 40 : 64),
+      samples: samples || (isPhone ? GFX.samples[0] : GFX.samples[1]),
       applyView: (jx, jy) => this.#applyView(jx, jy),
       focusDistance: () => this.#focusDistance(),
       viewHeight: () => this.container.clientHeight || 1,
