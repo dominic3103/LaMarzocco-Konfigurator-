@@ -15,7 +15,7 @@
 // Z = 0 ist die Vorderkante des Gehäuses (Frontblech).
 // ---------------------------------------------------------------------------
 import * as THREE from 'three';
-import { boxProjectUV, rbox, extrudeZ, woodBoxUV, woodCylUV } from '../model.js';
+import { boxProjectUV, rbox, extrudeZ, polyhedron, woodBoxUV, woodCylUV } from '../model.js';
 import { makeSlotFieldTexture } from '../textures.js';
 import { GAUGE_DIALS, NEEDLES } from '../data.js';
 import { makeCanvas } from '../noise.js';
@@ -174,11 +174,15 @@ const MODELS = {
     feet: { x: 120, z: [-192, 153], r: [26, 22.5] },
     frames: [-197, -49], // Seitenblech zwischen Rahmenprofilen
     tank: { z0: -304.6, bot: 71 },
-    gz: 54, // Achse der Brühgruppe
+    // Achse der Brühgruppe: Seitenzeichnung (Glocke z 50…148) und Kameraabgleich des
+    // Werksbilds (Dreiviertelansicht) ergeben übereinstimmend z ≈ 100
+    gz: 100,
     group: 'e61',
     portaH: 236,
     handleEnd: 280,
-    spoutH: 130,
+    spoutH: 196,
+    spout: 'fork', // kurzer Doppelauslauf; die hohe Säule dahinter gehört zur Gruppe
+    handleTilt: 0.19, // Siebträgergriff ~11° nach vorn abfallend (Werksbilder)
     knobs: { x: 114, h: 340, z: 80, shape: 'star' },
     steam: { side: -1, tip: [-157, 140, 92] },
     water: { tip: [159, 180, 92] },
@@ -188,8 +192,8 @@ const MODELS = {
     waterPath: [[114, 270, 12], [130, 247, 50], [159, 180, 80]],
     lever: true,
     gauge: { x: 73, h: 165, r: 32, dual: true },
-    groupGauge: { h: 340, r: 21 },
-    paddleH: 360,
+    // Gruppenmanometer: Zifferblattmitte (Höhe, Tiefe), Neigung nach oben
+    groupGauge: { h: 322, z: 106, r: 18.5, tilt: 0.7 }, // Seitenzeichnung: rund 40° nach oben geneigt
     lcc: { x: -80, h: 167, r: 22 },
     power: { x: -80, h: 219 },
     paddle: true,
@@ -270,9 +274,9 @@ function makeBuilder(V) {
       const sh = filletShape([[-HW + 2, tTop], [HW - 2, tTop], [HW - 2, V.top - 2], [-HW + 2, V.top - 2]], 1.5, 2);
       B.add(boxProjectUV(plateZ(sh, -1.6, 1.6, 0.4)), mat('metal.front'), S('metal.front'));
       // Badge bzw. Logo
-      const bw = V.id === 'bianca' ? 34 : 46;
+      const bw = V.id === 'bianca' ? 44 : 46;
       const badge = B.plain(new THREE.PlaneGeometry(bw, bw * 0.3125), new THREE.MeshStandardMaterial({ map: makeBadge(V.id === 'bianca' ? 'lelit' : 'marax3'), transparent: true, roughness: 0.4, metalness: 0.1 }));
-      if (V.id === 'bianca') badge.position.set(-50, 116, 0.6);
+      if (V.id === 'bianca') badge.position.set(-80, 118, 0.6);
       else badge.position.set(-38, 153, 0.25);
     }
 
@@ -428,23 +432,25 @@ function makeBuilder(V) {
     B.stage('group');
     const GZ = V.gz;
     {
-      // Halsstück von der Front zur Gruppe
-      const neck = latheZ([[0, 0], [22, 0], [22, GZ], [0, GZ]], 40);
-      B.add(neck, groupMat, S('metal.group')).position.set(0, V.portaH + 44, 0);
       if (V.group === 'e61') {
-        // ---- Bianca V3 (Werksbilder Front/Dreiviertel, Höhen an der Zeichnung ausgerichtet) ----
-        const BT = V.portaH + 42; // Oberkante der Glocke (278)
-        const BB = V.portaH - 1; // Unterkante der Glocke (235)
-        // Glocke: breite, flache Trommel Ø 104 mm mit gerundeter Oberkante, Dach zum Kamin
-        B.add(
+        // ---- Bianca V3: E61-Gruppe mit Flow-Control-Paddel ----
+        // Aufbau nach den Werksbildern (Front, Dreiviertel, Detail) und der Front-/Seitenzeichnung,
+        // Lage und Höhen über eine aus den Gehäusekanten gelöste Fotokamera nachgemessen:
+        // flache Glockentrommel vorn (Achse z 100), dahinter der Gruppenkörper mit der hohen
+        // Säule nach unten, ein schräg nach hinten oben laufender Hals bis zur Paddelachse
+        // (z 38), das Manometer vorn am Hals, links und rechts davon zwei spitze Chromtürme
+        // auf einer polierten Rückplatte am Frontblech.
+        const gm = (g, parent) => B.add(g, groupMat, S('metal.group'), parent);
+        const BB = V.portaH; // Unterkante Glocke / Oberkante Siebträger (236)
+        const DT = 277; // Oberkante der Trommel
+        // Glocke: unterer Kragen Ø 72, Trommel Ø 100 mit gerundeten Kanten, Deckel bis zum Hals
+        gm(
           latheY(
-            [[0, BB], [44, BB], [49, BB + 1.5], [52, BB + 5], [52, BT - 9], [51, BT - 4.5], [48, BT - 1.5], [43, BT], [26, BT + 3], [18, BT + 6], [15.5, BT + 8], [0, BT + 8]],
-            96,
+            [[0, BB], [34, BB], [36, BB + 1.5], [36, 247], [44, 248.2], [48, 249.2], [50, 251.5], [50, DT - 4], [49.4, DT - 1.6], [47.8, DT], [45, DT + 1.2], [33, DT + 3.4], [24, DT + 5.6], [21, DT + 6.4], [0, DT + 6.4]],
+            112,
           ),
-          groupMat,
-          S('metal.group'),
         ).position.z = GZ;
-        // Schloss-Symbol vorn auf der Glocke
+        // Schloss-Symbol vorn auf der Trommel
         const lockTex = (() => {
           const c = makeCanvas(64, 80);
           const g = c.getContext('2d');
@@ -462,39 +468,98 @@ function makeBuilder(V) {
           return new THREE.CanvasTexture(c);
         })();
         const lock = B.plain(new THREE.PlaneGeometry(7, 8.75), new THREE.MeshStandardMaterial({ color: 0x151515, alphaMap: lockTex, transparent: true, roughness: 0.4 }));
-        lock.position.set(0, (BB + BT) / 2, GZ + 52.15);
+        lock.position.set(0, 261, GZ + 50.15);
         lock.castShadow = false;
-        // Kamin über der Glocke, Manometergehäuse nach vorn oben geneigt
-        B.add(latheY([[0, BT + 6], [14, BT + 6], [14, BT + 30], [17, BT + 33], [0, BT + 33]], 40), groupMat, S('metal.group')).position.z = GZ - 4;
-        const tilt = 0.42; // Manometer nach vorn oben gekippt
+
+        // Gruppenkörper hinter der Glocke (vom Frontblech bis in die Glocke)
+        gm(boxProjectUV(rbox(38, 41, GZ - 22, 6, 3))).position.set(0, 263.5, (GZ - 22) / 2);
+        // hohe Säule unter dem Gruppenkörper (Frontzeichnung x ±17, Seitenzeichnung z 17…56)
+        gm(
+          latheY(
+            [[0, 131], [5.5, 131], [7.5, 133], [9, 136], [9, 146], [13, 146], [13, 156], [15, 157], [15, 189], [16.2, 190], [17, 191], [17, 224], [18.5, 225.5], [20, 227], [20, 244], [0, 244]],
+            40,
+          ),
+        ).position.set(0, 0, 36);
+        // Sechskant an der Säule
+        gm(new THREE.CylinderGeometry(17, 17, 9, 6)).position.set(0, 151, 36);
+
+        // schräger Hals: von der Glocke (z 75) nach hinten oben zum Kopfstück (z 45),
+        // Seitenzeichnung und Kameraabgleich stimmen überein (rund 25° gegen die Senkrechte)
+        const H0 = new THREE.Vector3(0, DT + 3, 75);
+        const H1 = new THREE.Vector3(0, 341, 45);
+        const hd = H1.clone().sub(H0);
+        const HL = hd.length();
+        const neck = gm(
+          latheY(
+            [[0, -6], [21, -6], [21, -3], [18.5, 2], [16.5, 9], [15.4, 18], [14.8, HL - 6], [15.8, HL - 3], [15.8, HL], [0, HL]],
+            56,
+          ),
+        );
+        neck.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), hd.normalize());
+        neck.position.copy(H0);
+        // Kopfstück am Frontblech (Seitenzeichnung: z 0…44, Höhe 319…343), darauf die
+        // längliche Deckplatte (z 13…56, Höhe 343…352, Breite 38), Sechskantmutter und
+        // Ventilspindel unter dem Paddel (Achse senkrecht bei z 35)
+        gm(boxProjectUV(rbox(20, 26, 46, 4, 3))).position.set(0, 331, 22); // schmal zwischen den Türmen
+        gm(boxProjectUV(rbox(38, 10, 44, 2, 2))).position.set(0, 347.5, 34);
+        gm(new THREE.CylinderGeometry(11.5, 11.5, 8, 6)).position.set(0, 356.5, 35);
+        gm(latheY([[0, 360], [6, 360], [6, 369], [8, 370], [0, 370]], 24)).position.z = 35;
+
+        // Gruppenmanometer vorn am Hals, nach vorn oben geneigt
+        const GG = V.groupGauge;
         const gq = new THREE.Group();
-        gq.position.set(0, V.groupGauge.h, GZ - 2);
-        gq.rotation.x = -tilt;
+        gq.position.set(0, GG.h, GG.z);
+        gq.rotation.x = -GG.tilt;
         root.add(gq);
-        B.add(latheZ([[0, -22], [17, -22], [21.5, -12], [22.5, -4], [22.5, 2], [0, 2]], 48), groupMat, S('metal.group'), gq);
-        V._groupGauge = buildGauge(B, { slot: S('metal.gauge'), x: 0, y: 0, z: 0, R: V.groupGauge.r, bezel: 2.6, parent: gq, spec: { id: 'lelit-group', max: 12, step: 1, label: 2, value: 9, unit: 'bar', zone: [8, 10] } });
-        // Kamin oben bis zur Paddelachse
-        B.add(latheY([[0, BT + 50], [12, BT + 50], [12, V.paddleH - 6], [14, V.paddleH - 2], [0, V.paddleH + 2]], 32), groupMat, S('metal.group')).position.z = GZ - 18;
-        // abgerundete Halteblöcke links und rechts hinter der Glocke
-        for (const sx of [-1, 1]) {
-          B.add(boxProjectUV(rbox(26, 26, 44, 9, 4)), groupMat, S('metal.group')).position.set(sx * 33, BT + 20, GZ - 30);
+        const RH = GG.r + 2.6;
+        gm(latheZ([[0, -31], [9, -31], [14, -29.5], [RH - 1.5, -24], [RH, -19], [RH, 0.6], [0, 0.6]], 48), gq);
+        // Stütze vom Gehäuseboden schräg nach unten in den Hals
+        const stem = gm(new THREE.CylinderGeometry(6.5, 7.5, 24, 24).translate(0, -12, 0), gq);
+        stem.position.set(0, -RH + 6, -20);
+        stem.rotation.x = 0.55;
+        V._groupGauge = buildGauge(B, { slot: S('metal.gauge'), x: 0, y: 0, z: 0, R: GG.r, bezel: 2.6, parent: gq, spec: { id: 'lelit-group', max: 12, step: 1, label: 2, value: 9, unit: 'bar', zone: [8, 10] } });
+        // Glas des schräg nach oben zeigenden Manometers spiegelt sonst das Oberlicht flächig
+        // und verdeckt das Zifferblatt; schwächer spiegelnd wie auf den Werksbildern
+        {
+          const dim = F.glass.clone();
+          dim.clearcoat = 0.3;
+          dim.specularIntensity = 0.3;
+          dim.envMapIntensity = 0.35;
+          V._groupGauge.grp.traverse((o) => { if (o.material === F.glass) o.material = dim; });
         }
-        // Drahtbügel (Schutzkorb) um das Manometer, je Seite zwei Stäbe
-        for (const sx of [-1, 1]) {
-          for (const dz of [-10, 6]) {
-            const z = GZ - 6 + dz;
-            const pts = [
-              [sx * 38, BT + 4, z],
-              [sx * 37, BT + 30, z],
-              [sx * 36, BT + 54, z],
-              [sx * 28, BT + 72, z],
-              [sx * 15, V.paddleH - 2, z - 6],
-            ];
-            B.add(tubeAlong(pts, 1.5, 50, 8), groupMat, S('metal.group'));
-          }
-        }
+
+        // polierte Rückplatte am Frontblech und zwei spitze Chromtürme (Grundriss: Fünfeck mit
+        // flacher Spitze nach vorn, 26 mm breit; Wände bis 312 mm, Spitze vorn auf 343 mm;
+        // Flächenbreiten aus der Dreiviertelansicht nachgerechnet)
+        gm(boxProjectUV(rbox(68, 44, 3, 1, 2))).position.set(0, 293, 1.5);
+        const tower = (cx) => {
+          const y0 = 272;
+          const yw = 312;
+          const ya = 343;
+          const w = 13;
+          const zb = 2.5;
+          const zw = 15;
+          const zp = 20;
+          const b = [[cx - w, y0, zb], [cx - w, y0, zw], [cx, y0, zp], [cx + w, y0, zw], [cx + w, y0, zb]];
+          const t = [[cx - w, yw, zb], [cx - w, yw, zw], [cx + w, yw, zw], [cx + w, yw, zb]];
+          const ap = [cx, ya, zp];
+          return polyhedron([
+            [b[4], b[3], b[2], b[1], b[0]], // Boden
+            [b[0], t[0], t[3], b[4]], // Rückseite
+            [b[0], b[1], t[1], t[0]], // Außenwand links
+            [b[1], b[2], ap, t[1]], // Bugfläche links
+            [b[2], b[3], t[2], ap], // Bugfläche rechts
+            [b[3], b[4], t[3], t[2]], // Wand rechts
+            [t[1], ap, t[0]], // Dach links
+            [ap, t[2], t[3]], // Dach rechts
+            [t[0], ap, t[3]], // Dach hinten
+          ]);
+        };
+        for (const sx of [-1, 1]) gm(boxProjectUV(tower(sx * 21)));
       } else {
-        // LELIT58: hohe, abgerundete Haube über einem breiten Kragen
+        // LELIT58: Halsstück, hohe abgerundete Haube über einem breiten Kragen
+        const neck = latheZ([[0, 0], [22, 0], [22, GZ], [0, GZ]], 40);
+        B.add(neck, groupMat, S('metal.group')).position.set(0, V.portaH + 44, 0);
         const housing = latheY([[0, V.portaH + 30], [27, V.portaH + 30], [29, V.portaH + 50], [29, 362], [27, 374], [18, 381], [0, 382]], 64);
         housing.scale(1, 1, 0.82);
         B.add(housing, groupMat, S('metal.group')).position.z = GZ - 6;
@@ -505,16 +570,34 @@ function makeBuilder(V) {
         B.add(latheY([[0, V.portaH - 3], [38, V.portaH - 3], [41, V.portaH + 3], [41, V.portaH + 18], [30, V.portaH + 24], [0, V.portaH + 24]], 64), groupMat, S('metal.group')).position.z = GZ;
         B.add(latheY([[0, 382], [11, 382], [11, 388], [0, 389]], 6), groupMat, S('metal.group')).position.z = GZ - 6;
       }
-      // Flow-Control-Paddel (Bianca) auf der Gruppe
+      // Flow-Control-Paddel (Bianca): Holzklotz auf senkrechter Achse (z 38), in Ruhestellung nach
+      // vorn zeigend; Seitenprofil L-förmig mit Aussparung über Mutter und Spindel
       if (V.paddle) {
-        // Flow-Control-Paddel: Holzpaddel auf der Achse über dem Kamin, nach vorn oben gerichtet
-        const pg = new THREE.Group();
-        pg.position.set(0, V.paddleH, GZ - 18);
-        pg.rotation.x = -0.35;
-        root.add(pg);
-        B.add(new THREE.CylinderGeometry(6, 6, 22, 20).rotateZ(Math.PI / 2), groupMat, S('metal.group'), pg);
-        const blade = woodBoxUV(rbox(31, 18, 74, 7, 3), 2, [0.12, 0.4]);
-        B.add(blade, mat('wood.paddle'), S('wood.paddle'), pg).position.set(0, 4, 34);
+        const pts = [];
+        const arc = (cz, cy, r, a0, a1, n = 8) => {
+          for (let i = 0; i <= n; i++) {
+            const a = a0 + ((a1 - a0) * i) / n;
+            pts.push([cz + r * Math.cos(a), cy + r * Math.sin(a)]);
+          }
+        };
+        const P = Math.PI;
+        // Seitenprofil (z, y) nach dem Werksdetailbild: senkrechte Rückseite, Aussparung über
+        // Mutter und Spindel bis z 55, darunter eine schräge Unterkante bis zur Stirn,
+        // Stirn leicht gewölbt, Oberkanten gerundet
+        arc(31, 390, 7, P, P / 2); // hinten oben
+        pts.push([60, 398.2]); // Oberseite leicht gewölbt
+        arc(87, 386, 11, P / 2, 0.1); // vorn oben
+        pts.push([99.2, 372]);
+        arc(87, 350, 12, -0.05, -P / 2); // vorn unten
+        pts.push([80, 338], [60.5, 356.2], [57.6, 357.9], [55.9, 359.6], [55.5, 361.5]); // schräge Unterkante, Knick zur Stufe
+        arc(52.5, 367, 3, 0, P / 2, 4); // Hohlkehle in der Aussparung
+        arc(27, 373, 3, -P / 2, -P, 4); // hinten unten
+        const sh = new THREE.Shape(pts.map(([z, y]) => new THREE.Vector2(-z, y)));
+        const g = new THREE.ExtrudeGeometry(sh, { depth: 17, bevelEnabled: true, bevelThickness: 4, bevelSize: 4, bevelOffset: -4, bevelSegments: 5, curveSegments: 6 });
+        g.translate(0, 0, -8.5);
+        g.rotateY(Math.PI / 2);
+        const blade = woodBoxUV(g, 2, [0.12, 0.4]);
+        B.add(blade, mat('wood.paddle'), S('wood.paddle'));
       }
     }
 
@@ -539,7 +622,7 @@ function makeBuilder(V) {
         const k = B.add(kg, mat('wood.knobs'), S('wood.knobs'));
         k.position.set(sx * K.x, K.h, K.z - 2);
         if (K.shape === 'star') {
-          const cap = B.add(latheZ([[0, 0], [11, 0], [11, 1.2], [10, 2.2], [0, 2.4]], 32), groupMat, S('metal.group'));
+          const cap = B.add(latheZ([[0, 0], [11.5, 0], [11.5, 1], [11, 3], [9.6, 5.2], [7.2, 6.8], [4, 7.7], [0, 8]], 32), groupMat, S('metal.group'));
           cap.position.set(sx * K.x, K.h, K.z + 20.5);
         } else {
           const ball = new THREE.SphereGeometry(16, 40, 24, 0, Math.PI * 2, 0, Math.PI / 2);
@@ -576,20 +659,22 @@ function makeBuilder(V) {
       lance([out(-1), ...V.steamPath], 4.8, V.id === 'bianca' ? 20 : 17, false);
       lance([out(1), ...V.waterPath], V.water.short ? 4.4 : 4.6, V.water.short ? 8 : 20, !!V.water.grip);
     }
-    // E61-Hebel rechts an der Gruppe (Bianca): Verbindungsrohr, Gelenkblock, Hebel mit Holzgriff
+    // Brühhebel rechts an der Gruppe (Bianca): Querrohr aus dem Gruppenkörper, Gelenkblock neben
+    // der Glocke, Hebelstange schräg nach unten mit Holzgriff (Frontzeichnung: Block x 66…84,
+    // Höhe 237…271; Griff x 73…92, Höhe 160…200; Tiefe aus dem Kameraabgleich z ≈ 60)
     if (V.lever) {
-      const BT = V.portaH + 42;
-      B.add(new THREE.CylinderGeometry(4.6, 4.6, 28, 20).rotateZ(Math.PI / 2), groupMat, S('metal.group')).position.set(64, BT + 9, GZ);
-      B.add(boxProjectUV(rbox(20, 44, 22, 3, 2)), groupMat, S('metal.group')).position.set(87, BT - 2, GZ);
-      B.add(new THREE.CylinderGeometry(5.5, 5.5, 26, 6).rotateZ(Math.PI / 2), groupMat, S('metal.group')).position.set(64, BT + 9, GZ);
-      const top = [88, BT - 24, GZ + 4];
-      const mid = [99, BT - 66, GZ + 10];
-      B.add(tubeAlong([top, [93, BT - 44, GZ + 7], mid], 4, 30, 14), groupMat, S('metal.group'));
-      const dir = new THREE.Vector3(104 - 99, -41, 2).normalize();
-      const grip = woodCylUV(latheY([[0, 0], [7.5, 0], [9.5, 6], [10, 30], [8.5, 38], [5, 41], [0, 41.5]], 28).rotateX(-Math.PI / 2), [0.2, 0.3]).rotateX(Math.PI / 2);
-      const gm = B.add(grip, mat('wood.paddle'), S('wood.paddle'));
-      gm.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), dir);
-      gm.position.set(...mid);
+      const gm = (g) => B.add(g, groupMat, S('metal.group'));
+      gm(new THREE.CylinderGeometry(6, 6, 50, 24).rotateZ(Math.PI / 2)).position.set(43, 256, 58);
+      gm(new THREE.CylinderGeometry(8.5, 8.5, 9, 6).rotateZ(Math.PI / 2)).position.set(58, 256, 58);
+      gm(boxProjectUV(rbox(18, 34, 22, 3, 2))).position.set(75, 254, 58);
+      const top = [77, 238, 60];
+      const mid = [82, 202, 64];
+      gm(tubeAlong([top, [79.5, 220, 62], mid], 4, 30, 14));
+      const dir = new THREE.Vector3(mid[0] - top[0], mid[1] - top[1], mid[2] - top[2]).normalize();
+      const grip = woodCylUV(latheY([[0, 0], [5.5, 0], [7.5, 4], [9.5, 22], [10.2, 32], [9, 39], [5.5, 43], [0, 44]], 28).rotateX(-Math.PI / 2), [0.2, 0.3]).rotateX(Math.PI / 2);
+      const gmw = B.add(grip, mat('wood.paddle'), S('wood.paddle'));
+      gmw.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+      gmw.position.set(...mid);
     }
 
     // =======================================================================
@@ -652,15 +737,26 @@ function makeBuilder(V) {
     {
       const H0 = V.portaH;
       B.add(latheY([[0, H0 - 32], [29, H0 - 32], [33, H0 - 28], [35, H0 - 20], [36, H0 - 6], [39, H0 - 4], [39, H0 - 1], [0, H0 - 1]], 64), groupMat, S('metal.group')).position.z = GZ;
-      B.add(latheY([[0, V.spoutH + 14], [8, V.spoutH + 14], [11, V.spoutH + 22], [15, H0 - 32], [0, H0 - 32]], 24), groupMat, S('metal.group')).position.z = GZ;
-      for (const sx of [-1, 1]) {
-        const s = B.add(latheY([[0, 0], [3.6, 0], [4.4, 7], [4.4, 14], [0, 14]], 16), groupMat, S('metal.group'));
-        s.position.set(sx * 8, V.spoutH, GZ);
-        s.rotation.z = sx * 0.3;
+      if (V.spout === 'fork') {
+        // kurzer Doppelauslauf: Nabe unter dem Sieb, zwei nach außen gebogene Ausläufe
+        B.add(latheY([[0, H0 - 38], [10, H0 - 38], [13, H0 - 35], [14, H0 - 32], [0, H0 - 32]], 24), groupMat, S('metal.group')).position.z = GZ;
+        for (const sx of [-1, 1]) {
+          const arm = B.add(tubeAlong([[sx * 7, H0 - 34, GZ], [sx * 16, H0 - 27, GZ], [sx * 22.5, H0 - 30, GZ], [sx * 23.5, H0 - 38, GZ], [sx * 23, V.spoutH + 2, GZ]], 4.6, 32, 16), groupMat, S('metal.group'));
+          arm.scale.z = 1.25;
+          arm.position.z = -GZ * 0.25;
+          B.add(latheY([[0, 0], [3.4, 0], [5.2, 2], [5.2, 6], [0, 6]], 16), groupMat, S('metal.group')).position.set(sx * 23, V.spoutH - 2, GZ);
+        }
+      } else {
+        B.add(latheY([[0, V.spoutH + 14], [8, V.spoutH + 14], [11, V.spoutH + 22], [15, H0 - 32], [0, H0 - 32]], 24), groupMat, S('metal.group')).position.z = GZ;
+        for (const sx of [-1, 1]) {
+          const s = B.add(latheY([[0, 0], [3.6, 0], [4.4, 7], [4.4, 14], [0, 14]], 16), groupMat, S('metal.group'));
+          s.position.set(sx * 8, V.spoutH, GZ);
+          s.rotation.z = sx * 0.3;
+        }
       }
       const pf = new THREE.Group();
       pf.position.set(0, H0 - 6, GZ + 36);
-      pf.rotation.x = -0.07; // Griff leicht ansteigend wie in den Ansichten
+      pf.rotation.x = V.handleTilt ?? -0.07; // Neigung des Griffs (Bianca: nach vorn abfallend wie in den Werksbildern)
       root.add(pf);
       B.add(latheZ([[0, 0], [7.5, 0], [7.5, 12], [6.5, 14], [6.5, 22], [0, 22]], 24), groupMat, S('metal.group'), pf);
       const L = V.handleEnd - GZ - 36;
