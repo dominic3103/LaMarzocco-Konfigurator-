@@ -1248,20 +1248,25 @@ export function buildMachine(mm) {
     // Unterteil: dünne Platte auf jeder schrägen Seitenfläche
     const matL = mm.get('wood.panelLower');
     const bot = M.baseTop + 4;
-    const top = M.slabBotFront - 1;
     const hwAt = (y) => 135.5 + (y - M.baseTop) * (24 / 140.4);
     const zFront = -inset - 0.5;
     const zRearAt = (y) => -288 - (y - M.baseTop) * (21 / 149.4) + inset;
+    // Oberkante folgt der Unterkante des Oberkorpus, die nach hinten ansteigt
+    // (235 mm vorn, 255 mm hinten): die ganze sichtbare Seitenfläche des Mittelteils ist bedeckt
+    const slabBotAt = (z) => M.slabBotFront + ((M.slabBotRear - M.slabBotFront) * z) / M.rearBot;
+    const topF = slabBotAt(zFront) - 1;
+    let topR = M.slabBotRear - 1;
+    for (let i = 0; i < 6; i++) topR = slabBotAt(zRearAt(topR)) - 1;
     for (const sx of [-1, 1]) {
       const p = (y, z) => [sx * (hwAt(y) + 0.2), y, z];
       const q = (y, z) => [sx * (hwAt(y) + 0.2 + t), y, z];
       const a = p(bot, zFront);
-      const b = p(top, zFront);
-      const c = p(top, zRearAt(top));
+      const b = p(topF, zFront);
+      const c = p(topR, zRearAt(topR));
       const d = p(bot, zRearAt(bot));
       const a2 = q(bot, zFront);
-      const b2 = q(top, zFront);
-      const c2 = q(top, zRearAt(top));
+      const b2 = q(topF, zFront);
+      const c2 = q(topR, zRearAt(topR));
       const d2 = q(bot, zRearAt(bot));
       const faces =
         sx > 0
