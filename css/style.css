@@ -2687,8 +2687,7 @@ body.ready .loader {
   position: fixed;
   inset: 0;
   z-index: 80;
-  display: grid;
-  place-items: center;
+  display: flex;
   padding: max(16px, env(safe-area-inset-top, 0px)) 16px max(16px, env(safe-area-inset-bottom, 0px));
   background: rgba(20, 18, 16, 0.55);
   backdrop-filter: blur(6px);
@@ -2701,6 +2700,8 @@ body.ready .loader {
 
 .start-card {
   width: min(720px, 100%);
+  /* mittig, ohne bei langem Inhalt oben abgeschnitten zu werden */
+  margin: auto;
   padding: 26px 26px 22px;
   border-radius: 18px;
   background: var(--panel);
@@ -2737,9 +2738,18 @@ body.ready .loader {
   color: var(--ink-soft);
 }
 
+/* „Los geht's“ bleibt beim Scrollen durch die Geräte unten im Dialog angeheftet
+   (auf dem Handy nicht "fixed" wie der Abschluss-Knopf im Panel: der Weichzeichner
+   des Dialogs würde ihn sonst mitscrollen lassen) */
 .start-card .btn.finish {
+  position: sticky;
+  left: auto;
+  right: auto;
+  bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  z-index: 2;
   width: 100%;
   margin-top: 20px;
+  box-shadow: 0 10px 28px rgba(29, 27, 25, 0.28);
 }
 
 @media (max-width: 900px) {
