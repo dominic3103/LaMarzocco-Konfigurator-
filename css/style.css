@@ -25,6 +25,9 @@ html,
 body {
   margin: 0;
   height: 100%;
+  /* nie seitlich verschieben (v. a. am Handy); "clip" statt "hidden",
+     damit die angeheftete 3D-Ansicht (position: sticky) weiter funktioniert */
+  overflow-x: clip;
 }
 
 body {
@@ -1214,6 +1217,10 @@ body.ready .loader {
   font-weight: 500;
   line-height: 1.25;
   color: var(--ink-soft);
+  /* lange Namen (z. B. „Schokoladenbraun“) umbrechen statt über die Kachel hinauszuragen */
+  overflow-wrap: anywhere;
+  -webkit-hyphens: auto;
+  hyphens: auto;
 }
 
 .paint-code {
