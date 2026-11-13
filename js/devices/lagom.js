@@ -8,7 +8,8 @@
 // sowie die Strichzeichnungen der Kurzanleitung (Seiten-, Detailansichten).
 // Aus der Seitenansicht: Säule Ø 114 mm, 20° nach vorn geneigt, Oberteil
 // 41 mm, Trichter Ø 80 × 56 mm mit Skala, Auslauf Ø 28 mm bis 172 mm Höhe,
-// Gabel 106–149 mm, Tasten Auto/Manuell Ø 21 mm auf der rechten Seite,
+// Siebträgerhalter als senkrechtes C-Band 114–135,5 mm mit gegabelten Enden,
+// Tasten Auto/Manuell Ø 21 mm auf der rechten Seite,
 // Drehzahlknopf links.
 //
 // Koordinaten: X = Breite, Y = Höhe (0 = Stellfläche), Z = Tiefe (+Z = Front).
@@ -207,46 +208,95 @@ function buildLagom(mm) {
   }
   B.stage('fork');
   {
-    const cz = zOf(28);
-    const ro = 31;
-    const ri = 24.5;
-    const open = (21 * Math.PI) / 180; // halbe Öffnung vorn
-    // Grundriss in (x, z): Winkel ab +Z gemessen; Shape-Koordinaten (x, z)
-    const arc = (r, a0, a1, n = 40) => {
-      const pts = [];
-      for (let k = 0; k <= n; k++) {
-        const a = a0 + ((a1 - a0) * k) / n;
-        pts.push([Math.sin(a) * r, cz + Math.cos(a) * r]);
-      }
-      return pts;
-    };
-    const uShape = (r1, r2, a0, a1) => {
+    // Siebträgerhalter nach den Werksfotos (Seitenansicht DSCF0049, Nahaufnahmen DSCF9938/9939):
+    // senkrechtes, C-förmiges Band (21 mm hoch, 4,5 mm stark), vorn offen, an beiden Enden
+    // gegabelt: waagerechter Schlitz für die Ohren des Siebträgers, die untere Zinke ragt
+    // rund 9 mm weiter vor als die obere. Hinten mit zwei Senkschrauben an einem runden
+    // Zapfen (Ø 20 mm) aus der Säule befestigt.
+    const ro = 37;
+    const ri = 32.5;
+    const cz = zOf(24); // Mittelpunkt des Bogens
+    const yb = 114; // Unterkante
+    const yS0 = 121.5; // Schlitz unten
+    const yS1 = 129.5; // Schlitz oben
+    const yt = 135.5; // Oberkante
+    const zTipLow = zOf(2.4);
+    const zTipUp = zOf(11.6);
+    const zSlot = zOf(36.3); // Schlitzende (hinter dem Bogenmittelpunkt)
+    // Winkel a ab +Z (vorn) gemessen: x = sin(a)·r, z = cz + cos(a)·r
+    const P = (a, r) => [Math.sin(a) * r, cz + Math.cos(a) * r];
+    const angAt = (z, r) => Math.acos(Math.max(-1, Math.min(1, (z - cz) / r)));
+    const arcPts = (r, a0, a1, n = 36) => Array.from({ length: n + 1 }, (_, k) => P(a0 + ((a1 - a0) * k) / n, r));
+    const shapeOf = (pts) => {
       const sh = new THREE.Shape();
-      const outer = arc(r1, a0, a1);
-      const inner = arc(r2, a1, a0);
-      sh.moveTo(...outer[0]);
-      for (const p of outer.slice(1)) sh.lineTo(...p);
-      for (const p of inner) sh.lineTo(...p);
+      sh.moveTo(...pts[0]);
+      for (const p of pts.slice(1)) sh.lineTo(...p);
       sh.closePath();
       return sh;
     };
-    // untere Auflage (U, vorn offen)
-    B.add(boxProjectUV(plateY(uShape(ro, ri, open, Math.PI * 2 - open), 106, 8, 1.2, 64)), forkMat, S('metal.fork'));
-    // mittlere Lippe (hält die Ohren des Siebträgers)
-    B.add(boxProjectUV(plateY(uShape(ro - 1, ri + 1, open + 0.22, Math.PI * 2 - open - 0.22), 126, 5, 1, 64)), forkMat, S('metal.fork'));
-    // hinterer Steg und obere Lippe
-    B.add(boxProjectUV(plateY(uShape(ro, ro - 4, Math.PI * 0.72, Math.PI * 1.28), 106, 43, 1, 32)), forkMat, S('metal.fork'));
-    B.add(boxProjectUV(plateY(uShape(ro, ri + 2, Math.PI * 0.62, Math.PI * 1.38), 143, 6, 1, 48)), forkMat, S('metal.fork'));
-    // Anschläge vorn an den Armen
-    for (const sx of [-1, 1]) {
-      const a = sx > 0 ? open : Math.PI * 2 - open;
-      const r = (ro + ri) / 2;
-      const st = B.add(new THREE.CylinderGeometry(3.4, 3.4, 9, 16), forkMat, S('metal.fork'));
-      st.position.set(Math.sin(a) * r, 118, cz + Math.cos(a) * r);
+    const part = (sh, y0, h) => B.add(boxProjectUV(plateY(sh, y0, h, 0.7, 48)), forkMat, S('metal.fork'));
+    // hinterer Bogen in voller Höhe (bis zum Schlitzende)
+    {
+      const ao = angAt(zSlot, ro);
+      const ai = angAt(zSlot, ri);
+      part(shapeOf([...arcPts(ro, ao, Math.PI * 2 - ao, 64), ...arcPts(ri, Math.PI * 2 - ai, ai, 64)]), yb, yt - yb);
     }
-    // Halter zur Säule
-    const rod = latheZ([[0.01, 0], [8.5, 0], [8.5, 30], [0.01, 30]], 32);
-    B.add(rod, forkMat, S('metal.fork')).position.set(0, 125, zOf(80));
+    // Zinken: Bogenstück ab kurz hinter dem Schlitzende, dann gerade nach vorn bis zur Spitze
+    const prong = (side, zTip, y0, h) => {
+      const zIn = zSlot - 3; // reicht in den Bogen hinein (Fuge verdeckt)
+      const ao = angAt(zIn, ro);
+      const ai = angAt(zIn, ri);
+      const m = (a) => (side > 0 ? a : Math.PI * 2 - a);
+      const outer = arcPts(ro, m(ao), m(Math.PI / 2), 24);
+      const inner = arcPts(ri, m(Math.PI / 2), m(ai), 24);
+      const pts = [...outer, [side * ro, zTip], [side * ri, zTip], ...inner];
+      const sh = shapeOf(side > 0 ? pts : pts.reverse());
+      part(sh, y0, h);
+    };
+    for (const side of [-1, 1]) {
+      prong(side, zTipLow, yb, yS0 - yb);
+      prong(side, zTipUp, yS1, yt - yS1);
+    }
+    // gerundetes Schlitzende (Halbkreis in der Seitenansicht): Eckstücke zwischen den Zinken
+    {
+      const rs = (yS1 - yS0) / 2;
+      const ym = (yS0 + yS1) / 2;
+      const lo = new THREE.Shape();
+      lo.moveTo(0, yS0);
+      lo.lineTo(rs, yS0);
+      lo.absarc(rs, ym, rs, -Math.PI / 2, -Math.PI, true);
+      lo.closePath();
+      const hi = new THREE.Shape();
+      hi.moveTo(0, yS1);
+      hi.lineTo(0, ym);
+      hi.absarc(rs, ym, rs, Math.PI, Math.PI / 2, true);
+      hi.closePath();
+      const g = new THREE.ExtrudeGeometry([lo, hi], { depth: ro - ri, bevelEnabled: false, curveSegments: 16 });
+      g.translate(0, 0, -(ro - ri) / 2);
+      boxProjectUV(g);
+      const rm = (ro + ri) / 2;
+      const am = angAt(zSlot, rm);
+      for (const side of [-1, 1]) {
+        const a = side > 0 ? am : Math.PI * 2 - am;
+        const d = new THREE.Vector3(-side * Math.cos(a), 0, side * Math.sin(a)); // nach vorn entlang des Bandes
+        const up = new THREE.Vector3(0, 1, 0);
+        const zl = new THREE.Vector3().crossVectors(d, up);
+        const m = B.add(g, forkMat, S('metal.fork'));
+        m.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(d, up, zl));
+        const [px, pz] = P(a, rm);
+        m.position.set(px, 0, pz);
+      }
+    }
+    // Zapfen aus der Säule bis an die Rückseite des Bandes
+    const yc = (yb + yt) / 2;
+    B.add(latheZ([[0.01, 0], [10, 0], [10, cz - ro - 40 + 0.4], [0.01, cz - ro - 40 + 0.4]], 40), forkMat, S('metal.fork')).position.set(0, yc, 40);
+    // zwei Senkschrauben mit Innensechskant innen auf der Rückseite
+    for (const dy of [-5.2, 5.2]) {
+      const head = B.add(latheZ([[0.01, 0], [2.9, 0], [2.9, 0.25], [2.4, 0.5], [0.01, 0.5]], 24), F.steel || forkMat, S('metal.fork'));
+      head.position.set(0, yc + dy, cz - ri - 0.2);
+      const sock = B.plain(new THREE.CircleGeometry(1.25, 6), F.darkGap);
+      sock.position.set(0, yc + dy, cz - ri + 0.32);
+    }
   }
 
   // =========================================================================
