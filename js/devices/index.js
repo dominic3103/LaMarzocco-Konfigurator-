@@ -11,3 +11,4 @@ import './niche.js';
 import './bentwood.js';
 import './lagom.js';
 import './meraki.js';
+import './e1-prima.js';
