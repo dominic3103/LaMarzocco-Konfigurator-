@@ -567,8 +567,15 @@ export class ConfiguratorUI {
     const woodGrid = this._woodGroups(true, (w) => !w.plastic, (w) => this.opts.onPanelWood(w.id));
     const panelKeys = () => {
       const cfg = this.opts.getConfig();
-      return ['wood.panelUpper', 'wood.panelLower'].filter((k) => cfg.slots[k].id !== 'none');
+      return ['wood.panelUpper', 'wood.panelLower', 'wood.panelBack'].filter((k) => cfg.slots[k] && cfg.slots[k].id !== 'none');
     };
+    const backSeg = this._segmented(
+      [
+        { id: 'on', name: 'Mit Holz' },
+        { id: 'off', name: 'Ohne' },
+      ],
+      (id) => this.opts.onPanelBack(id === 'on'),
+    );
     const panelFinish = this._segmented(WOOD_FINISHES, (id) => {
       const keys = panelKeys();
       if (keys.length) this.opts.onSlots(keys, { finish: id });
@@ -590,9 +597,10 @@ export class ConfiguratorUI {
         el('h3', { class: 'sub-title', text: 'Holzumrandung & Seitenplatten' }),
         el('p', {
           class: 'hint-text tight',
-          text: 'Die Holzumrandung läuft oben um beide Seiten und die Rückseite (bei rb.crafts magnetisch befestigt). Seitenplatten sitzen auf den schrägen Seiten des Unterteils.',
+          text: 'Die Holzumrandung läuft oben um beide Seiten und die Rückseite (bei rb.crafts magnetisch befestigt). Seitenplatten sitzen auf den schrägen Seiten des Unterteils – mit Rückplatte läuft das Holz unten einmal rundum.',
         }),
         modeSeg,
+        el('div', { class: 'field' }, [el('span', { class: 'label', text: 'Rückseite unten' }), backSeg]),
         woodGrid,
         panelName,
         el('div', { class: 'field' }, [el('span', { class: 'label', text: 'Oberfläche' }), panelFinish]),
@@ -611,7 +619,7 @@ export class ConfiguratorUI {
         el('div', { class: 'field' }, [el('span', { class: 'label', text: 'Tassenablage' }), cupSeg]),
       ]),
     ]);
-    Object.assign(this.refs.steps.extras, { modeSeg, woodGrid, panelFinish, panelName, railSeg, railStyleSeg, railPicker, dripSeg, cupSeg });
+    Object.assign(this.refs.steps.extras, { modeSeg, backSeg, woodGrid, panelFinish, panelName, railSeg, railStyleSeg, railPicker, dripSeg, cupSeg });
     return step;
   }
 
@@ -808,12 +816,20 @@ export class ConfiguratorUI {
                 this.selectPart('metal.rail');
               }, 'accent')
             : null;
-        extra.append(el('span', { class: 'label', text: 'Anbauteile' }), ...[panelBtn, railBtn].filter(Boolean));
+        const backBtn =
+          region === 'lower'
+            ? action('Holz auch auf der Rückseite (rundum)', () => {
+                this.opts.onPanelBack(true);
+                this.selectPart('wood.panelBack');
+              }, 'accent')
+            : null;
+        extra.append(el('span', { class: 'label', text: 'Anbauteile' }), ...[panelBtn, backBtn, railBtn].filter(Boolean));
         blocks.push(extra);
         refreshers.push((c) => {
           if (panelBtn) panelBtn.hidden = c.slots[panelSlot].id !== 'none';
+          if (backBtn) backBtn.hidden = c.slots['wood.panelBack']?.id !== 'none';
           if (railBtn) railBtn.hidden = !!c.rail;
-          extra.hidden = (!panelBtn || panelBtn.hidden) && (!railBtn || railBtn.hidden);
+          extra.hidden = (!panelBtn || panelBtn.hidden) && (!backBtn || backBtn.hidden) && (!railBtn || railBtn.hidden);
         });
       }
     } else if (cat === 'wood') {
@@ -830,19 +846,38 @@ export class ConfiguratorUI {
         refreshers.push((c) => setActive(seg, c.shape[part]));
       }
       if (isPanel) {
-        const other = slot === 'wood.panelUpper' ? 'wood.panelLower' : 'wood.panelUpper';
-        const otherName = other === 'wood.panelUpper' ? 'oben' : 'unten';
-        const copyBtn = action(`Gleiches Holz auch ${otherName}`, () => this.opts.onCopy([other], this.opts.getConfig().slots[slot]));
-        const removeBtn = action('Seitenplatten entfernen', () => this.opts.onSlots([slot], { id: 'none' }), 'ghost');
+        const isBack = slot === 'wood.panelBack';
+        const other = slot === 'wood.panelUpper' ? 'wood.panelLower' : isBack ? 'wood.panelLower' : 'wood.panelUpper';
+        const otherName = isBack ? 'wie die Seitenplatten' : other === 'wood.panelUpper' ? 'auch oben' : 'auch unten';
+        const copyBtn = action(`Gleiches Holz ${otherName}`, () =>
+          isBack ? this.opts.onCopy([slot], this.opts.getConfig().slots[other]) : this.opts.onCopy([other], this.opts.getConfig().slots[slot]),
+        );
+        const removeBtn = action(isBack ? 'Rückplatte entfernen' : 'Seitenplatten entfernen', () => (isBack ? this.opts.onPanelBack(false) : this.opts.onSlots([slot], { id: 'none' })), 'ghost');
         actions.append(copyBtn, removeBtn);
+        // Seitenplatten unten: Rückseite mit Holz verkleiden (dann einmal rundum)
+        if (slot === 'wood.panelLower' || isBack) {
+          const backSeg = this._segmented(
+            [
+              { id: 'on', name: 'Mit Holz' },
+              { id: 'off', name: 'Ohne' },
+            ],
+            (id) => this.opts.onPanelBack(id === 'on'),
+          );
+          blocks.push(el('div', { class: 'field' }, [el('span', { class: 'label', text: 'Rückseite unten' }), backSeg]));
+          refreshers.push((c) => setActive(backSeg, c.slots['wood.panelBack']?.id !== 'none' ? 'on' : 'off'));
+        }
         refreshers.push((c) => {
           const on = c.slots[slot].id !== 'none';
-          note.textContent = on
-            ? 'Gilt für die Platten auf beiden Seiten der Maschine.'
-            : 'Nicht angebracht – Holz antippen, um die Seitenplatten anzubringen.';
+          note.textContent = isBack
+            ? on
+              ? 'Platte auf der Rückseite des Unterteils – zusammen mit den Seitenplatten läuft das Holz einmal rundum.'
+              : 'Nicht angebracht – „Mit Holz“ wählen, um die Rückseite zu verkleiden.'
+            : on
+              ? 'Gilt für die Platten auf beiden Seiten der Maschine.'
+              : 'Nicht angebracht – Holz antippen, um die Seitenplatten anzubringen.';
           note.classList.toggle('warn', !on);
           removeBtn.hidden = !on;
-          copyBtn.hidden = !on || c.slots[other].id === c.slots[slot].id;
+          copyBtn.hidden = !on || (isBack && c.slots[other].id === 'none') || c.slots[other].id === c.slots[slot].id;
         });
       } else {
         actions.append(
@@ -850,8 +885,8 @@ export class ConfiguratorUI {
             const c = this.opts.getConfig();
             const v = c.slots[slot];
             const plastic = resolveWood(v).plastic;
-            const keys = [...MAIN_WOOD, 'wood.panelUpper', 'wood.panelLower'].filter(
-              (k) => k !== slot && (!k.startsWith('wood.panel') || (!plastic && c.slots[k].id !== 'none')),
+            const keys = [...MAIN_WOOD, 'wood.panelUpper', 'wood.panelLower', 'wood.panelBack'].filter(
+              (k) => k !== slot && c.slots[k] && (!k.startsWith('wood.panel') || (!plastic && c.slots[k].id !== 'none')),
             );
             this.opts.onCopy(keys, v);
           }),
@@ -959,9 +994,11 @@ export class ConfiguratorUI {
       const s = this.refs.steps.extras;
       const up = cfg.slots['wood.panelUpper'];
       const lo = cfg.slots['wood.panelLower'];
+      const bk = cfg.slots['wood.panelBack'] || { id: 'none' };
       const mode = up.id !== 'none' && lo.id !== 'none' ? 'both' : up.id !== 'none' ? 'upper' : lo.id !== 'none' ? 'lower' : 'none';
       setActive(s.modeSeg, mode);
-      const enabled = [up, lo].filter((v) => v.id !== 'none');
+      setActive(s.backSeg, bk.id !== 'none' ? 'on' : 'off');
+      const enabled = [up, lo, bk].filter((v) => v.id !== 'none');
       const woodId = enabled.length && enabled.every((v) => v.id === enabled[0].id) ? enabled[0].id : null;
       s.woodGrid.querySelectorAll('.wood').forEach((b) => {
         const on = b.dataset.id === woodId;
@@ -971,7 +1008,7 @@ export class ConfiguratorUI {
       s.woodGrid.classList.toggle('dimmed', mode === 'none');
       const fin = enabled.length && enabled.every((v) => v.finish === enabled[0].finish) ? enabled[0].finish : null;
       setActive(s.panelFinish, fin);
-      const where = { both: 'Umrandung + Platten', upper: 'Umrandung', lower: 'Platten unten' }[mode];
+      const where = { both: 'Umrandung + Platten', upper: 'Umrandung', lower: 'Platten unten' }[mode] + (bk.id !== 'none' && mode !== 'none' ? ' rundum' : '');
       const panelText = mode === 'none' ? 'Ohne Holz am Gehäuse' : `${where} ${woodId ? resolveWood({ id: woodId }).name : 'gemischt'}`;
       s.panelName.textContent =
         mode === 'none' ? 'Ohne Holz am Gehäuse – Holz antippen, um die Holzumrandung anzubringen' : `${panelText}${fin ? ' · ' + finishName(WOOD_FINISHES, fin) : ''}`;
@@ -1119,7 +1156,7 @@ export class ConfiguratorUI {
       portafilter: ['Siebträger', `${p('metal.portafilter')}, Griff ${w('wood.handle')}`],
       paddle: ['Paddle', w('wood.paddle')],
       knobs: ['Drehknöpfe', `${w('wood.knobs')}, ${finishName(KNOB_SHAPES, cfg.shape.knobs).toLowerCase()}`],
-      panels: [cfg.slots['wood.panelUpper'].id !== 'none' ? 'Holzumrandung' : 'Seitenplatten', panels.length ? w(panels[0]) : ''],
+      panels: [cfg.slots['wood.panelUpper'].id !== 'none' ? 'Holzumrandung' : cfg.slots['wood.panelBack']?.id !== 'none' ? 'Seiten- & Rückplatten' : 'Seitenplatten', panels.length ? w(panels[0]) : ''],
       tray: ['Tassenablage', p('metal.grates')],
       rail: ['Cup Rail', p('metal.rail')],
       screws: ['Schrauben', p('metal.screws')],
@@ -1168,7 +1205,8 @@ export class ConfiguratorUI {
     const up = cfg.slots['wood.panelUpper'];
     const lo = cfg.slots['wood.panelLower'];
     const pw = resolveWood(lo.id !== 'none' ? lo : up);
-    const where = up.id !== 'none' && lo.id !== 'none' ? 'Umrandung + Platten unten' : up.id !== 'none' ? 'Holzumrandung oben' : lo.id !== 'none' ? 'Seitenplatten unten' : '';
+    const backTxt = cfg.slots['wood.panelBack'] && cfg.slots['wood.panelBack'].id !== 'none' ? ' rundum' : '';
+    const where = up.id !== 'none' && lo.id !== 'none' ? `Umrandung + Platten unten${backTxt}` : up.id !== 'none' ? 'Holzumrandung oben' : lo.id !== 'none' ? `Seitenplatten unten${backTxt}` : '';
     rows.push(['Holz am Gehäuse', where ? `${where}, ${pw.name}` : 'Ohne', where ? woodGradient(pw) : 'transparent']);
     // Cup Rail
     const rail = resolveMetal(cfg.slots['metal.rail']);

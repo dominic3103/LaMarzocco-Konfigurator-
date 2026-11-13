@@ -23,6 +23,7 @@ export const CATEGORIES = {
       { key: 'wood.handle', label: 'Siebträgergriff' },
       { key: 'wood.panelUpper', label: 'Holzumrandung oben', panel: true, chip: false },
       { key: 'wood.panelLower', label: 'Seitenplatten unten', panel: true, chip: false },
+      { key: 'wood.panelBack', label: 'Rückplatte unten', panel: true, chip: false },
     ],
   },
   metal: {
@@ -405,6 +406,7 @@ const allMetal = (id, finish = 'gloss') =>
 export const NEUTRAL_SLOTS = {
   'wood.panelUpper': { id: 'none', finish: 'oiled' },
   'wood.panelLower': { id: 'none', finish: 'oiled' },
+  'wood.panelBack': { id: 'none', finish: 'oiled' },
   'metal.rail': { id: 'steel', finish: 'satin' },
   'metal.feet': { id: 'black', finish: 'matte' },
 };

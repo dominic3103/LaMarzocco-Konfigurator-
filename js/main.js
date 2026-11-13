@@ -345,6 +345,15 @@ const machineUiOpts = {
     const id = panelWood();
     setPanelSlots(mode === 'both' || mode === 'upper' ? id : 'none', mode === 'both' || mode === 'lower' ? id : 'none');
   },
+  /** Holz-Rückplatte am Unterteil an/aus; bringt bei Bedarf auch die Seitenplatten unten an */
+  onPanelBack: (on) => {
+    const up = config.slots['wood.panelUpper'].id;
+    const lo = config.slots['wood.panelLower'].id;
+    if (on) {
+      const id = lo !== 'none' ? lo : panelWood();
+      setPanelSlots(up, id, id);
+    } else setPanelSlots(up, lo, 'none');
+  },
   /** Seitenplatten an einem Bereich anbringen (aus der Auswahlkarte) */
   onPanelAdd: (region) => {
     const id = panelWood();
@@ -455,6 +464,7 @@ function reapplyFollowers(keys) {
 /** Wert eines Bauteils auf andere Bauteile übertragen */
 function copySlots(keys, value) {
   if (!keys.length) return;
+  keys = withPanelBack(keys);
   const v = clone(value);
   prepareWoods({ slots: Object.fromEntries(keys.map((k) => [k, v])) }, () => {
     for (const k of keys) {
@@ -625,11 +635,19 @@ function panelWood() {
   const h = resolveWood(config.slots['wood.handle']);
   return h.plastic || h.none ? 'walnut' : h.id;
 }
-function setPanelSlots(upperId, lowerId) {
+/** Rückplatte unten folgt den Seitenplatten unten (gleiches Holz, ohne Seitenplatten keine Rückplatte) */
+const PANEL_BACK = 'wood.panelBack';
+const backOn = () => !!config.slots[PANEL_BACK] && config.slots[PANEL_BACK].id !== 'none';
+function withPanelBack(keys) {
+  return keys.includes('wood.panelLower') && !keys.includes(PANEL_BACK) && backOn() ? [...keys, PANEL_BACK] : keys;
+}
+function setPanelSlots(upperId, lowerId, backId = lowerId !== 'none' && backOn() ? lowerId : 'none') {
   const next = { 'wood.panelUpper': upperId, 'wood.panelLower': lowerId };
+  if (config.slots[PANEL_BACK]) next[PANEL_BACK] = backId;
   prepareWoods({ slots: Object.fromEntries(Object.entries(next).map(([k, id]) => [k, { id }])) }, () => {
     for (const [k, id] of Object.entries(next)) {
-      config.slots[k] = { id, finish: config.slots[k].finish || 'oiled' };
+      const fin = k === PANEL_BACK && lowerId !== 'none' ? config.slots['wood.panelLower'].finish : config.slots[k].finish;
+      config.slots[k] = { id, finish: fin || 'oiled' };
       mm.applySlot(k, config.slots[k], config);
     }
     syncParts();
@@ -657,6 +675,7 @@ function prepareWoods(cfg, done) {
 }
 
 function updateSlots(keys, patch) {
+  keys = withPanelBack(keys);
   // Konfiguration sofort übernehmen (z. B. für einen direkt danach geteilten Link);
   // nur das Anwenden der Materialien wartet bei Holz kurz auf die Texturen
   for (const k of keys) {

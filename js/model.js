@@ -1198,9 +1198,11 @@ export function buildMachine(mm) {
   // =========================================================================
   const panelUpper = new THREE.Group();
   const panelLower = new THREE.Group();
-  panelUpper.visible = false;
-  panelLower.visible = false;
-  root.add(panelUpper, panelLower);
+  // mit Holz-Rückplatte: Seitenplatten bis an deren Außenfläche verlängert
+  const panelLowerWrap = new THREE.Group();
+  const panelBack = new THREE.Group();
+  for (const g of [panelUpper, panelLower, panelLowerWrap, panelBack]) g.visible = false;
+  root.add(panelUpper, panelLower, panelLowerWrap, panelBack);
   {
     const inset = 3;
     const t = 2.6;
@@ -1255,25 +1257,61 @@ export function buildMachine(mm) {
     // (235 mm vorn, 255 mm hinten): die ganze sichtbare Seitenfläche des Mittelteils ist bedeckt
     const slabBotAt = (z) => M.slabBotFront + ((M.slabBotRear - M.slabBotFront) * z) / M.rearBot;
     const topF = slabBotAt(zFront) - 1;
-    let topR = M.slabBotRear - 1;
-    for (let i = 0; i < 6; i++) topR = slabBotAt(zRearAt(topR)) - 1;
-    for (const sx of [-1, 1]) {
-      const p = (y, z) => [sx * (hwAt(y) + 0.2), y, z];
-      const q = (y, z) => [sx * (hwAt(y) + 0.2 + t), y, z];
-      const a = p(bot, zFront);
-      const b = p(topF, zFront);
-      const c = p(topR, zRearAt(topR));
-      const d = p(bot, zRearAt(bot));
-      const a2 = q(bot, zFront);
-      const b2 = q(topF, zFront);
-      const c2 = q(topR, zRearAt(topR));
-      const d2 = q(bot, zRearAt(bot));
-      const faces =
-        sx > 0
-          ? [[a2, d2, c2, b2], [a, b, c, d], [a, a2, b2, b], [d, c, c2, d2], [b, b2, c2, c], [a, d, d2, a2]]
-          : [[a2, b2, c2, d2], [a, d, c, b], [a, b, b2, a2], [d, d2, c2, c], [b, c, c2, b2], [a, a2, d2, d]];
-      const gl = woodBoxUV(polyhedron(faces), 2, [sx > 0 ? 0.52 : 0.08, 0.4]);
-      add(gl, matL, 'wood.panelLower', panelLower);
+    // Seitenplatten mit gegebener Hinterkante zRear(y); oben jeweils knapp unter dem Oberkorpus
+    const sidePanels = (zRear, group) => {
+      let topR = M.slabBotRear - 1;
+      for (let i = 0; i < 6; i++) topR = slabBotAt(zRear(topR)) - 1;
+      for (const sx of [-1, 1]) {
+        const p = (y, z) => [sx * (hwAt(y) + 0.2), y, z];
+        const q = (y, z) => [sx * (hwAt(y) + 0.2 + t), y, z];
+        const a = p(bot, zFront);
+        const b = p(topF, zFront);
+        const c = p(topR, zRear(topR));
+        const d = p(bot, zRear(bot));
+        const a2 = q(bot, zFront);
+        const b2 = q(topF, zFront);
+        const c2 = q(topR, zRear(topR));
+        const d2 = q(bot, zRear(bot));
+        const faces =
+          sx > 0
+            ? [[a2, d2, c2, b2], [a, b, c, d], [a, a2, b2, b], [d, c, c2, d2], [b, b2, c2, c], [a, d, d2, a2]]
+            : [[a2, b2, c2, d2], [a, d, c, b], [a, b, b2, a2], [d, d2, c2, c], [b, c, c2, b2], [a, a2, d2, d]];
+        const gl = woodBoxUV(polyhedron(faces), 2, [sx > 0 ? 0.52 : 0.08, 0.4]);
+        add(gl, matL, 'wood.panelLower', group);
+      }
+      return topR;
+    };
+    sidePanels(zRearAt, panelLower);
+
+    // Rückseite des Unterteils (optional): Platte auf der schrägen Rückwand zwischen den
+    // Seitenplatten; diese laufen dann bis an ihre Außenfläche – das Holz geht einmal rundum
+    {
+      const k = 21 / 149.4; // Rückwand neigt sich nach oben hin nach hinten
+      const zRear = (y) => -288 - (y - M.baseTop) * k;
+      const L = Math.hypot(1, k);
+      const ny = -k / L; // Normale nach hinten/unten
+      const nz = -1 / L;
+      const off0 = 0.2;
+      const off1 = off0 + t;
+      const yt = sidePanels((y) => zRear(y) + nz * off1 - 0.05, panelLowerWrap);
+      const P = (sx, y, o) => [sx * (hwAt(y) + 0.2), y + ny * o, zRear(y) + nz * o];
+      const a0 = P(-1, bot, off0);
+      const b0 = P(1, bot, off0);
+      const c0 = P(1, yt, off0);
+      const d0 = P(-1, yt, off0);
+      const a1 = P(-1, bot, off1);
+      const b1 = P(1, bot, off1);
+      const c1 = P(1, yt, off1);
+      const d1 = P(-1, yt, off1);
+      const back = polyhedron([
+        [b1, a1, d1, c1],
+        [a0, b0, c0, d0],
+        [a0, a1, b1, b0],
+        [d0, c0, c1, d1],
+        [a0, d0, d1, a1],
+        [b0, b1, c1, c0],
+      ]);
+      add(woodBoxUV(back, 0, [0.21, 0.63]), mm.get('wood.panelBack'), 'wood.panelBack', panelBack);
     }
   }
 
@@ -1548,9 +1586,11 @@ export function buildMachine(mm) {
       }
     },
     /** Holzverkleidungen ein-/ausblenden */
-    setPanels({ upper, lower }) {
+    setPanels({ upper, lower, back }) {
       panelUpper.visible = !!upper;
-      panelLower.visible = !!lower;
+      panelLower.visible = !!lower && !back;
+      panelLowerWrap.visible = !!lower && !!back;
+      panelBack.visible = !!back;
       // die Holzumrandung verdeckt die Rückwand – dort sitzt dann kein Schriftzug
       rearLogo.visible = !upper;
     },
@@ -1569,6 +1609,7 @@ export function buildMachine(mm) {
       this.setPanels({
         upper: config.slots['wood.panelUpper'].id !== 'none',
         lower: config.slots['wood.panelLower'].id !== 'none',
+        back: !!config.slots['wood.panelBack'] && config.slots['wood.panelBack'].id !== 'none',
       });
       this.setShapes(config.shape);
       this.setGauge('left', config.gauges.left);
