@@ -6,7 +6,9 @@
 // verstellbarer Siebträgerhalter) und die Werksfotos der Farbvarianten
 // (Schwarz/Walnuss, Schwarz, Weiß). Eine bemaßte Zeichnung veröffentlicht
 // Bentwood nicht; Gehäuse (170 × 200 × 262 mm), Display, Auslauf, Halter und
-// Trichter sind über die Herstellermaße aus den Fotos abgeleitet.
+// Trichter sind über die Herstellermaße aus den Fotos abgeleitet. Der
+// Siebträgerhalter ist an Front- und Dreiviertelansichten von beiden Seiten
+// (mit und ohne Siebträger) nachgemessen.
 //
 // Koordinaten: X = Breite, Y = Höhe (0 = Stellfläche), Z = Tiefe (+Z = Front).
 // Z = 0 ist die Mitte des Gehäuses (Trichterachse).
@@ -26,6 +28,24 @@ const H0 = 8; // Unterkante Gehäuse (Füße)
 const H1 = 268; // Oberkante Gehäuse
 const SIDE = 11; // Stärke der Seitenteile
 const FX = -6; // Mitte von Display, Auslauf und Halter (leicht links)
+
+/** Flächen umdrehen (nach einer Spiegelung mit scale(-1, 1, 1)) */
+function flipFaces(g) {
+  const out = g.index ? g.toNonIndexed() : g;
+  const p = out.attributes.position;
+  for (let i = 0; i < p.count; i += 3) {
+    for (const name of Object.keys(out.attributes)) {
+      const a = out.attributes[name];
+      for (let c = 0; c < a.itemSize; c++) {
+        const t = a.array[(i + 1) * a.itemSize + c];
+        a.array[(i + 1) * a.itemSize + c] = a.array[(i + 2) * a.itemSize + c];
+        a.array[(i + 2) * a.itemSize + c] = t;
+      }
+    }
+  }
+  out.computeVertexNormals();
+  return out;
+}
 
 const STAGES = [
   { id: 'sk-frame', src: 'skeleton', from: [0, 1, 0], dist: 400, gap: 0, dur: 0.7, drop: true },
@@ -236,35 +256,172 @@ function buildBentwood(mm) {
   // =========================================================================
   B.stage('fork');
   {
+    // Höhenverstellbarer Siebträgerhalter nach den Werksfotos (Front, Dreiviertel links/rechts,
+    // mit und ohne Siebträger), Maße über die Gerätebreite 170 mm aus der Frontansicht:
+    // - gefräster Block 100 × 78,5 mm, 27 mm hoch, mit Trichterkegel (oben Ø 87, unten Ø 62);
+    //   vorn bleiben nur 5,8 mm starke Außenwände stehen, dazwischen ist die Front bis auf eine
+    //   5 mm hohe Lippe ausgeschnitten (Frontfoto: Kegelfläche reicht bis an die Wände)
+    // - je Seite ein Flachband (3,8 × 12 mm) in einer Nut der Wange, mit Langloch und Schraube,
+    //   unten nach innen abgekantet
+    // - U-förmige Auflage (3 mm) mit zwei nach vorn ausgestellten Zinken, Gummi auf dem Steg
     const fm = mat('metal.fork');
-    // Halteplatte an der Front
-    B.add(rbox(104, 14, 6, 2, 2), fm, S('metal.fork')).position.set(FX, 112, HD + 3);
-    // Bügel (U, vorne offen) mit schrägen Innenflanken
-    const pts = [];
-    for (let k = 0; k <= 32; k++) {
-      const a = Math.PI + (k / 32) * Math.PI;
-      pts.push([FX + Math.cos(a) * 46, 114, HD + 46 + Math.sin(a) * 38]);
+    const add = (g) => B.add(boxProjectUV(g), fm, S('metal.fork'));
+    const yT = 122; // Oberkante Block (Frontfoto: rund 11 mm unter der Mündung des Auslaufs)
+    const yEb = yT - 27; // Unterkante Wangen
+    const yCb = yT - 21.5; // Unterkante Mittelteil (Lippe)
+    const yLt = yT - 16.5; // Oberkante Lippe = Unterkante Kegel
+    const D = 78.5; // Tiefe ab Front
+    const ZC = 45.5; // Trichterachse ab Front
+    const EI = 44.2; // Innenseite der vorderen Außenwände
+    const X0 = 45.6; // Nut für das Flachband
+    const WO = 50; // Außenseite
+    const rTop = 43.5;
+    const rBot = 31;
+    const rAt = (y) => rBot + ((rTop - rBot) * (y - yLt)) / (yT - yLt);
+    const BAR = { z0: 64, z1: 76, t: 3.8 };
+    // Grundriss-Koordinaten (x relativ zu FX, z relativ zur Front) -> Shape für plateY
+    const shp = (pts) => new THREE.Shape(pts.map(([x, z]) => new THREE.Vector2(FX + x, HD + z)));
+    const rectXZ = (x0, z0, x1, z1) => shp([[x0, z0], [x1, z0], [x1, z1], [x0, z1]]);
+    // (a) Wangen unterhalb des Mittelteils
+    // (unten 16,5 mm breit, Frontfoto)
+    for (const sx of [-1, 1]) add(plateY(rectXZ(sx > 0 ? 33.5 : -X0, 0, sx > 0 ? X0 : -33.5, D), yEb, yCb - yEb + 0.02, 0));
+    // (b) Lippe mit Bohrung (Ø 62): hinten volles Material, vorn ein schmaler Ring um die
+    //     Öffnung, an den Wänden je ein Absatz (Fotos: dünne gebogene Kante mit Stufen)
+    {
+      const RL = rBot + 3;
+      const xs = 33.5;
+      const ze = ZC + Math.sqrt(RL * RL - xs * xs);
+      const pts = [[-X0, 0], [X0, 0], [X0, D], [xs, D], [xs, ze]];
+      const te = Math.asin(xs / RL);
+      for (let k = 0; k <= 48; k++) {
+        const a = te - (2 * te * k) / 48;
+        pts.push([RL * Math.sin(a), Math.min(D, ZC + RL * Math.cos(a))]);
+      }
+      pts.push([-xs, ze], [-xs, D], [-X0, D]);
+      const sh = shp(pts);
+      const hole = new THREE.Path();
+      hole.absarc(FX, HD + ZC, rBot, 0, Math.PI * 2, true);
+      sh.holes.push(hole);
+      add(plateY(sh, yCb, yLt - yCb, 0, 64));
     }
-    pts.unshift([FX - 46, 114, HD + 74]);
-    pts.push([FX + 46, 114, HD + 74]);
-    const curve = new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(...p)));
-    const prof = new THREE.Shape();
-    prof.moveTo(-4, -8);
-    prof.lineTo(4, -8);
-    prof.lineTo(5, 6);
-    prof.lineTo(-1, 8);
-    prof.lineTo(-4, 6);
-    prof.closePath();
-    const ring = new THREE.ExtrudeGeometry(prof, { steps: 80, bevelEnabled: false, extrudePath: curve });
-    B.add(ring, fm, S('metal.fork'));
-    // senkrechte Streben und untere Auflagen
+    // (c) Kegelbereich in dünnen Lagen: Rechteck minus Kreis minus Frontausschnitt
+    const layer = (r) => {
+      const pts = [[-X0, 0], [X0, 0], [X0, D], [EI, D]];
+      const arc = (a0, a1, n = 48) => {
+        for (let k = 0; k <= n; k++) {
+          const a = a0 + ((a1 - a0) * k) / n;
+          pts.push([r * Math.sin(a), ZC + r * Math.cos(a)]);
+        }
+      };
+      if (r > EI) {
+        const t = Math.asin(EI / r);
+        arc(t, Math.PI * 2 - t);
+      } else {
+        pts.push([EI, ZC]);
+        arc(Math.PI / 2, Math.PI * 1.5);
+        pts.push([-EI, ZC]);
+      }
+      pts.push([-EI, D], [-X0, D]);
+      return shp(pts);
+    };
+    const NL = 17;
+    for (let i = 0; i < NL; i++) {
+      const y0 = yLt + ((yT - yLt) * i) / NL;
+      const y1 = yLt + ((yT - yLt) * (i + 1)) / NL;
+      add(plateY(layer(rAt(y1)), y0, y1 - y0 + 0.02, 0, 64));
+    }
+    // glatte Kegelfläche innen (deckt die Lagen ab), nur wo Material ist
+    {
+      const prof = [];
+      for (let k = 0; k <= 18; k++) {
+        const y = yT - ((yT - yLt) * k) / 18;
+        prof.push([rAt(y), y]);
+      }
+      const cone = latheY(prof, 128).toNonIndexed();
+      const p = cone.attributes.position;
+      const keep = [];
+      for (let i = 0; i < p.count; i += 3) {
+        let cx = 0;
+        let cy = 0;
+        let cz = 0;
+        for (let k = 0; k < 3; k++) {
+          cx += p.getX(i + k) / 3;
+          cy += p.getY(i + k) / 3;
+          cz += p.getZ(i + k) / 3;
+        }
+        if (Math.abs(cx) < EI - 0.2 && cz > 0.3 && cy > yLt + 0.1) continue; // Frontausschnitt
+        for (let k = 0; k < 3; k++) keep.push(p.getX(i + k), p.getY(i + k), p.getZ(i + k));
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(keep, 3));
+      g.computeVertexNormals();
+      g.translate(FX, 0, HD + ZC);
+      add(g);
+    }
+    // (d) Außenhaut der Wangen vor und hinter der Nut
     for (const sx of [-1, 1]) {
-      const x = FX + sx * 46;
-      B.add(rbox(5, 64, 8, 1.5, 2), fm, S('metal.fork')).position.set(x, 80, HD + 60);
-      const arm = B.add(rbox(14, 4, 46, 2, 2), fm, S('metal.fork'));
-      arm.position.set(x - sx * 14, 50, HD + 80);
-      arm.rotation.y = sx * 0.5;
-      B.plain(rbox(16, 3, 26, 1.5, 2), F.rubber).position.set(x - sx * 22, 52.6, HD + 96);
+      const xa = sx > 0 ? X0 : -WO;
+      const xb = sx > 0 ? WO : -X0;
+      add(plateY(rectXZ(xa, 0, xb, BAR.z0 - 0.4), yEb, yT - yEb, 0.5));
+      add(plateY(rectXZ(xa, BAR.z1 + 0.4, xb, D), yEb, yT - yEb, 0.5));
+    }
+    // Flachbänder: senkrecht in der Nut, unten mit Radius nach innen abgekantet
+    const yF = yT - 66; // Oberkante der Auflage
+    for (const sx of [-1, 1]) {
+      const xo = WO - 0.6;
+      const xi = xo - BAR.t;
+      const ri = 3;
+      const ro = ri + BAR.t;
+      const sh = new THREE.Shape();
+      sh.moveTo(xo, yT - 3);
+      sh.lineTo(xo, yF + ro);
+      sh.absarc(xo - ro, yF + ro, ro, 0, -Math.PI / 2, true);
+      sh.lineTo(EI, yF);
+      sh.lineTo(EI, yF + BAR.t);
+      sh.lineTo(xi - ri, yF + BAR.t);
+      sh.absarc(xi - ri, yF + BAR.t + ri, ri, -Math.PI / 2, 0, false);
+      sh.lineTo(xi, yT - 3);
+      sh.closePath();
+      const g = plateZ(sh, HD + BAR.z0, BAR.z1 - BAR.z0, 0.4, 12);
+      if (sx < 0) g.scale(-1, 1, 1);
+      const m = add(g);
+      m.position.x = FX;
+      if (sx < 0) m.geometry = flipFaces(m.geometry);
+      // Langloch und Schraube auf der Außenseite
+      const slot = B.plain(new THREE.PlaneGeometry(10, 3.2), F.darkGap);
+      slot.rotation.set(0, (sx * Math.PI) / 2, Math.PI / 2);
+      slot.position.set(FX + sx * (xo + 0.05), yT - 18, HD + (BAR.z0 + BAR.z1) / 2);
+      const head = B.plain(latheY([[0, 0], [3.4, 0], [3.4, 1.1], [2.6, 1.8], [0, 1.9]], 24), F.chrome);
+      head.rotation.z = -sx * (Math.PI / 2);
+      head.position.set(FX + sx * xo, yT - 20, HD + (BAR.z0 + BAR.z1) / 2);
+      const hex = B.plain(new THREE.CircleGeometry(1.3, 6), F.darkGap);
+      hex.rotation.y = (sx * Math.PI) / 2;
+      hex.position.set(FX + sx * (xo + 1.95), yT - 20, HD + (BAR.z0 + BAR.z1) / 2);
+    }
+    // U-förmige Auflage mit zwei Zinken, Gummi auf dem Steg
+    {
+      const sh = filletShape(
+        [
+          [FX - 47, HD + 52],
+          [FX + 47, HD + 52],
+          [FX + 52, HD + 112],
+          [FX + 25.4, HD + 112],
+          [FX + 26, HD + 74],
+          [FX - 26, HD + 74],
+          [FX - 25.4, HD + 112],
+          [FX - 52, HD + 112],
+        ],
+        [4, 4, 4, 3, 3, 3, 3, 4],
+        4,
+      );
+      add(plateY(sh, yF - 3, 3, 0.6, 24));
+      const pad = new THREE.Shape();
+      pad.moveTo(FX - 25.5, HD + 53);
+      pad.lineTo(FX + 25.5, HD + 53);
+      pad.lineTo(FX + 25.5, HD + 74);
+      pad.quadraticCurveTo(FX, HD + 92, FX - 25.5, HD + 74); // Vorderkante nach vorn gewölbt
+      pad.closePath();
+      B.plain(plateY(pad, yF - 0.5, 3.4, 0.9, 24), new THREE.MeshStandardMaterial({ color: 0x3a2a22, roughness: 0.85 }));
     }
   }
 
